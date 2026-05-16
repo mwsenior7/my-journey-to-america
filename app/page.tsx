@@ -1,4 +1,5 @@
 import Link from "next/link";
+import HeroBackground from "@/components/HeroBackground";
 
 const featuredStories = [
   {
@@ -38,49 +39,98 @@ export default function HomePage() {
   return (
     <div>
       {/* Hero */}
-      <section className="bg-navy text-cream py-24 px-4 text-center">
-        <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-6">
-          Every Journey{" "}
-          <span className="text-gold">Tells a Story.</span>
-        </h1>
-        <p className="text-lg md:text-xl text-cream/80 max-w-2xl mx-auto mb-10">
-          A living archive of immigration stories — told by the people who lived
-          them. Discover where people came from, how they arrived, and who they
-          became.
-        </p>
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link
-            href="/browse"
-            className="bg-gold text-navy font-semibold px-8 py-3 rounded-full hover:bg-gold/90 transition-colors"
+      <section
+        style={{
+          backgroundColor: "#1B2A4A",
+          color: "#FAF7F2",
+          position: "relative",
+          overflow: "hidden",
+          minHeight: "540px",
+        }}
+        className="py-28 px-4 text-center flex items-center justify-center"
+      >
+        {/* Decorative SVG background */}
+        <HeroBackground />
+
+        {/* Text sits above the SVG */}
+        <div style={{ position: "relative", zIndex: 10 }}>
+          <p
+            className="text-sm font-semibold tracking-[0.2em] uppercase mb-5"
+            style={{ color: "#C9A84C", opacity: 0.9 }}
           >
-            Browse Stories
-          </Link>
-          <Link
-            href="/share"
-            className="border border-gold text-gold font-semibold px-8 py-3 rounded-full hover:bg-gold/10 transition-colors"
+            An Archive of Immigration Stories
+          </p>
+          <h1 className="text-5xl md:text-7xl font-extrabold leading-tight mb-6">
+            Every Journey{" "}
+            <span style={{ color: "#C9A84C" }}>Tells a Story.</span>
+          </h1>
+          <p
+            className="text-lg md:text-xl max-w-2xl mx-auto mb-12"
+            style={{ color: "#FAF7F2", opacity: 0.8, lineHeight: "1.75" }}
           >
-            Share Your Story
-          </Link>
+            A living archive of immigration stories — told by the people who lived
+            them. Discover where people came from, how they arrived, and who they
+            became.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/browse"
+              style={{ backgroundColor: "#C9A84C", color: "#1B2A4A" }}
+              className="font-bold px-10 py-3.5 rounded-full hover:opacity-90 transition-opacity text-base"
+            >
+              Browse Stories
+            </Link>
+            <Link
+              href="/share"
+              style={{ border: "2px solid #C9A84C", color: "#C9A84C" }}
+              className="font-bold px-10 py-3.5 rounded-full hover:opacity-80 transition-opacity text-base"
+            >
+              Share Your Story
+            </Link>
+          </div>
+
+          {/* Stat strip */}
+          <div
+            className="flex flex-wrap justify-center gap-8 mt-14 text-sm"
+            style={{ color: "#FAF7F2", opacity: 0.6 }}
+          >
+            {[
+              ["8,000+", "Stories archived"],
+              ["140+",   "Countries represented"],
+              ["50",     "US states covered"],
+            ].map(([num, label]) => (
+              <div key={label} className="flex flex-col items-center gap-0.5">
+                <span className="text-2xl font-bold" style={{ color: "#C9A84C", opacity: 1 }}>{num}</span>
+                <span>{label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
       {/* Mission Statement */}
-      <section className="py-16 px-4 max-w-3xl mx-auto text-center">
-        <h2 className="text-3xl font-bold text-navy mb-4">Our Mission</h2>
-        <p className="text-navy/70 text-lg leading-relaxed">
-          My Journey to America is a community-powered platform that preserves
-          and celebrates the immigrant experience. We believe every story of
-          arrival — of sacrifice, resilience, and renewal — is a vital thread in
-          the fabric of American life. We give those stories a permanent home.
-        </p>
+      <section style={{ backgroundColor: "#FAF7F2" }} className="py-16 px-4">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 style={{ color: "#1B2A4A" }} className="text-3xl font-bold mb-4">
+            Our Mission
+          </h2>
+          <p style={{ color: "#1B2A4A", opacity: 0.75 }} className="text-lg leading-relaxed">
+            My Journey to America is a community-powered platform that preserves
+            and celebrates the immigrant experience. We believe every story of
+            arrival — of sacrifice, resilience, and renewal — is a vital thread
+            in the fabric of American life. We give those stories a permanent home.
+          </p>
+        </div>
       </section>
 
       {/* Featured Stories */}
-      <section className="bg-cream py-16 px-4">
+      <section style={{ backgroundColor: "#FAF7F2" }} className="pb-16 px-4">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-10">
-            <h2 className="text-3xl font-bold text-navy">Featured Stories</h2>
-            <Link href="/browse" className="text-gold font-semibold hover:underline text-sm">
+            <h2 style={{ color: "#1B2A4A" }} className="text-3xl font-bold">
+              Featured Stories
+            </h2>
+            <Link href="/browse" style={{ color: "#C9A84C" }} className="font-semibold hover:underline text-sm">
               View all →
             </Link>
           </div>
@@ -88,26 +138,29 @@ export default function HomePage() {
             {featuredStories.map((story) => (
               <article
                 key={story.id}
-                className="bg-white rounded-2xl shadow-sm border border-navy/10 p-6 flex flex-col gap-4 hover:shadow-md transition-shadow"
+                className="bg-white rounded-2xl p-6 flex flex-col gap-4 hover:shadow-lg transition-shadow"
+                style={{ border: "1px solid rgba(27,42,74,0.12)", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}
               >
                 <div className="flex items-start justify-between">
                   <div>
-                    <h3 className="font-bold text-navy text-lg">{story.name}</h3>
-                    <p className="text-sm text-navy/60">
+                    <h3 style={{ color: "#1B2A4A" }} className="font-bold text-lg">
+                      {story.name}
+                    </h3>
+                    <p style={{ color: "#1B2A4A", opacity: 0.6 }} className="text-sm">
                       {story.origin} &middot; {story.year}
                     </p>
                   </div>
-                  <span className="bg-gold/20 text-gold text-xs font-semibold px-3 py-1 rounded-full">
+                  <span
+                    style={{ backgroundColor: "rgba(201,168,76,0.15)", color: "#C9A84C" }}
+                    className="text-xs font-semibold px-3 py-1 rounded-full whitespace-nowrap"
+                  >
                     Featured
                   </span>
                 </div>
-                <p className="text-navy/75 text-sm leading-relaxed flex-1">
+                <p style={{ color: "#1B2A4A", opacity: 0.75 }} className="text-sm leading-relaxed flex-1">
                   &ldquo;{story.excerpt}&rdquo;
                 </p>
-                <Link
-                  href="/browse"
-                  className="text-gold text-sm font-semibold hover:underline mt-auto"
-                >
+                <Link href="/browse" style={{ color: "#C9A84C" }} className="text-sm font-semibold hover:underline mt-auto">
                   Read full story →
                 </Link>
               </article>
@@ -117,10 +170,10 @@ export default function HomePage() {
       </section>
 
       {/* Community Hubs Teaser */}
-      <section className="py-16 px-4 bg-navy text-cream">
+      <section style={{ backgroundColor: "#1B2A4A", color: "#FAF7F2" }} className="py-16 px-4">
         <div className="max-w-6xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">Community Hubs</h2>
-          <p className="text-cream/70 mb-12 max-w-xl mx-auto">
+          <p className="mb-12 max-w-xl mx-auto" style={{ opacity: 0.75 }}>
             Find stories from your home region. Connect with others who share
             your roots, your language, and your path.
           </p>
@@ -129,17 +182,19 @@ export default function HomePage() {
               <Link
                 key={hub.name}
                 href="/hubs"
-                className="bg-white/10 hover:bg-white/20 transition-colors rounded-2xl p-6 flex flex-col items-center gap-2"
+                className="rounded-2xl p-6 flex flex-col items-center gap-2 hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
               >
                 <span className="text-4xl">{hub.emoji}</span>
-                <span className="font-semibold text-cream">{hub.name}</span>
-                <span className="text-xs text-cream/60">{hub.count}</span>
+                <span className="font-semibold" style={{ color: "#FAF7F2" }}>{hub.name}</span>
+                <span className="text-xs" style={{ color: "#FAF7F2", opacity: 0.6 }}>{hub.count}</span>
               </Link>
             ))}
           </div>
           <Link
             href="/hubs"
-            className="inline-block mt-10 bg-gold text-navy font-semibold px-8 py-3 rounded-full hover:bg-gold/90 transition-colors"
+            style={{ backgroundColor: "#C9A84C", color: "#1B2A4A" }}
+            className="inline-block mt-10 font-semibold px-8 py-3 rounded-full hover:opacity-90 transition-opacity"
           >
             Explore All Hubs
           </Link>

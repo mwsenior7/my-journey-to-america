@@ -2,19 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: #FAF7F2;
-  --foreground: #1B2A4A;
-}
-
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #FAF7F2;
+  color: #1B2A4A;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+@keyframes fadeInRoute {
+  from { opacity: 0; }
+  to   { opacity: 0.6; }
+}
+
+@keyframes scrollDots {
+  from { stroke-dashoffset: 120; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 0.3; }
+  50%       { opacity: 0.85; }
+}
+
+@keyframes pulseRing {
+  0%, 100% { opacity: 0.15; r: 13; }
+  50%       { opacity: 0.55; r: 18; }
 }
