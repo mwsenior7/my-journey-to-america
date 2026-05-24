@@ -4,20 +4,93 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { supabase, type Story } from "@/lib/supabase";
 
+const US_STATES = [
+  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
+  "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho",
+  "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana",
+  "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota",
+  "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada",
+  "New Hampshire", "New Jersey", "New Mexico", "New York",
+  "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon",
+  "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota",
+  "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington",
+  "West Virginia", "Wisconsin", "Wyoming", "District of Columbia",
+];
+
+const DECADES = Array.from({ length: 13 }, (_, i) => ({
+  label: `${1900 + i * 10}s`,
+  value: String(1900 + i * 10),
+}));
+
+type Filters = {
+  country: string;
+  us_state: string;
+  decade: string;
+  profession: string;
+};
+
+const EMPTY_FILTERS: Filters = {
+  country: "",
+  us_state: "",
+  decade: "",
+  profession: "",
+};
+
+const SELECT =
+  "border border-navy/20 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-white";
+
 export default function BrowsePage() {
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [countries, setCountries] = useState<string[]>([]);
+  const [professions, setProfessions] = useState<string[]>([]);
 
+  // Load distinct filter options once on mount
+  useEffect(() => {
+    async function loadMeta() {
+      const [cRes, pRes] = await Promise.all([
+        supabase.from("stories").select("country"),
+        supabase.from("stories").select("profession").not("profession", "is", null),
+      ]);
+      if (cRes.data) {
+        setCountries(
+          Array.from(new Set(cRes.data.map((r) => r.country).filter(Boolean))).sort()
+        );
+      }
+      if (pRes.data) {
+        setProfessions(
+          Array.from(new Set(pRes.data.map((r) => r.profession).filter(Boolean))).sort()
+        );
+      }
+    }
+    loadMeta();
+  }, []);
+
+  // Re-fetch from Supabase whenever structured filters change
   useEffect(() => {
     async function load() {
-      const { data, error } = await supabase
+      setLoading(true);
+      setFetchError(null);
+
+      let q = supabase
         .from("stories")
         .select("*")
         .order("created_at", { ascending: false });
 
+      if (filters.country) q = q.eq("country", filters.country);
+      if (filters.us_state) q = q.eq("us_state", filters.us_state);
+      if (filters.decade) {
+        const start = parseInt(filters.decade, 10);
+        q = q.gte("year_arrived", start).lt("year_arrived", start + 10);
+      }
+      if (filters.profession) q = q.eq("profession", filters.profession);
+
+      const { data, error } = await q;
       if (error) {
+        console.error("Browse fetch error:", error);
         setFetchError("Failed to load stories. Please refresh and try again.");
       } else {
         setStories(data ?? []);
@@ -25,19 +98,28 @@ export default function BrowsePage() {
       setLoading(false);
     }
     load();
-  }, []);
+  }, [filters]);
 
+  // Client-side text search on already-fetched results
   const filtered = stories.filter((s) => {
     if (!query.trim()) return true;
     const q = query.toLowerCase();
     return (
-      s.author_name.toLowerCase().includes(q) ||
-      s.country_of_origin.toLowerCase().includes(q) ||
-      s.title.toLowerCase().includes(q) ||
+      s.name.toLowerCase().includes(q) ||
+      s.country.toLowerCase().includes(q) ||
+      s.story_text.toLowerCase().includes(q) ||
       (s.us_state?.toLowerCase().includes(q) ?? false) ||
-      (s.profession?.toLowerCase().includes(q) ?? false)
+      (s.profession?.toLowerCase().includes(q) ?? false) ||
+      (s.tags?.some((t) => t.toLowerCase().includes(q)) ?? false)
     );
   });
+
+  const activeFilterCount = Object.values(filters).filter(Boolean).length;
+
+  function setFilter(key: keyof Filters) {
+    return (e: React.ChangeEvent<HTMLSelectElement>) =>
+      setFilters((prev) => ({ ...prev, [key]: e.target.value }));
+  }
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-16">
@@ -46,11 +128,79 @@ export default function BrowsePage() {
         Thousands of journeys, each one unique. Search, filter, and explore.
       </p>
 
+      {/* Filter row */}
+      <div className="flex flex-wrap gap-3 mb-5">
+        <select
+          value={filters.country}
+          onChange={setFilter("country")}
+          className={SELECT}
+          aria-label="Filter by country"
+        >
+          <option value="">All Countries</option>
+          {countries.map((c) => (
+            <option key={c} value={c}>
+              {c}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={filters.us_state}
+          onChange={setFilter("us_state")}
+          className={SELECT}
+          aria-label="Filter by US state"
+        >
+          <option value="">All States</option>
+          {US_STATES.map((s) => (
+            <option key={s} value={s}>
+              {s}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={filters.decade}
+          onChange={setFilter("decade")}
+          className={SELECT}
+          aria-label="Filter by decade"
+        >
+          <option value="">Any Decade</option>
+          {DECADES.map((d) => (
+            <option key={d.value} value={d.value}>
+              {d.label}
+            </option>
+          ))}
+        </select>
+
+        <select
+          value={filters.profession}
+          onChange={setFilter("profession")}
+          className={SELECT}
+          aria-label="Filter by profession"
+        >
+          <option value="">All Professions</option>
+          {professions.map((p) => (
+            <option key={p} value={p}>
+              {p}
+            </option>
+          ))}
+        </select>
+
+        {activeFilterCount > 0 && (
+          <button
+            onClick={() => setFilters(EMPTY_FILTERS)}
+            className="bg-navy/10 text-navy text-sm font-semibold px-4 py-2 rounded-lg hover:bg-navy/20 transition-colors"
+          >
+            Clear filters ({activeFilterCount})
+          </button>
+        )}
+      </div>
+
       {/* Search bar */}
       <div className="flex gap-3 mb-10">
         <input
           type="text"
-          placeholder="Search by name, country, state, profession…"
+          placeholder="Search by name, country, state, profession, or tag…"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="flex-1 border border-navy/20 rounded-full px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-white"
@@ -83,14 +233,16 @@ export default function BrowsePage() {
       {!loading && !fetchError && filtered.length === 0 && (
         <div className="text-center py-32">
           <p className="text-2xl font-bold text-navy mb-3">
-            {query ? "No stories match your search" : "No stories yet"}
+            {query || activeFilterCount > 0
+              ? "No stories match your search"
+              : "No stories yet"}
           </p>
           <p className="text-navy/60 mb-10">
-            {query
-              ? "Try different keywords — name, country, or US state."
+            {query || activeFilterCount > 0
+              ? "Try adjusting your filters or search terms."
               : "Be the first to share your journey to America."}
           </p>
-          {!query && (
+          {!query && activeFilterCount === 0 && (
             <Link
               href="/share"
               style={{ backgroundColor: "#1B2A4A", color: "#FAF7F2" }}
@@ -118,44 +270,78 @@ export default function BrowsePage() {
               key={s.id}
               className="bg-white rounded-2xl border border-navy/10 p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-3"
             >
-              {s.is_featured && (
-                <span
-                  className="self-start text-xs font-semibold px-3 py-1 rounded-full"
-                  style={{
-                    backgroundColor: "rgba(201,168,76,0.15)",
-                    color: "#C9A84C",
-                  }}
-                >
-                  Featured
-                </span>
-              )}
+              {/* Header */}
+              <div className="flex flex-col gap-0.5">
+                <h2 className="font-bold text-navy text-lg leading-snug">
+                  {s.name}
+                </h2>
+                <p className="text-sm text-navy/50">
+                  {s.country}
+                  {s.us_state && ` · ${s.us_state}`}
+                  {s.year_arrived && ` · ${s.year_arrived}`}
+                  {s.profession && ` · ${s.profession}`}
+                </p>
+              </div>
 
-              <h2 className="font-bold text-navy text-lg leading-snug">
-                {s.title}
-              </h2>
-
-              <p className="text-sm text-navy/60">
-                {s.author_name}
-                {s.country_of_origin && ` · ${s.country_of_origin}`}
-                {s.year_of_arrival && ` · ${s.year_of_arrival}`}
-              </p>
-
-              <p className="text-sm text-navy/75 leading-relaxed line-clamp-4 flex-1">
+              {/* Story excerpt */}
+              <p className="text-sm text-navy/75 leading-relaxed line-clamp-5 flex-1">
                 {s.story_text}
               </p>
 
-              <div className="flex flex-wrap gap-2 mt-auto pt-1">
-                {s.us_state && (
-                  <span className="text-xs bg-navy/5 text-navy/60 font-medium px-3 py-1 rounded-full">
-                    {s.us_state}
-                  </span>
-                )}
-                {s.profession && (
-                  <span className="text-xs bg-navy/5 text-navy/60 font-medium px-3 py-1 rounded-full">
-                    {s.profession}
-                  </span>
-                )}
-              </div>
+              {/* Tags */}
+              {s.tags && s.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {s.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-xs bg-gold/10 text-navy/60 font-medium px-2.5 py-0.5 rounded-full"
+                    >
+                      #{tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Audio player */}
+              {s.audio_url && (
+                <audio
+                  controls
+                  src={s.audio_url}
+                  className="w-full h-9 mt-1"
+                  preload="none"
+                />
+              )}
+
+              {/* Video link */}
+              {s.video_url && (
+                <a
+                  href={s.video_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-semibold text-navy/50 hover:text-navy transition-colors flex items-center gap-1"
+                >
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  Watch video
+                </a>
+              )}
             </article>
           ))}
         </div>

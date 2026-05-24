@@ -9,15 +9,16 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export type Story = {
   id: string;
-  title: string;
-  author_name: string;
-  country_of_origin: string;
+  name: string;
+  country: string;
+  year_arrived: number | null;
   us_state: string | null;
-  year_of_arrival: number | null;
   profession: string | null;
   story_text: string;
   audio_url: string | null;
-  is_featured: boolean;
+  video_url: string | null;
+  tags: string[] | null;
+  status: string;
   created_at: string;
 };
 
