@@ -1,9 +1,11 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase, type Story } from "@/lib/supabase";
+
+const PAGE_SIZE = 12;
 
 const US_STATES = [
   "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
@@ -38,7 +40,10 @@ function BrowseContent() {
 
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const pageRef = useRef(0);
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [filters, setFilters] = useState<Filters>({
     country:    searchParams.get("country")    ?? "",
@@ -70,36 +75,52 @@ function BrowseContent() {
     loadMeta();
   }, []);
 
+  async function fetchPage(filtersArg: Filters, pageNum: number, append: boolean) {
+    let q = supabase
+      .from("stories")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
+
+    if (filtersArg.country)    q = q.eq("country", filtersArg.country);
+    if (filtersArg.us_state)   q = q.eq("us_state", filtersArg.us_state);
+    if (filtersArg.decade) {
+      const start = parseInt(filtersArg.decade, 10);
+      q = q.gte("year_arrived", start).lt("year_arrived", start + 10);
+    }
+    if (filtersArg.profession) q = q.eq("profession", filtersArg.profession);
+
+    const { data, error } = await q;
+    if (error) {
+      console.error("Browse fetch error:", error);
+      setFetchError("Failed to load stories. Please refresh and try again.");
+    } else {
+      const rows = data ?? [];
+      if (append) setStories((prev) => [...prev, ...rows]);
+      else setStories(rows);
+      setHasMore(rows.length === PAGE_SIZE);
+      pageRef.current = pageNum;
+    }
+  }
+
   // Re-fetch from Supabase whenever structured filters change
   useEffect(() => {
     async function load() {
       setLoading(true);
       setFetchError(null);
-
-      let q = supabase
-        .from("stories")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (filters.country)    q = q.eq("country", filters.country);
-      if (filters.us_state)   q = q.eq("us_state", filters.us_state);
-      if (filters.decade) {
-        const start = parseInt(filters.decade, 10);
-        q = q.gte("year_arrived", start).lt("year_arrived", start + 10);
-      }
-      if (filters.profession) q = q.eq("profession", filters.profession);
-
-      const { data, error } = await q;
-      if (error) {
-        console.error("Browse fetch error:", error);
-        setFetchError("Failed to load stories. Please refresh and try again.");
-      } else {
-        setStories(data ?? []);
-      }
+      pageRef.current = 0;
+      await fetchPage(filters, 0, false);
       setLoading(false);
     }
     load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
+
+  async function handleLoadMore() {
+    setLoadingMore(true);
+    await fetchPage(filters, pageRef.current + 1, true);
+    setLoadingMore(false);
+  }
 
   // Client-side text search on already-fetched results
   const filtered = stories.filter((s) => {
@@ -229,6 +250,7 @@ function BrowseContent() {
 
       {/* Story grid */}
       {!loading && !fetchError && filtered.length > 0 && (
+        <>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((s) => (
             <article
@@ -298,6 +320,27 @@ function BrowseContent() {
             </article>
           ))}
         </div>
+
+        {/* Load more */}
+        {hasMore && !query && (
+          <div className="flex justify-center mt-10">
+            <button
+              onClick={handleLoadMore}
+              disabled={loadingMore}
+              className="bg-navy text-cream font-semibold px-10 py-3 rounded-full hover:bg-navy/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              {loadingMore ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-cream/30 border-t-cream rounded-full animate-spin" />
+                  Loading…
+                </>
+              ) : (
+                "Load more stories"
+              )}
+            </button>
+          </div>
+        )}
+        </>
       )}
     </div>
   );

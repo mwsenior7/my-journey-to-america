@@ -1,8 +1,42 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import { cache } from "react";
 import Link from "next/link";
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { supabase, type Story } from "@/lib/supabase";
+import ShareButton from "./ShareButton";
+
+const getStory = cache(async (id: string): Promise<Story | null> => {
+  const { data } = await supabase
+    .from("stories")
+    .select("*")
+    .eq("id", id)
+    .single();
+  return data ?? null;
+});
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { id: string };
+}): Promise<Metadata> {
+  const story = await getStory(params.id);
+  if (!story) return { title: "Story Not Found — My Journey to America" };
+
+  const excerpt =
+    story.story_text.length > 160
+      ? story.story_text.slice(0, 160) + "…"
+      : story.story_text;
+
+  return {
+    title: `${story.name}'s Journey — My Journey to America`,
+    description: excerpt,
+    openGraph: {
+      title: `${story.name}'s Immigration Journey`,
+      description: excerpt,
+      type: "article",
+    },
+  };
+}
 
 function VideoEmbed({ url }: { url: string }) {
   const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s?#]+)/);
@@ -45,53 +79,18 @@ function VideoEmbed({ url }: { url: string }) {
   );
 }
 
-export default function StoryPage({ params }: { params: { id: string } }) {
-  const [story, setStory] = useState<Story | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
-  const [copied, setCopied] = useState(false);
+export default async function StoryPage({ params }: { params: { id: string } }) {
+  const story = await getStory(params.id);
+  if (!story) notFound();
 
-  useEffect(() => {
-    async function load() {
-      const { data, error } = await supabase
-        .from("stories")
-        .select("*")
-        .eq("id", params.id)
-        .single();
-      if (error || !data) {
-        setNotFound(true);
-      } else {
-        setStory(data);
-      }
-      setLoading(false);
-    }
-    load();
-  }, [params.id]);
-
-  async function handleShare() {
-    await navigator.clipboard.writeText(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  }
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-48">
-        <div className="w-8 h-8 border-2 border-navy/20 border-t-navy rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  if (notFound || !story) {
-    return (
-      <div className="max-w-2xl mx-auto px-4 py-32 text-center">
-        <p className="text-2xl font-bold text-navy mb-4">Story not found</p>
-        <Link href="/browse" className="text-gold font-semibold hover:underline">
-          ← Back to Browse
-        </Link>
-      </div>
-    );
-  }
+  const { data: relatedRaw } = await supabase
+    .from("stories")
+    .select("id, name, country, year_arrived, story_text")
+    .eq("country", story.country)
+    .neq("id", story.id)
+    .order("created_at", { ascending: false })
+    .limit(3);
+  const related = relatedRaw ?? [];
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-16">
@@ -163,37 +162,55 @@ export default function StoryPage({ params }: { params: { id: string } }) {
       )}
 
       {/* Footer row */}
-      <div className="flex items-center justify-between pt-6 border-t border-navy/10">
+      <div className="flex items-center justify-between pt-6 border-t border-navy/10 mb-16">
         <p className="text-xs text-navy/40">
-          Submitted {new Date(story.created_at).toLocaleDateString("en-US", {
+          Submitted{" "}
+          {new Date(story.created_at).toLocaleDateString("en-US", {
             year: "numeric",
             month: "long",
             day: "numeric",
           })}
         </p>
-
-        <button
-          onClick={handleShare}
-          className="inline-flex items-center gap-2 text-sm font-semibold text-navy/50 hover:text-navy transition-colors"
-        >
-          {copied ? (
-            <>
-              <svg className="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              <span className="text-green-600">Copied!</span>
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-              </svg>
-              Share
-            </>
-          )}
-        </button>
+        <ShareButton />
       </div>
+
+      {/* Related stories */}
+      {related.length > 0 && (
+        <div>
+          <h2 className="text-2xl font-bold text-navy mb-6">
+            More stories from {story.country}
+          </h2>
+          <div className="flex flex-col gap-4">
+            {related.map((r) => {
+              const excerpt =
+                r.story_text.length > 180
+                  ? r.story_text.slice(0, 180) + "…"
+                  : r.story_text;
+              return (
+                <Link
+                  key={r.id}
+                  href={`/stories/${r.id}`}
+                  className="group bg-white rounded-2xl border border-navy/10 p-5 hover:border-gold/40 hover:shadow-md transition-all flex flex-col gap-2"
+                >
+                  <div>
+                    <p className="font-bold text-navy group-hover:text-navy leading-snug">
+                      {r.name}
+                    </p>
+                    <p className="text-xs text-navy/50">
+                      {r.country}
+                      {r.year_arrived ? ` · ${r.year_arrived}` : ""}
+                    </p>
+                  </div>
+                  <p className="text-sm text-navy/65 leading-relaxed">{excerpt}</p>
+                  <span className="text-xs font-semibold text-gold mt-1">
+                    Read story →
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

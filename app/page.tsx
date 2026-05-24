@@ -2,7 +2,7 @@ import Link from "next/link";
 import HeroBackground from "@/components/HeroBackground";
 import { supabase } from "@/lib/supabase";
 
-export const revalidate = 60; // refresh recent stories every 60 s
+export const revalidate = 60;
 
 const communityHubs = [
   { name: "Latin America",       emoji: "🌎", count: "2,400+" },
@@ -12,13 +12,33 @@ const communityHubs = [
 ];
 
 export default async function HomePage() {
-  const { data: recent } = await supabase
-    .from("stories")
-    .select("id, name, country, year_arrived, story_text")
-    .order("created_at", { ascending: false })
-    .limit(3);
+  const [
+    { data: recent },
+    { count: storyCount },
+    { data: countryRows },
+    { data: stateRows },
+  ] = await Promise.all([
+    supabase
+      .from("stories")
+      .select("id, name, country, year_arrived, story_text")
+      .order("created_at", { ascending: false })
+      .limit(3),
+    supabase.from("stories").select("*", { count: "exact", head: true }),
+    supabase.from("stories").select("country"),
+    supabase
+      .from("stories")
+      .select("us_state")
+      .not("us_state", "is", null),
+  ]);
 
   const stories = recent ?? [];
+  const totalStories = storyCount ?? 0;
+  const uniqueCountries = new Set(
+    (countryRows ?? []).map((r) => r.country).filter(Boolean)
+  ).size;
+  const uniqueStates = new Set(
+    (stateRows ?? []).map((r) => r.us_state).filter(Boolean)
+  ).size;
 
   return (
     <div>
@@ -76,9 +96,9 @@ export default async function HomePage() {
             style={{ color: "#FAF7F2", opacity: 0.6 }}
           >
             {[
-              ["8,000+", "Stories archived"],
-              ["140+",   "Countries represented"],
-              ["50",     "US states covered"],
+              [totalStories > 0 ? totalStories.toLocaleString() : "0", "Stories archived"],
+              [uniqueCountries > 0 ? String(uniqueCountries) : "0", "Countries represented"],
+              [uniqueStates > 0 ? String(uniqueStates) : "0", "US states covered"],
             ].map(([num, label]) => (
               <div key={label} className="flex flex-col items-center gap-0.5">
                 <span className="text-2xl font-bold" style={{ color: "#C9A84C", opacity: 1 }}>
