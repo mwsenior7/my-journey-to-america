@@ -4,50 +4,46 @@ const hubs = [
   {
     name: "Latin America",
     emoji: "🌎",
-    count: "2,400+",
     description:
       "Stories from Mexico, Brazil, Colombia, Cuba, and across Central and South America.",
     color: "from-yellow-50 to-orange-50",
+    countries: ["Mexico", "Brazil", "Colombia", "Cuba", "Peru", "Argentina", "Venezuela"],
   },
   {
     name: "South Asia",
     emoji: "🌏",
-    count: "1,800+",
-    description:
-      "Journeys from India, Pakistan, Bangladesh, Sri Lanka, and Nepal.",
+    description: "Journeys from India, Pakistan, Bangladesh, Sri Lanka, and Nepal.",
     color: "from-orange-50 to-red-50",
+    countries: ["India", "Pakistan", "Bangladesh", "Sri Lanka", "Nepal"],
   },
   {
     name: "Middle East & Africa",
     emoji: "🌍",
-    count: "1,200+",
-    description:
-      "Voices from Egypt, Nigeria, Ethiopia, Syria, Lebanon, and beyond.",
+    description: "Voices from Egypt, Nigeria, Ethiopia, Syria, Lebanon, and beyond.",
     color: "from-amber-50 to-yellow-50",
+    countries: ["Egypt", "Nigeria", "Ethiopia", "Syria", "Lebanon", "Kenya", "Ghana"],
   },
   {
     name: "Europe",
     emoji: "🏛️",
-    count: "900+",
-    description:
-      "Stories from Ukraine, Poland, Ireland, Greece, and across the continent.",
+    description: "Stories from Ukraine, Poland, Ireland, Greece, and across the continent.",
     color: "from-blue-50 to-indigo-50",
+    countries: ["Ukraine", "Poland", "Ireland", "Greece", "Germany", "Italy", "Portugal"],
   },
   {
     name: "East & Southeast Asia",
     emoji: "🏯",
-    count: "1,100+",
-    description:
-      "Narratives from China, the Philippines, Vietnam, Korea, and Japan.",
+    description: "Narratives from China, the Philippines, Vietnam, Korea, and Japan.",
     color: "from-red-50 to-pink-50",
+    countries: ["China", "Philippines", "Vietnam", "South Korea", "Japan", "Thailand"],
   },
   {
     name: "Caribbean",
     emoji: "🌊",
-    count: "600+",
     description:
-      "Rich stories from Haiti, Jamaica, Puerto Rico, Dominican Republic, and island nations.",
+      "Rich stories from Haiti, Jamaica, Dominican Republic, and island nations.",
     color: "from-teal-50 to-cyan-50",
+    countries: ["Haiti", "Jamaica", "Dominican Republic", "Trinidad and Tobago", "Barbados"],
   },
 ];
 
@@ -62,18 +58,36 @@ export default function HubsPage() {
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {hubs.map((hub) => (
-          <Link
+          <div
             key={hub.name}
-            href="/browse"
-            className={`bg-gradient-to-br ${hub.color} rounded-2xl border border-navy/10 p-8 hover:shadow-md transition-shadow flex flex-col gap-3`}
+            className={`bg-gradient-to-br ${hub.color} rounded-2xl border border-navy/10 p-8 flex flex-col gap-4`}
           >
-            <span className="text-5xl">{hub.emoji}</span>
-            <h2 className="text-xl font-bold text-navy">{hub.name}</h2>
-            <p className="text-sm text-navy/60 flex-1">{hub.description}</p>
-            <span className="text-gold font-semibold text-sm">
-              {hub.count} stories →
-            </span>
-          </Link>
+            <div className="flex flex-col gap-2">
+              <span className="text-5xl">{hub.emoji}</span>
+              <h2 className="text-xl font-bold text-navy">{hub.name}</h2>
+              <p className="text-sm text-navy/60">{hub.description}</p>
+            </div>
+
+            {/* Country chips */}
+            <div className="flex flex-wrap gap-2 mt-auto">
+              {hub.countries.map((country) => (
+                <Link
+                  key={country}
+                  href={`/browse?country=${encodeURIComponent(country)}`}
+                  className="text-xs font-semibold text-navy/70 bg-white/70 border border-navy/10 px-3 py-1.5 rounded-full hover:bg-white hover:border-navy/30 transition-colors"
+                >
+                  {country}
+                </Link>
+              ))}
+            </div>
+
+            <Link
+              href={`/browse?q=${encodeURIComponent(hub.name)}`}
+              className="text-sm font-semibold text-gold hover:underline"
+            >
+              Browse all {hub.name} stories →
+            </Link>
+          </div>
         ))}
       </div>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase, type Story } from "@/lib/supabase";
 
@@ -29,22 +30,22 @@ type Filters = {
   profession: string;
 };
 
-const EMPTY_FILTERS: Filters = {
-  country: "",
-  us_state: "",
-  decade: "",
-  profession: "",
-};
-
 const SELECT =
   "border border-navy/20 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gold bg-white";
 
-export default function BrowsePage() {
+function BrowseContent() {
+  const searchParams = useSearchParams();
+
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
-  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  const [filters, setFilters] = useState<Filters>({
+    country:    searchParams.get("country")    ?? "",
+    us_state:   searchParams.get("state")      ?? "",
+    decade:     searchParams.get("decade")     ?? "",
+    profession: searchParams.get("profession") ?? "",
+  });
   const [countries, setCountries] = useState<string[]>([]);
   const [professions, setProfessions] = useState<string[]>([]);
 
@@ -80,8 +81,8 @@ export default function BrowsePage() {
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (filters.country) q = q.eq("country", filters.country);
-      if (filters.us_state) q = q.eq("us_state", filters.us_state);
+      if (filters.country)    q = q.eq("country", filters.country);
+      if (filters.us_state)   q = q.eq("us_state", filters.us_state);
       if (filters.decade) {
         const start = parseInt(filters.decade, 10);
         q = q.gte("year_arrived", start).lt("year_arrived", start + 10);
@@ -130,65 +131,29 @@ export default function BrowsePage() {
 
       {/* Filter row */}
       <div className="flex flex-wrap gap-3 mb-5">
-        <select
-          value={filters.country}
-          onChange={setFilter("country")}
-          className={SELECT}
-          aria-label="Filter by country"
-        >
+        <select value={filters.country}    onChange={setFilter("country")}    className={SELECT} aria-label="Filter by country">
           <option value="">All Countries</option>
-          {countries.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
+          {countries.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
 
-        <select
-          value={filters.us_state}
-          onChange={setFilter("us_state")}
-          className={SELECT}
-          aria-label="Filter by US state"
-        >
+        <select value={filters.us_state}   onChange={setFilter("us_state")}   className={SELECT} aria-label="Filter by US state">
           <option value="">All States</option>
-          {US_STATES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
+          {US_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
 
-        <select
-          value={filters.decade}
-          onChange={setFilter("decade")}
-          className={SELECT}
-          aria-label="Filter by decade"
-        >
+        <select value={filters.decade}     onChange={setFilter("decade")}     className={SELECT} aria-label="Filter by decade">
           <option value="">Any Decade</option>
-          {DECADES.map((d) => (
-            <option key={d.value} value={d.value}>
-              {d.label}
-            </option>
-          ))}
+          {DECADES.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
         </select>
 
-        <select
-          value={filters.profession}
-          onChange={setFilter("profession")}
-          className={SELECT}
-          aria-label="Filter by profession"
-        >
+        <select value={filters.profession} onChange={setFilter("profession")} className={SELECT} aria-label="Filter by profession">
           <option value="">All Professions</option>
-          {professions.map((p) => (
-            <option key={p} value={p}>
-              {p}
-            </option>
-          ))}
+          {professions.map((p) => <option key={p} value={p}>{p}</option>)}
         </select>
 
         {activeFilterCount > 0 && (
           <button
-            onClick={() => setFilters(EMPTY_FILTERS)}
+            onClick={() => setFilters({ country: "", us_state: "", decade: "", profession: "" })}
             className="bg-navy/10 text-navy text-sm font-semibold px-4 py-2 rounded-lg hover:bg-navy/20 transition-colors"
           >
             Clear filters ({activeFilterCount})
@@ -215,7 +180,7 @@ export default function BrowsePage() {
         )}
       </div>
 
-      {/* Loading spinner */}
+      {/* Loading */}
       {loading && (
         <div className="flex justify-center py-32">
           <div className="w-8 h-8 border-2 border-navy/20 border-t-navy rounded-full animate-spin" />
@@ -272,25 +237,23 @@ export default function BrowsePage() {
             >
               {/* Header */}
               <div className="flex flex-col gap-0.5">
-                <h2 className="font-bold text-navy text-lg leading-snug">
-                  {s.name}
-                </h2>
+                <h2 className="font-bold text-navy text-lg leading-snug">{s.name}</h2>
                 <p className="text-sm text-navy/50">
                   {s.country}
-                  {s.us_state && ` · ${s.us_state}`}
+                  {s.us_state    && ` · ${s.us_state}`}
                   {s.year_arrived && ` · ${s.year_arrived}`}
-                  {s.profession && ` · ${s.profession}`}
+                  {s.profession  && ` · ${s.profession}`}
                 </p>
               </div>
 
-              {/* Story excerpt */}
+              {/* Excerpt */}
               <p className="text-sm text-navy/75 leading-relaxed line-clamp-5 flex-1">
                 {s.story_text}
               </p>
 
               {/* Tags */}
               {s.tags && s.tags.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 pt-1">
+                <div className="flex flex-wrap gap-1.5">
                   {s.tags.map((tag) => (
                     <span
                       key={tag}
@@ -302,50 +265,54 @@ export default function BrowsePage() {
                 </div>
               )}
 
-              {/* Audio player */}
+              {/* Audio */}
               {s.audio_url && (
-                <audio
-                  controls
-                  src={s.audio_url}
-                  className="w-full h-9 mt-1"
-                  preload="none"
-                />
+                <audio controls src={s.audio_url} className="w-full h-9" preload="none" />
               )}
 
-              {/* Video link */}
-              {s.video_url && (
-                <a
-                  href={s.video_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs font-semibold text-navy/50 hover:text-navy transition-colors flex items-center gap-1"
-                >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
+              {/* Footer */}
+              <div className="flex items-center justify-between pt-1 mt-auto">
+                {s.video_url && (
+                  <a
+                    href={s.video_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-semibold text-navy/40 hover:text-navy transition-colors flex items-center gap-1"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  Watch video
-                </a>
-              )}
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Watch video
+                  </a>
+                )}
+                <Link
+                  href={`/stories/${s.id}`}
+                  className="text-xs font-semibold text-gold hover:underline ml-auto"
+                >
+                  Read full story →
+                </Link>
+              </div>
             </article>
           ))}
         </div>
       )}
     </div>
+  );
+}
+
+export default function BrowsePage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex justify-center items-center py-48">
+          <div className="w-8 h-8 border-2 border-navy/20 border-t-navy rounded-full animate-spin" />
+        </div>
+      }
+    >
+      <BrowseContent />
+    </Suspense>
   );
 }
