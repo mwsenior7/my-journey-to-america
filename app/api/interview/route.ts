@@ -48,7 +48,7 @@ STYLE GUIDE:
 Output ONLY the story text. No title, no "Here is the story:", no preamble. Begin directly with the first word of the story.`;
 
 function makeStream(
-  anthropicStream: ReturnType<typeof anthropic.messages.stream>
+  anthropicStream: ReturnType<Anthropic["messages"]["stream"]>
 ): Response {
   const encoder = new TextEncoder();
   const readable = new ReadableStream({
