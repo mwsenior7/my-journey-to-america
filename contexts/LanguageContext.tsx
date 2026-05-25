@@ -21,6 +21,9 @@ export const SUPPORTED_LANGUAGES: Language[] = [
   { code: "ko", name: "Korean",     nativeName: "한국어"      },
   { code: "ar", name: "Arabic",     nativeName: "العربية"    },
   { code: "hi", name: "Hindi",      nativeName: "हिन्दी"      },
+  { code: "ru", name: "Russian",    nativeName: "Русский"    },
+  { code: "uk", name: "Ukrainian",  nativeName: "Українська" },
+  { code: "el", name: "Greek",      nativeName: "Ελληνικά"   },
 ];
 
 type LanguageContextType = {

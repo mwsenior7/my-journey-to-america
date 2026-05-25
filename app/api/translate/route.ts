@@ -16,6 +16,7 @@ function deeplUrl() {
 const DEEPL_CODE: Record<string, string> = {
   es: "ES", fr: "FR", pt: "PT-BR", de: "DE", it: "IT",
   zh: "ZH", ja: "JA", ko: "KO", ar: "AR", hi: "HI", en: "EN",
+  ru: "RU", uk: "UK", el: "EL",
 };
 
 async function translateWithDeepl(

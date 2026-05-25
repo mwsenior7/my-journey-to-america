@@ -21,11 +21,15 @@ const TARGET_LANGUAGES = [
   { code: "ko", deeplCode: "KO" },
   { code: "ar", deeplCode: "AR" },
   { code: "hi", deeplCode: "HI" },
+  { code: "ru", deeplCode: "RU" },
+  { code: "uk", deeplCode: "UK" },
+  { code: "el", deeplCode: "EL" },
 ];
 
 const DEEPL_SOURCE: Record<string, string> = {
   en: "EN", es: "ES", fr: "FR", pt: "PT", de: "DE",
   it: "IT", zh: "ZH", ja: "JA", ko: "KO", ar: "AR", hi: "HI",
+  ru: "RU", uk: "UK", el: "EL",
 };
 
 async function translateOne(
