@@ -75,7 +75,7 @@ function Field({
 
 type Message = { role: "user" | "assistant"; content: string };
 
-const TOTAL_QUESTIONS = 11;
+const TOTAL_QUESTIONS = 8;
 
 function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -190,7 +190,6 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
   }
 
   const userMessageCount = messages.filter(m => m.role === "user").length;
-  const canGenerate = userMessageCount >= 4;
   const progress = Math.min(userMessageCount, TOTAL_QUESTIONS);
   const progressPct = Math.round((progress / TOTAL_QUESTIONS) * 100);
 
@@ -200,18 +199,18 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
     return (
       <div className="flex flex-col gap-5">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold/30 to-gold/10 flex items-center justify-center flex-shrink-0">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold/40 to-gold/15 flex items-center justify-center flex-shrink-0">
             <svg className="w-4 h-4 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-navy text-sm">Your Story Draft</p>
-            <p className="text-xs text-navy/40">
+            <p className="font-bold text-navy">Your Story is Ready!</p>
+            <p className="text-sm text-navy/50">
               {phase === "generating"
-                ? "Crafting your publication-quality story…"
-                : `${wordCount} words · Review and edit freely before submitting`}
+                ? "Writing your story now — this takes just a moment…"
+                : `${wordCount} words · Feel free to edit anything before submitting`}
             </p>
           </div>
           {phase === "generating" && (
@@ -242,21 +241,24 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
         </div>
 
         {phase === "done" && (
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col gap-3">
             <button
               onClick={() => onUseStory(editedStory)}
-              className="flex-1 bg-navy text-cream font-semibold py-3 rounded-full hover:bg-navy/90 transition-colors flex items-center justify-center gap-2"
+              className="w-full bg-navy text-cream font-bold py-4 rounded-full hover:bg-navy/90 transition-colors flex items-center justify-center gap-2 text-base shadow-sm"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
-              Use This Story
+              Use This Story — Fill In My Details
             </button>
+            <p className="text-xs text-center text-navy/40">
+              You&rsquo;ll still be able to edit everything before submitting
+            </p>
             <button
               onClick={() => { setPhase("interview"); setDraftStory(""); setEditedStory(""); }}
-              className="flex-1 border border-navy/20 text-navy font-semibold py-3 rounded-full hover:bg-navy/5 transition-colors"
+              className="text-sm text-navy/40 hover:text-navy/60 transition-colors underline underline-offset-2 text-center"
             >
-              Start Over
+              Start over with new answers
             </button>
           </div>
         )}
@@ -358,23 +360,23 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
         </button>
       </div>
 
-      {/* Generate button */}
-      {canGenerate && (
+      {/* Write My Story button — only appears after all questions are answered */}
+      {interviewComplete && (
         <button
           onClick={generateStory}
-          className="flex items-center justify-center gap-2 bg-gradient-to-r from-gold/90 to-gold text-navy font-semibold py-3 rounded-full hover:opacity-90 transition-opacity text-sm shadow-sm"
+          className="flex items-center justify-center gap-2 bg-gradient-to-r from-gold/90 to-gold text-navy font-bold py-4 rounded-full hover:opacity-90 transition-opacity shadow-md text-base"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
           </svg>
-          {interviewComplete ? "Write My Story Now" : "Generate My Story"}
+          Write My Story
         </button>
       )}
 
-      {!canGenerate && userMessageCount > 0 && (
+      {!interviewComplete && userMessageCount > 0 && userMessageCount < TOTAL_QUESTIONS && (
         <p className="text-xs text-center text-navy/35">
-          Answer a few more questions to unlock story generation
+          {TOTAL_QUESTIONS - userMessageCount} question{TOTAL_QUESTIONS - userMessageCount !== 1 ? "s" : ""} to go — you&rsquo;re doing great!
         </p>
       )}
     </div>
@@ -384,7 +386,7 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
 // ── Main Share Page ────────────────────────────────────────────────────────────
 
 export default function SharePage() {
-  const [mode, setMode] = useState<"form" | "interview">("form");
+  const [mode, setMode] = useState<"form" | "interview">("interview");
   const [form, setForm] = useState<FormState>(EMPTY);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -595,58 +597,64 @@ export default function SharePage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-16">
       <h1 className="text-4xl font-bold text-navy mb-2">Share Your Story</h1>
-      <p className="text-navy/60 mb-8 text-lg">
+      <p className="text-navy/60 mb-2 text-lg">
         Your journey matters. Help us preserve it for future generations.
+      </p>
+      <p className="text-navy/50 mb-8 text-sm">
+        Not sure how to start? Let our AI guide you — just answer a few simple questions and we&rsquo;ll write a beautiful story for you.
       </p>
 
       {/* Mode toggle */}
       <div className="flex bg-navy/5 rounded-xl p-1 gap-1 mb-8">
-        {(["form", "interview"] as const).map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => setMode(m)}
-            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
-              mode === m
-                ? "bg-white shadow-sm text-navy"
-                : "text-navy/50 hover:text-navy"
-            }`}
-          >
-            {m === "form" ? (
-              <>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Write It Myself
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                </svg>
-                AI Interview
-              </>
-            )}
-          </button>
-        ))}
+        <button
+          type="button"
+          onClick={() => setMode("interview")}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+            mode === "interview"
+              ? "bg-white shadow-sm text-navy"
+              : "text-navy/50 hover:text-navy"
+          }`}
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          </svg>
+          AI Writes It For Me
+          {mode === "interview" && (
+            <span className="bg-gold/20 text-gold text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wide">Recommended</span>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("form")}
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+            mode === "form"
+              ? "bg-white shadow-sm text-navy"
+              : "text-navy/50 hover:text-navy"
+          }`}
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          </svg>
+          I&rsquo;ll Write It Myself
+        </button>
       </div>
 
       {/* AI Interview panel */}
       {mode === "interview" && (
         <div className="bg-white rounded-2xl border border-navy/10 shadow-sm p-6 mb-8">
           <div className="flex items-start gap-3 mb-5 pb-5 border-b border-navy/8">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold/30 to-gold/10 flex items-center justify-center flex-shrink-0">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold/40 to-gold/15 flex items-center justify-center flex-shrink-0">
               <svg className="w-5 h-5 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
             </div>
             <div>
-              <p className="font-bold text-navy text-sm">AI Story Interview</p>
-              <p className="text-xs text-navy/50 mt-0.5">
-                Answer a few questions and our AI will craft a beautifully written story from your words. You can edit it before submitting.
+              <p className="font-bold text-navy">Your Personal Story Assistant</p>
+              <p className="text-sm text-navy/55 mt-0.5 leading-relaxed">
+                Don&rsquo;t worry about being a writer — just answer 8 simple questions like you&rsquo;re talking to a friend. We&rsquo;ll turn your words into a beautiful, publication-quality story that you can edit before sharing.
               </p>
             </div>
           </div>
