@@ -109,6 +109,9 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
         setMessages([{ role: "assistant", content: partial }]);
       });
       setMessages([{ role: "assistant", content: text }]);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Something went wrong. Please try refreshing the page.";
+      setMessages([{ role: "assistant", content: msg }]);
     } finally {
       setLoading(false);
       inputRef.current?.focus();
@@ -119,6 +122,13 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
     res: Response,
     onChunk: (partial: string) => void
   ): Promise<string> {
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "Unknown error");
+      const friendly = errText.startsWith("<")
+        ? "Sorry, something went wrong. Please try refreshing the page."
+        : errText;
+      throw new Error(friendly);
+    }
     const reader = res.body!.getReader();
     const decoder = new TextDecoder();
     let full = "";
@@ -164,6 +174,9 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
       ) {
         setInterviewComplete(true);
       }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      setMessages([...newMessages, { role: "assistant", content: msg }]);
     } finally {
       setLoading(false);
       inputRef.current?.focus();
