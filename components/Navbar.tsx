@@ -7,6 +7,7 @@ import { useLanguage, SUPPORTED_LANGUAGES } from "@/contexts/LanguageContext";
 const links = [
   { label: "Home", href: "/" },
   { label: "Browse Stories", href: "/browse" },
+  { label: "Journey Map", href: "/map" },
   { label: "Share Your Story", href: "/share" },
   { label: "Community Hubs", href: "/hubs" },
   { label: "About", href: "/about" },

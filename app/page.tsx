@@ -1,5 +1,6 @@
 import Link from "next/link";
 import HeroBackground from "@/components/HeroBackground";
+import InteractiveMap from "@/components/InteractiveMap";
 import { supabase } from "@/lib/supabase";
 
 export const revalidate = 60;
@@ -196,6 +197,34 @@ export default async function HomePage() {
               })}
             </div>
           )}
+        </div>
+      </section>
+
+      {/* ── Journey Map ──────────────────────────────────────────────────── */}
+      <section style={{ backgroundColor: "#1B2A4A" }} className="py-12 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+            <div>
+              <h2 className="text-3xl font-bold" style={{ color: "#FAF7F2" }}>
+                Every Journey,{" "}
+                <span style={{ color: "#C9A84C" }}>Mapped</span>
+              </h2>
+              <p className="mt-1 text-sm" style={{ color: "rgba(250,247,242,0.55)" }}>
+                Click any line to read that person&rsquo;s story. Updates live as new stories arrive.
+              </p>
+            </div>
+            <Link
+              href="/map"
+              style={{ color: "#C9A84C" }}
+              className="font-semibold text-sm hover:underline flex-shrink-0 flex items-center gap-1"
+            >
+              Explore full map
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+          <InteractiveMap compact />
         </div>
       </section>
 

@@ -75,6 +75,8 @@ function Field({
 
 type Message = { role: "user" | "assistant"; content: string };
 
+const TOTAL_QUESTIONS = 11;
+
 function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -86,7 +88,6 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Start the interview automatically
   useEffect(() => {
     startInterview();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -146,9 +147,7 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
         body: JSON.stringify({ messages: newMessages, phase: "interview" }),
       });
 
-      let assistantText = "";
       const finalText = await streamResponse(res, (partial) => {
-        assistantText = partial;
         setMessages([...newMessages, { role: "assistant", content: partial }]);
       });
 
@@ -158,10 +157,10 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
       ];
       setMessages(updatedMessages);
 
-      // Check if interview is complete
+      const answeredCount = newMessages.filter(m => m.role === "user").length;
       if (
         finalText.includes("I have everything I need to write your story") ||
-        newMessages.filter(m => m.role === "user").length >= 5
+        answeredCount >= TOTAL_QUESTIONS
       ) {
         setInterviewComplete(true);
       }
@@ -191,26 +190,32 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
   }
 
   const userMessageCount = messages.filter(m => m.role === "user").length;
-  const canGenerate = userMessageCount >= 3;
+  const canGenerate = userMessageCount >= 4;
+  const progress = Math.min(userMessageCount, TOTAL_QUESTIONS);
+  const progressPct = Math.round((progress / TOTAL_QUESTIONS) * 100);
 
+  // ── Story draft view ──────────────────────────────────────────────────────
   if (phase === "generating" || phase === "done") {
+    const wordCount = editedStory.trim().split(/\s+/).filter(Boolean).length;
     return (
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-5">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-gold/20 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-gold/30 to-gold/10 flex items-center justify-center flex-shrink-0">
             <svg className="w-4 h-4 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                 d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>
           </div>
-          <div>
+          <div className="flex-1 min-w-0">
             <p className="font-bold text-navy text-sm">Your Story Draft</p>
             <p className="text-xs text-navy/40">
-              {phase === "generating" ? "Writing your story…" : "Review and edit before submitting"}
+              {phase === "generating"
+                ? "Crafting your publication-quality story…"
+                : `${wordCount} words · Review and edit freely before submitting`}
             </p>
           </div>
           {phase === "generating" && (
-            <span className="ml-auto flex gap-1">
+            <span className="flex gap-1 flex-shrink-0">
               {[0, 1, 2].map(i => (
                 <span
                   key={i}
@@ -227,12 +232,12 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
             value={phase === "generating" ? draftStory : editedStory}
             onChange={e => setEditedStory(e.target.value)}
             readOnly={phase === "generating"}
-            rows={14}
-            className={`${INPUT} resize-none leading-relaxed`}
-            placeholder="Your story is being crafted…"
+            rows={16}
+            className={`${INPUT} resize-none leading-relaxed font-serif text-[15px]`}
+            placeholder="Your story is being written…"
           />
           {phase === "generating" && (
-            <div className="absolute inset-0 rounded-lg pointer-events-none bg-gradient-to-b from-transparent to-white/20" />
+            <div className="absolute inset-0 rounded-lg pointer-events-none bg-gradient-to-b from-transparent via-transparent to-white/30" />
           )}
         </div>
 
@@ -248,11 +253,7 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
               Use This Story
             </button>
             <button
-              onClick={() => {
-                setPhase("interview");
-                setDraftStory("");
-                setEditedStory("");
-              }}
+              onClick={() => { setPhase("interview"); setDraftStory(""); setEditedStory(""); }}
               className="flex-1 border border-navy/20 text-navy font-semibold py-3 rounded-full hover:bg-navy/5 transition-colors"
             >
               Start Over
@@ -263,27 +264,42 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
     );
   }
 
+  // ── Interview chat view ───────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-4">
+      {/* Progress */}
+      {userMessageCount > 0 && (
+        <div className="flex items-center gap-3 py-1">
+          <div className="flex-1 h-1.5 bg-navy/10 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-700 ease-out"
+              style={{
+                width: `${progressPct}%`,
+                background: "linear-gradient(to right, rgba(201,168,76,0.5), #C9A84C)",
+              }}
+            />
+          </div>
+          <span className="text-xs text-navy/40 flex-shrink-0 tabular-nums">
+            {progress}/{TOTAL_QUESTIONS} questions
+          </span>
+        </div>
+      )}
+
       {/* Chat messages */}
-      <div className="flex flex-col gap-4 max-h-[420px] overflow-y-auto pr-1">
+      <div className="flex flex-col gap-4 max-h-[440px] overflow-y-auto pr-1 scroll-smooth">
         {messages.map((msg, i) => (
-          <div
-            key={i}
-            className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
-          >
+          <div key={i} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
             {msg.role === "assistant" && (
-              <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center flex-shrink-0 mt-0.5">
+              <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
                 <svg className="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm0 14a6 6 0 110-12 6 6 0 010 12z" />
-                  <path d="M10 6a1 1 0 011 1v3a1 1 0 01-.293.707l-2 2a1 1 0 01-1.414-1.414L9 9.586V7a1 1 0 011-1z" />
+                  <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
                 </svg>
               </div>
             )}
             <div
-              className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+              className={`max-w-[82%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
                 msg.role === "assistant"
-                  ? "bg-white border border-navy/10 text-navy/80 rounded-tl-sm"
+                  ? "bg-white border border-navy/8 text-navy/80 rounded-tl-sm shadow-sm"
                   : "bg-navy text-cream rounded-tr-sm"
               }`}
             >
@@ -294,16 +310,16 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
 
         {loading && (
           <div className="flex gap-3">
-            <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center flex-shrink-0 shadow-sm">
               <svg className="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm0 14a6 6 0 110-12 6 6 0 010 12z" />
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
               </svg>
             </div>
-            <div className="bg-white border border-navy/10 px-4 py-3 rounded-2xl rounded-tl-sm flex items-center gap-1">
+            <div className="bg-white border border-navy/8 px-4 py-3 rounded-2xl rounded-tl-sm shadow-sm flex items-center gap-1.5">
               {[0, 1, 2].map(i => (
                 <span
                   key={i}
-                  className="w-1.5 h-1.5 rounded-full bg-navy/30 animate-bounce"
+                  className="w-2 h-2 rounded-full bg-navy/25 animate-bounce"
                   style={{ animationDelay: `${i * 0.15}s` }}
                 />
               ))}
@@ -327,13 +343,14 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
           }}
           disabled={loading}
           rows={2}
-          placeholder="Type your answer… (Enter to send, Shift+Enter for new line)"
+          placeholder="Share your answer… (Enter to send, Shift+Enter for new line)"
           className={`${INPUT} resize-none flex-1`}
         />
         <button
           onClick={sendMessage}
           disabled={loading || !input.trim()}
           className="bg-navy text-cream p-3 rounded-xl hover:bg-navy/90 transition-colors disabled:opacity-40 flex-shrink-0"
+          aria-label="Send"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
@@ -345,19 +362,19 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
       {canGenerate && (
         <button
           onClick={generateStory}
-          className="flex items-center justify-center gap-2 border-2 border-gold/60 text-navy font-semibold py-2.5 rounded-full hover:bg-gold/10 transition-colors text-sm"
+          className="flex items-center justify-center gap-2 bg-gradient-to-r from-gold/90 to-gold text-navy font-semibold py-3 rounded-full hover:opacity-90 transition-opacity text-sm shadow-sm"
         >
-          <svg className="w-4 h-4 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
           </svg>
-          {interviewComplete ? "Write My Story Now" : "Generate Story from My Answers"}
+          {interviewComplete ? "Write My Story Now" : "Generate My Story"}
         </button>
       )}
 
       {!canGenerate && userMessageCount > 0 && (
-        <p className="text-xs text-center text-navy/40">
-          Answer a few more questions before generating your story
+        <p className="text-xs text-center text-navy/35">
+          Answer a few more questions to unlock story generation
         </p>
       )}
     </div>
