@@ -84,13 +84,20 @@ export default async function StoryPage({ params }: { params: { id: string } }) 
   const story = await getStory(params.id);
   if (!story) notFound();
 
-  const { data: relatedRaw } = await supabase
-    .from("stories")
-    .select("id, name, country, year_arrived, story_text")
-    .eq("country", story.country)
-    .neq("id", story.id)
-    .order("created_at", { ascending: false })
-    .limit(3);
+  const [{ data: translationsRaw }, { data: relatedRaw }] = await Promise.all([
+    supabase
+      .from("story_translations")
+      .select("language_code, story_text")
+      .eq("story_id", story.id),
+    supabase
+      .from("stories")
+      .select("id, name, country, year_arrived, story_text")
+      .eq("country", story.country)
+      .neq("id", story.id)
+      .order("created_at", { ascending: false })
+      .limit(3),
+  ]);
+  const translations = translationsRaw ?? [];
   const related = relatedRaw ?? [];
 
   return (
@@ -136,7 +143,11 @@ export default async function StoryPage({ params }: { params: { id: string } }) 
 
       {/* Story text */}
       <div className="mb-12">
-        <StoryTranslator text={story.story_text} sourceLang={story.original_language ?? "en"} />
+        <StoryTranslator
+          originalText={story.story_text}
+          originalLang={story.original_language ?? "en"}
+          translations={translations}
+        />
       </div>
 
       {/* Audio */}

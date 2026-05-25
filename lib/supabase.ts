@@ -23,6 +23,14 @@ export type Story = {
   created_at: string;
 };
 
+export type StoryTranslation = {
+  id: string;
+  story_id: string;
+  language_code: string;
+  story_text: string;
+  created_at: string;
+};
+
 export type CommunityHub = {
   id: string;
   name: string;

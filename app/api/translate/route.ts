@@ -1,22 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const GOOGLE_API_KEY = process.env.GOOGLE_TRANSLATE_API_KEY;
+const DEEPL_API_KEY = process.env.DEEPL_API_KEY;
 
-async function translateChunk(chunk: string, target: string, source?: string): Promise<string> {
-  const url = `https://translation.googleapis.com/language/translate/v2?key=${GOOGLE_API_KEY}`;
-  const res = await fetch(url, {
+// DeepL uses different base URLs for free vs pro keys.
+// Free keys end with ':fx'.
+function deeplUrl() {
+  const isFree = DEEPL_API_KEY?.endsWith(":fx");
+  return isFree
+    ? "https://api-free.deepl.com/v2/translate"
+    : "https://api.deepl.com/v2/translate";
+}
+
+// App uses lowercase codes; DeepL needs uppercase.
+// Portuguese maps to PT-BR (most widely spoken variant).
+const DEEPL_CODE: Record<string, string> = {
+  es: "ES", fr: "FR", pt: "PT-BR", de: "DE", it: "IT",
+  zh: "ZH", ja: "JA", ko: "KO", ar: "AR", hi: "HI", en: "EN",
+};
+
+async function translateWithDeepl(
+  text: string,
+  target: string,
+  source?: string
+): Promise<string> {
+  const res = await fetch(deeplUrl(), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      Authorization: `DeepL-Auth-Key ${DEEPL_API_KEY}`,
+      "Content-Type": "application/json",
+    },
     body: JSON.stringify({
-      q: chunk,
-      target,
-      ...(source ? { source } : {}),
-      format: "text",
+      text: [text],
+      target_lang: DEEPL_CODE[target] ?? target.toUpperCase(),
+      ...(source ? { source_lang: DEEPL_CODE[source] ?? source.toUpperCase() } : {}),
     }),
   });
-  if (!res.ok) throw new Error(`Translation API error: ${res.status}`);
+
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`DeepL error ${res.status}: ${body}`);
+  }
+
   const data = await res.json();
-  return data.data.translations[0].translatedText;
+  return data.translations[0].text as string;
 }
 
 export async function POST(req: NextRequest) {
@@ -26,16 +52,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  if (!GOOGLE_API_KEY) {
+  if (!DEEPL_API_KEY) {
     return NextResponse.json({ error: "Translation not configured" }, { status: 503 });
   }
 
   try {
-    const MAX_CHARS = 4000;
+    // DeepL supports up to 128 KB per request; split only if truly massive.
+    const MAX_CHARS = 100_000;
     let translatedText: string;
 
     if (text.length <= MAX_CHARS) {
-      translatedText = await translateChunk(text, target, source);
+      translatedText = await translateWithDeepl(text, target, source);
     } else {
       const paragraphs = text.split("\n\n");
       const chunks: string[] = [];
@@ -51,7 +78,9 @@ export async function POST(req: NextRequest) {
       }
       if (current.trim()) chunks.push(current.trim());
 
-      const translated = await Promise.all(chunks.map(c => translateChunk(c, target, source)));
+      const translated = await Promise.all(
+        chunks.map(c => translateWithDeepl(c, target, source))
+      );
       translatedText = translated.join("\n\n");
     }
 

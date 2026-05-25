@@ -519,24 +519,36 @@ export default function SharePage() {
       ? form.tags.split(",").map((t) => t.trim()).filter(Boolean)
       : [];
 
-    const { error } = await supabase.from("stories").insert({
-      name: form.name,
-      country: form.country,
-      year_arrived: form.year_arrived ? parseInt(form.year_arrived, 10) : null,
-      us_state: form.us_state || null,
-      profession: form.profession || null,
-      story_text: form.story_text,
-      video_url,
-      audio_url,
-      tags: tags.length > 0 ? tags : null,
-      original_language: form.original_language || "en",
-    });
+    const { data: inserted, error } = await supabase
+      .from("stories")
+      .insert({
+        name: form.name,
+        country: form.country,
+        year_arrived: form.year_arrived ? parseInt(form.year_arrived, 10) : null,
+        us_state: form.us_state || null,
+        profession: form.profession || null,
+        story_text: form.story_text,
+        video_url,
+        audio_url,
+        tags: tags.length > 0 ? tags : null,
+        original_language: form.original_language || "en",
+      })
+      .select("id")
+      .single();
 
     if (error) {
       console.error("Supabase insert error:", error);
       setErrorMsg("Something went wrong submitting your story. Please try again.");
       setStatus("error");
     } else {
+      // Fire-and-forget: translate into all 10 languages in the background.
+      if (inserted?.id) {
+        fetch("/api/translate-story", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ storyId: inserted.id }),
+        }).catch(() => {/* non-critical */});
+      }
       setStatus("success");
       setForm(EMPTY);
       clearAudio();
