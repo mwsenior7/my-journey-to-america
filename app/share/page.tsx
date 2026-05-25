@@ -27,6 +27,8 @@ type FormState = {
   tags: string;
 };
 
+const ACCEPTED_VIDEO = ".mp4,.mov,.avi,.webm,video/mp4,video/quicktime,video/x-msvideo,video/webm";
+
 const EMPTY: FormState = {
   name: "",
   country: "",
@@ -80,6 +82,13 @@ export default function SharePage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
+  // Video state
+  const [videoMode, setVideoMode] = useState<"url" | "upload">("url");
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [videoUploading, setVideoUploading] = useState(false);
+  const videoProgressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   function set(
     field: keyof FormState
   ) {
@@ -125,6 +134,13 @@ export default function SharePage() {
     setRecState("idle");
   }
 
+  function clearVideo() {
+    setVideoFile(null);
+    setVideoProgress(0);
+    setVideoUploading(false);
+    if (videoProgressTimerRef.current) clearInterval(videoProgressTimerRef.current);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStatus("loading");
@@ -157,6 +173,36 @@ export default function SharePage() {
       }
     }
 
+    // Video file upload
+    let video_url: string | null = form.video_url || null;
+    if (videoMode === "upload" && videoFile) {
+      setVideoUploading(true);
+      setVideoProgress(0);
+      videoProgressTimerRef.current = setInterval(() => {
+        setVideoProgress((p) => (p < 90 ? +(p + Math.random() * 8).toFixed(1) : 90));
+      }, 300);
+
+      const ext = videoFile.name.split(".").pop() ?? "mp4";
+      const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+      const { data: vidUpload, error: vidErr } = await supabase.storage
+        .from("story-videos")
+        .upload(path, videoFile, { contentType: videoFile.type });
+
+      if (videoProgressTimerRef.current) clearInterval(videoProgressTimerRef.current);
+
+      if (vidErr) {
+        console.error("Video upload error:", vidErr);
+      } else {
+        setVideoProgress(100);
+        const { data: vidUrl } = supabase.storage
+          .from("story-videos")
+          .getPublicUrl(vidUpload.path);
+        video_url = vidUrl.publicUrl;
+      }
+      await new Promise((r) => setTimeout(r, 400));
+      setVideoUploading(false);
+    }
+
     const tags = form.tags.trim()
       ? form.tags
           .split(",")
@@ -171,7 +217,7 @@ export default function SharePage() {
       us_state: form.us_state || null,
       profession: form.profession || null,
       story_text: form.story_text,
-      video_url: form.video_url || null,
+      video_url,
       audio_url,
       tags: tags.length > 0 ? tags : null,
     });
@@ -184,6 +230,7 @@ export default function SharePage() {
       setStatus("success");
       setForm(EMPTY);
       clearAudio();
+      clearVideo();
     }
   }
 
@@ -422,21 +469,113 @@ export default function SharePage() {
           </div>
         </div>
 
-        {/* ── Video URL ── */}
-        <Field
-          label="Video URL"
-          htmlFor="video_url"
-          hint="Paste a YouTube, Vimeo, or other video link (optional)"
-        >
-          <input
-            id="video_url"
-            type="url"
-            placeholder="https://youtube.com/watch?v=…"
-            value={form.video_url}
-            onChange={set("video_url")}
-            className={INPUT}
-          />
-        </Field>
+        {/* ── Video ── */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-navy">
+              Video{" "}
+              <span className="font-normal text-navy/40">(optional)</span>
+            </span>
+            <div className="flex bg-navy/5 rounded-lg p-1 gap-0.5">
+              {(["url", "upload"] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => {
+                    setVideoMode(mode);
+                    clearVideo();
+                    setForm((prev) => ({ ...prev, video_url: "" }));
+                  }}
+                  className={`px-3 py-1 rounded-md text-xs font-semibold capitalize transition-colors ${
+                    videoMode === mode
+                      ? "bg-white shadow-sm text-navy"
+                      : "text-navy/50 hover:text-navy"
+                  }`}
+                >
+                  {mode === "url" ? "URL" : "Upload File"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="border border-navy/10 rounded-xl p-4 bg-navy/[0.02]">
+            {videoMode === "url" && (
+              <div className="flex flex-col gap-1.5">
+                <input
+                  id="video_url"
+                  type="url"
+                  placeholder="https://youtube.com/watch?v=…"
+                  value={form.video_url}
+                  onChange={set("video_url")}
+                  className={INPUT}
+                />
+                <p className="text-xs text-navy/40">Paste a YouTube or Vimeo link</p>
+              </div>
+            )}
+
+            {videoMode === "upload" && (
+              <div className="flex flex-col gap-3">
+                <label
+                  htmlFor="video_file"
+                  className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-navy/15 rounded-lg px-6 py-5 cursor-pointer hover:border-navy/30 transition-colors"
+                >
+                  <svg
+                    className="w-6 h-6 text-navy/30"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={1.5}
+                      d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"
+                    />
+                  </svg>
+                  <span className="text-sm text-navy/50">
+                    {videoFile ? videoFile.name : "Click to choose a video file"}
+                  </span>
+                  <span className="text-xs text-navy/30">MP4, MOV, AVI, WebM</span>
+                </label>
+                <input
+                  id="video_file"
+                  type="file"
+                  accept={ACCEPTED_VIDEO}
+                  className="sr-only"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) setVideoFile(file);
+                  }}
+                />
+
+                {videoFile && !videoUploading && videoProgress === 0 && (
+                  <button
+                    type="button"
+                    onClick={clearVideo}
+                    className="self-start text-xs text-navy/50 hover:text-navy transition-colors underline underline-offset-2"
+                  >
+                    Remove file
+                  </button>
+                )}
+
+                {(videoUploading || videoProgress > 0) && (
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex justify-between text-xs text-navy/50">
+                      <span>{videoProgress < 100 ? "Uploading…" : "Upload complete"}</span>
+                      <span>{Math.round(videoProgress)}%</span>
+                    </div>
+                    <div className="w-full bg-navy/10 rounded-full h-2 overflow-hidden">
+                      <div
+                        className="h-2 rounded-full bg-gold transition-all duration-300"
+                        style={{ width: `${videoProgress}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
 
         {/* ── Tags ── */}
         <Field
