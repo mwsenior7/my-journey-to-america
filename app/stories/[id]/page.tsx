@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { supabase, type Story } from "@/lib/supabase";
 import ShareButton from "./ShareButton";
+import StoryTranslator from "@/components/StoryTranslator";
 
 const getStory = cache(async (id: string): Promise<Story | null> => {
   const { data } = await supabase
@@ -134,11 +135,8 @@ export default async function StoryPage({ params }: { params: { id: string } }) 
       </div>
 
       {/* Story text */}
-      <div
-        className="prose prose-navy max-w-none text-navy/80 leading-[1.9] text-[1.0625rem] mb-12"
-        style={{ whiteSpace: "pre-wrap" }}
-      >
-        {story.story_text}
+      <div className="mb-12">
+        <StoryTranslator text={story.story_text} sourceLang={story.original_language ?? "en"} />
       </div>
 
       {/* Audio */}

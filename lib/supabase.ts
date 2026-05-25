@@ -19,6 +19,7 @@ export type Story = {
   video_url: string | null;
   tags: string[] | null;
   status: string;
+  original_language: string;
   created_at: string;
 };
 

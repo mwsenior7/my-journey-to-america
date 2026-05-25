@@ -1,7 +1,8 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { SUPPORTED_LANGUAGES } from "@/contexts/LanguageContext";
 
 const US_STATES = [
   "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
@@ -25,6 +26,7 @@ type FormState = {
   story_text: string;
   video_url: string;
   tags: string;
+  original_language: string;
 };
 
 const ACCEPTED_VIDEO = ".mp4,.mov,.avi,.webm,video/mp4,video/quicktime,video/x-msvideo,video/webm";
@@ -38,6 +40,7 @@ const EMPTY: FormState = {
   story_text: "",
   video_url: "",
   tags: "",
+  original_language: "en",
 };
 
 const INPUT =
@@ -68,7 +71,303 @@ function Field({
   );
 }
 
+// ── AI Interview Component ─────────────────────────────────────────────────────
+
+type Message = { role: "user" | "assistant"; content: string };
+
+function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [phase, setPhase] = useState<"interview" | "generating" | "done">("interview");
+  const [draftStory, setDraftStory] = useState("");
+  const [editedStory, setEditedStory] = useState("");
+  const [interviewComplete, setInterviewComplete] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Start the interview automatically
+  useEffect(() => {
+    startInterview();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
+
+  async function startInterview() {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/interview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: [], phase: "interview" }),
+      });
+      const text = await streamResponse(res, (partial) => {
+        setMessages([{ role: "assistant", content: partial }]);
+      });
+      setMessages([{ role: "assistant", content: text }]);
+    } finally {
+      setLoading(false);
+      inputRef.current?.focus();
+    }
+  }
+
+  async function streamResponse(
+    res: Response,
+    onChunk: (partial: string) => void
+  ): Promise<string> {
+    const reader = res.body!.getReader();
+    const decoder = new TextDecoder();
+    let full = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      full += decoder.decode(value, { stream: true });
+      onChunk(full);
+    }
+    return full;
+  }
+
+  async function sendMessage() {
+    const trimmed = input.trim();
+    if (!trimmed || loading) return;
+
+    const newMessages: Message[] = [...messages, { role: "user", content: trimmed }];
+    setMessages(newMessages);
+    setInput("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/interview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: newMessages, phase: "interview" }),
+      });
+
+      let assistantText = "";
+      const finalText = await streamResponse(res, (partial) => {
+        assistantText = partial;
+        setMessages([...newMessages, { role: "assistant", content: partial }]);
+      });
+
+      const updatedMessages: Message[] = [
+        ...newMessages,
+        { role: "assistant", content: finalText },
+      ];
+      setMessages(updatedMessages);
+
+      // Check if interview is complete
+      if (
+        finalText.includes("I have everything I need to write your story") ||
+        newMessages.filter(m => m.role === "user").length >= 5
+      ) {
+        setInterviewComplete(true);
+      }
+    } finally {
+      setLoading(false);
+      inputRef.current?.focus();
+    }
+  }
+
+  async function generateStory() {
+    setPhase("generating");
+    setDraftStory("");
+
+    const res = await fetch("/api/interview", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages, phase: "generate" }),
+    });
+
+    const finalStory = await streamResponse(res, (partial) => {
+      setDraftStory(partial);
+    });
+
+    setDraftStory(finalStory);
+    setEditedStory(finalStory);
+    setPhase("done");
+  }
+
+  const userMessageCount = messages.filter(m => m.role === "user").length;
+  const canGenerate = userMessageCount >= 3;
+
+  if (phase === "generating" || phase === "done") {
+    return (
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-gold/20 flex items-center justify-center">
+            <svg className="w-4 h-4 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          </div>
+          <div>
+            <p className="font-bold text-navy text-sm">Your Story Draft</p>
+            <p className="text-xs text-navy/40">
+              {phase === "generating" ? "Writing your story…" : "Review and edit before submitting"}
+            </p>
+          </div>
+          {phase === "generating" && (
+            <span className="ml-auto flex gap-1">
+              {[0, 1, 2].map(i => (
+                <span
+                  key={i}
+                  className="w-1.5 h-1.5 rounded-full bg-gold animate-bounce"
+                  style={{ animationDelay: `${i * 0.15}s` }}
+                />
+              ))}
+            </span>
+          )}
+        </div>
+
+        <div className="relative">
+          <textarea
+            value={phase === "generating" ? draftStory : editedStory}
+            onChange={e => setEditedStory(e.target.value)}
+            readOnly={phase === "generating"}
+            rows={14}
+            className={`${INPUT} resize-none leading-relaxed`}
+            placeholder="Your story is being crafted…"
+          />
+          {phase === "generating" && (
+            <div className="absolute inset-0 rounded-lg pointer-events-none bg-gradient-to-b from-transparent to-white/20" />
+          )}
+        </div>
+
+        {phase === "done" && (
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              onClick={() => onUseStory(editedStory)}
+              className="flex-1 bg-navy text-cream font-semibold py-3 rounded-full hover:bg-navy/90 transition-colors flex items-center justify-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Use This Story
+            </button>
+            <button
+              onClick={() => {
+                setPhase("interview");
+                setDraftStory("");
+                setEditedStory("");
+              }}
+              className="flex-1 border border-navy/20 text-navy font-semibold py-3 rounded-full hover:bg-navy/5 transition-colors"
+            >
+              Start Over
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Chat messages */}
+      <div className="flex flex-col gap-4 max-h-[420px] overflow-y-auto pr-1">
+        {messages.map((msg, i) => (
+          <div
+            key={i}
+            className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}
+          >
+            {msg.role === "assistant" && (
+              <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center flex-shrink-0 mt-0.5">
+                <svg className="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20">
+                  <path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm0 14a6 6 0 110-12 6 6 0 010 12z" />
+                  <path d="M10 6a1 1 0 011 1v3a1 1 0 01-.293.707l-2 2a1 1 0 01-1.414-1.414L9 9.586V7a1 1 0 011-1z" />
+                </svg>
+              </div>
+            )}
+            <div
+              className={`max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                msg.role === "assistant"
+                  ? "bg-white border border-navy/10 text-navy/80 rounded-tl-sm"
+                  : "bg-navy text-cream rounded-tr-sm"
+              }`}
+            >
+              {msg.content}
+            </div>
+          </div>
+        ))}
+
+        {loading && (
+          <div className="flex gap-3">
+            <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center flex-shrink-0">
+              <svg className="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm0 14a6 6 0 110-12 6 6 0 010 12z" />
+              </svg>
+            </div>
+            <div className="bg-white border border-navy/10 px-4 py-3 rounded-2xl rounded-tl-sm flex items-center gap-1">
+              {[0, 1, 2].map(i => (
+                <span
+                  key={i}
+                  className="w-1.5 h-1.5 rounded-full bg-navy/30 animate-bounce"
+                  style={{ animationDelay: `${i * 0.15}s` }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        <div ref={chatEndRef} />
+      </div>
+
+      {/* Input */}
+      <div className="flex gap-2 items-end">
+        <textarea
+          ref={inputRef}
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              sendMessage();
+            }
+          }}
+          disabled={loading}
+          rows={2}
+          placeholder="Type your answer… (Enter to send, Shift+Enter for new line)"
+          className={`${INPUT} resize-none flex-1`}
+        />
+        <button
+          onClick={sendMessage}
+          disabled={loading || !input.trim()}
+          className="bg-navy text-cream p-3 rounded-xl hover:bg-navy/90 transition-colors disabled:opacity-40 flex-shrink-0"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Generate button */}
+      {canGenerate && (
+        <button
+          onClick={generateStory}
+          className="flex items-center justify-center gap-2 border-2 border-gold/60 text-navy font-semibold py-2.5 rounded-full hover:bg-gold/10 transition-colors text-sm"
+        >
+          <svg className="w-4 h-4 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          </svg>
+          {interviewComplete ? "Write My Story Now" : "Generate Story from My Answers"}
+        </button>
+      )}
+
+      {!canGenerate && userMessageCount > 0 && (
+        <p className="text-xs text-center text-navy/40">
+          Answer a few more questions before generating your story
+        </p>
+      )}
+    </div>
+  );
+}
+
+// ── Main Share Page ────────────────────────────────────────────────────────────
+
 export default function SharePage() {
+  const [mode, setMode] = useState<"form" | "interview">("form");
   const [form, setForm] = useState<FormState>(EMPTY);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -89,14 +388,28 @@ export default function SharePage() {
   const [videoUploading, setVideoUploading] = useState(false);
   const videoProgressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  function set(
-    field: keyof FormState
-  ) {
+  // Set default language from browser
+  useEffect(() => {
+    const browserLang = navigator.language.split("-")[0];
+    const supported = SUPPORTED_LANGUAGES.find(l => l.code === browserLang);
+    if (supported) {
+      setForm(prev => ({ ...prev, original_language: supported.code }));
+    }
+  }, []);
+
+  function set(field: keyof FormState) {
     return (
-      e: React.ChangeEvent<
-        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-      >
+      e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
     ) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  }
+
+  function handleUseStory(story: string) {
+    setForm(prev => ({ ...prev, story_text: story }));
+    setMode("form");
+    // Scroll to form
+    setTimeout(() => {
+      document.getElementById("story_text")?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
   }
 
   async function startRecording() {
@@ -173,7 +486,6 @@ export default function SharePage() {
       }
     }
 
-    // Video file upload
     let video_url: string | null = form.video_url || null;
     if (videoMode === "upload" && videoFile) {
       setVideoUploading(true);
@@ -204,10 +516,7 @@ export default function SharePage() {
     }
 
     const tags = form.tags.trim()
-      ? form.tags
-          .split(",")
-          .map((t) => t.trim())
-          .filter(Boolean)
+      ? form.tags.split(",").map((t) => t.trim()).filter(Boolean)
       : [];
 
     const { error } = await supabase.from("stories").insert({
@@ -220,6 +529,7 @@ export default function SharePage() {
       video_url,
       audio_url,
       tags: tags.length > 0 ? tags : null,
+      original_language: form.original_language || "en",
     });
 
     if (error) {
@@ -256,14 +566,79 @@ export default function SharePage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-16">
       <h1 className="text-4xl font-bold text-navy mb-2">Share Your Story</h1>
-      <p className="text-navy/60 mb-10 text-lg">
+      <p className="text-navy/60 mb-8 text-lg">
         Your journey matters. Help us preserve it for future generations.
       </p>
 
+      {/* Mode toggle */}
+      <div className="flex bg-navy/5 rounded-xl p-1 gap-1 mb-8">
+        {(["form", "interview"] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => setMode(m)}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
+              mode === m
+                ? "bg-white shadow-sm text-navy"
+                : "text-navy/50 hover:text-navy"
+            }`}
+          >
+            {m === "form" ? (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Write It Myself
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                AI Interview
+              </>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* AI Interview panel */}
+      {mode === "interview" && (
+        <div className="bg-white rounded-2xl border border-navy/10 shadow-sm p-6 mb-8">
+          <div className="flex items-start gap-3 mb-5 pb-5 border-b border-navy/8">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold/30 to-gold/10 flex items-center justify-center flex-shrink-0">
+              <svg className="w-5 h-5 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <div>
+              <p className="font-bold text-navy text-sm">AI Story Interview</p>
+              <p className="text-xs text-navy/50 mt-0.5">
+                Answer a few questions and our AI will craft a beautifully written story from your words. You can edit it before submitting.
+              </p>
+            </div>
+          </div>
+          <AIInterview onUseStory={handleUseStory} />
+        </div>
+      )}
+
+      {/* Submission form */}
       <form
         onSubmit={handleSubmit}
         className="flex flex-col gap-8 bg-white rounded-2xl border border-navy/10 shadow-sm p-8"
       >
+        {mode === "interview" && form.story_text && (
+          <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-lg">
+            <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+            AI-generated story loaded. Fill in your details below to submit.
+          </div>
+        )}
+
         {/* ── Personal details ── */}
         <div className="flex flex-col gap-6">
           <div className="grid sm:grid-cols-2 gap-6">
@@ -313,9 +688,7 @@ export default function SharePage() {
               >
                 <option value="">Select a state…</option>
                 {US_STATES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
+                  <option key={s} value={s}>{s}</option>
                 ))}
               </select>
             </Field>
@@ -336,41 +709,52 @@ export default function SharePage() {
         </div>
 
         {/* ── Story text ── */}
-        <Field label="Your Story" htmlFor="story_text" required>
-          <textarea
-            id="story_text"
-            rows={9}
-            placeholder="Tell us about your journey — why you came, what it was like to arrive, and how your life has changed…"
-            value={form.story_text}
-            onChange={set("story_text")}
-            required
-            className={`${INPUT} resize-none`}
-          />
-        </Field>
+        <div className="flex flex-col gap-4">
+          <Field label="Your Story" htmlFor="story_text" required>
+            <textarea
+              id="story_text"
+              rows={9}
+              placeholder="Tell us about your journey — why you came, what it was like to arrive, and how your life has changed…"
+              value={form.story_text}
+              onChange={set("story_text")}
+              required
+              className={`${INPUT} resize-none`}
+            />
+          </Field>
+
+          <Field label="Story Language" htmlFor="original_language" hint="Select the language your story is written in">
+            <select
+              id="original_language"
+              value={form.original_language}
+              onChange={set("original_language")}
+              className={INPUT}
+            >
+              {SUPPORTED_LANGUAGES.map(l => (
+                <option key={l.code} value={l.code}>
+                  {l.name} — {l.nativeName}
+                </option>
+              ))}
+            </select>
+          </Field>
+        </div>
 
         {/* ── Audio ── */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-navy">
-              Audio{" "}
-              <span className="font-normal text-navy/40">(optional)</span>
+              Audio <span className="font-normal text-navy/40">(optional)</span>
             </span>
             <div className="flex bg-navy/5 rounded-lg p-1 gap-0.5">
-              {(["record", "upload"] as const).map((mode) => (
+              {(["record", "upload"] as const).map((m) => (
                 <button
-                  key={mode}
+                  key={m}
                   type="button"
-                  onClick={() => {
-                    setAudioMode(mode);
-                    clearAudio();
-                  }}
+                  onClick={() => { setAudioMode(m); clearAudio(); }}
                   className={`px-3 py-1 rounded-md text-xs font-semibold capitalize transition-colors ${
-                    audioMode === mode
-                      ? "bg-white shadow-sm text-navy"
-                      : "text-navy/50 hover:text-navy"
+                    audioMode === m ? "bg-white shadow-sm text-navy" : "text-navy/50 hover:text-navy"
                   }`}
                 >
-                  {mode}
+                  {m}
                 </button>
               ))}
             </div>
@@ -427,18 +811,9 @@ export default function SharePage() {
                   htmlFor="audio_file"
                   className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-navy/15 rounded-lg px-6 py-5 cursor-pointer hover:border-navy/30 transition-colors"
                 >
-                  <svg
-                    className="w-6 h-6 text-navy/30"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
-                    />
+                  <svg className="w-6 h-6 text-navy/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                      d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                   </svg>
                   <span className="text-sm text-navy/50">
                     {audioFile ? audioFile.name : "Click to choose an audio file"}
@@ -473,26 +848,19 @@ export default function SharePage() {
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-navy">
-              Video{" "}
-              <span className="font-normal text-navy/40">(optional)</span>
+              Video <span className="font-normal text-navy/40">(optional)</span>
             </span>
             <div className="flex bg-navy/5 rounded-lg p-1 gap-0.5">
-              {(["url", "upload"] as const).map((mode) => (
+              {(["url", "upload"] as const).map((m) => (
                 <button
-                  key={mode}
+                  key={m}
                   type="button"
-                  onClick={() => {
-                    setVideoMode(mode);
-                    clearVideo();
-                    setForm((prev) => ({ ...prev, video_url: "" }));
-                  }}
+                  onClick={() => { setVideoMode(m); clearVideo(); setForm(prev => ({ ...prev, video_url: "" })); }}
                   className={`px-3 py-1 rounded-md text-xs font-semibold capitalize transition-colors ${
-                    videoMode === mode
-                      ? "bg-white shadow-sm text-navy"
-                      : "text-navy/50 hover:text-navy"
+                    videoMode === m ? "bg-white shadow-sm text-navy" : "text-navy/50 hover:text-navy"
                   }`}
                 >
-                  {mode === "url" ? "URL" : "Upload File"}
+                  {m === "url" ? "URL" : "Upload File"}
                 </button>
               ))}
             </div>
@@ -519,18 +887,9 @@ export default function SharePage() {
                   htmlFor="video_file"
                   className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-navy/15 rounded-lg px-6 py-5 cursor-pointer hover:border-navy/30 transition-colors"
                 >
-                  <svg
-                    className="w-6 h-6 text-navy/30"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z"
-                    />
+                  <svg className="w-6 h-6 text-navy/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
+                      d="M15 10l4.553-2.276A1 1 0 0121 8.723v6.554a1 1 0 01-1.447.894L15 14M3 8a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
                   </svg>
                   <span className="text-sm text-navy/50">
                     {videoFile ? videoFile.name : "Click to choose a video file"}
@@ -578,11 +937,7 @@ export default function SharePage() {
         </div>
 
         {/* ── Tags ── */}
-        <Field
-          label="Tags"
-          htmlFor="tags"
-          hint="Comma-separated — e.g. family, career change, 1990s"
-        >
+        <Field label="Tags" htmlFor="tags" hint="Comma-separated — e.g. family, career change, 1990s">
           <input
             id="tags"
             type="text"
