@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       console.log("[/api/interview] generating story from", messages.length, "messages");
 
       const response = await client.messages.create({
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         max_tokens: 2048,
         system: GENERATE_SYSTEM,
         messages: [
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
     console.log("[/api/interview] interview turn, messages:", messages.length);
 
     const response = await client.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 350,
       system: INTERVIEW_SYSTEM,
       messages: messages.map((m: { role: string; content: string }) => ({
