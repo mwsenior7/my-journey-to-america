@@ -153,7 +153,7 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
       setMessages([...newMessages, { role: "assistant", content: msg }]);
     } finally {
       setLoading(false);
-      inputRef.current?.focus();
+      inputRef.current?.focus({ preventScroll: true });
     }
   }
 
