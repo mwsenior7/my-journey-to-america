@@ -105,9 +105,7 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ messages: [], phase: "interview" }),
       });
-      const text = await streamResponse(res, (partial) => {
-        setMessages([{ role: "assistant", content: partial }]);
-      });
+      const text = await fetchText(res);
       setMessages([{ role: "assistant", content: text }]);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong. Please try refreshing the page.";
@@ -118,27 +116,19 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
     }
   }
 
-  async function streamResponse(
-    res: Response,
-    onChunk: (partial: string) => void
-  ): Promise<string> {
+  async function fetchText(res: Response): Promise<string> {
     if (!res.ok) {
-      const errText = await res.text().catch(() => "Unknown error");
-      const friendly = errText.startsWith("<")
-        ? "Sorry, something went wrong. Please try refreshing the page."
-        : errText;
-      throw new Error(friendly);
+      let message = "Sorry, something went wrong. Please try refreshing the page.";
+      try {
+        const data = await res.json();
+        if (data.error) message = data.error;
+      } catch {
+        // ignore parse failure
+      }
+      throw new Error(message);
     }
-    const reader = res.body!.getReader();
-    const decoder = new TextDecoder();
-    let full = "";
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      full += decoder.decode(value, { stream: true });
-      onChunk(full);
-    }
-    return full;
+    const data = await res.json();
+    return data.text ?? "";
   }
 
   async function sendMessage() {
@@ -157,9 +147,7 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
         body: JSON.stringify({ messages: newMessages, phase: "interview" }),
       });
 
-      const finalText = await streamResponse(res, (partial) => {
-        setMessages([...newMessages, { role: "assistant", content: partial }]);
-      });
+      const finalText = await fetchText(res);
 
       const updatedMessages: Message[] = [
         ...newMessages,
@@ -193,10 +181,7 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
       body: JSON.stringify({ messages, phase: "generate" }),
     });
 
-    const finalStory = await streamResponse(res, (partial) => {
-      setDraftStory(partial);
-    });
-
+    const finalStory = await fetchText(res);
     setDraftStory(finalStory);
     setEditedStory(finalStory);
     setPhase("done");

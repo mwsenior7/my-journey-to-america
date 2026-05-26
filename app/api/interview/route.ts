@@ -1,5 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
+
+const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const INTERVIEW_SYSTEM = `You are a warm, encouraging interviewer helping immigrants share their stories for "My Journey to America" — a living digital archive preserving immigration stories for future generations. Many of the people you talk to don't consider themselves writers, so your job is to make this feel like a friendly conversation, not an interview. Be genuinely curious, supportive, and enthusiastic about what they share.
 
@@ -47,40 +49,12 @@ STYLE GUIDE:
 
 Output ONLY the story text. No title, no "Here is the story:", no preamble. Begin directly with the first word of the story.`;
 
-function makeStream(
-  anthropicStream: ReturnType<Anthropic["messages"]["stream"]>
-): Response {
-  const encoder = new TextEncoder();
-  const readable = new ReadableStream({
-    async start(controller) {
-      try {
-        for await (const chunk of anthropicStream) {
-          if (
-            chunk.type === "content_block_delta" &&
-            chunk.delta.type === "text_delta"
-          ) {
-            controller.enqueue(encoder.encode(chunk.delta.text));
-          }
-        }
-      } catch (err) {
-        controller.error(err);
-      } finally {
-        controller.close();
-      }
-    },
-  });
-  return new Response(readable, {
-    headers: { "Content-Type": "text/plain; charset=utf-8" },
-  });
-}
-
 export async function POST(req: NextRequest) {
   try {
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const { messages, phase } = await req.json();
 
     if (!messages || !Array.isArray(messages)) {
-      return new Response("Invalid request", { status: 400 });
+      return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
 
     if (phase === "generate") {
@@ -90,7 +64,9 @@ export async function POST(req: NextRequest) {
         )
         .join("\n\n");
 
-      const stream = anthropic.messages.stream({
+      console.log("[/api/interview] generating story from", messages.length, "messages");
+
+      const response = await client.messages.create({
         model: "claude-sonnet-4-20250514",
         max_tokens: 2048,
         system: GENERATE_SYSTEM,
@@ -102,11 +78,15 @@ export async function POST(req: NextRequest) {
         ],
       });
 
-      return makeStream(stream);
+      const text =
+        response.content[0].type === "text" ? response.content[0].text : "";
+      return NextResponse.json({ text });
     }
 
     // Interview phase
-    const stream = anthropic.messages.stream({
+    console.log("[/api/interview] interview turn, messages:", messages.length);
+
+    const response = await client.messages.create({
       model: "claude-sonnet-4-20250514",
       max_tokens: 350,
       system: INTERVIEW_SYSTEM,
@@ -116,14 +96,13 @@ export async function POST(req: NextRequest) {
       })),
     });
 
-    return makeStream(stream);
+    const text =
+      response.content[0].type === "text" ? response.content[0].text : "";
+    return NextResponse.json({ text });
   } catch (err) {
+    console.error("[/api/interview] error:", err);
     const message =
       err instanceof Error ? err.message : "An unexpected error occurred.";
-    console.error("[/api/interview]", err);
-    return new Response(
-      `Sorry, something went wrong starting the interview. Please try refreshing the page. (${message})`,
-      { status: 500, headers: { "Content-Type": "text/plain; charset=utf-8" } }
-    );
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
