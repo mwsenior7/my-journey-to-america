@@ -78,7 +78,11 @@ type Message = { role: "user" | "assistant"; content: string };
 const TOTAL_QUESTIONS = 8;
 
 function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const OPENING_MESSAGE = "Welcome — I'm so glad you're here to share your story! These stories matter so much. Let's start at the very beginning: where were you born, and what was life like there growing up?";
+
+  const [messages, setMessages] = useState<Message[]>([
+    { role: "assistant", content: OPENING_MESSAGE },
+  ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [phase, setPhase] = useState<"interview" | "generating" | "done">("interview");
@@ -89,32 +93,8 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    startInterview();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
-
-  async function startInterview() {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/interview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: [], phase: "interview" }),
-      });
-      const text = await fetchText(res);
-      setMessages([{ role: "assistant", content: text }]);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Something went wrong. Please try refreshing the page.";
-      setMessages([{ role: "assistant", content: msg }]);
-    } finally {
-      setLoading(false);
-      inputRef.current?.focus();
-    }
-  }
 
   async function fetchText(res: Response): Promise<string> {
     if (!res.ok) {
@@ -253,7 +233,7 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
               You&rsquo;ll still be able to edit everything before submitting
             </p>
             <button
-              onClick={() => { setPhase("interview"); setDraftStory(""); setEditedStory(""); }}
+              onClick={() => { setPhase("interview"); setDraftStory(""); setEditedStory(""); setMessages([{ role: "assistant", content: OPENING_MESSAGE }]); setInterviewComplete(false); }}
               className="text-sm text-navy/40 hover:text-navy/60 transition-colors underline underline-offset-2 text-center"
             >
               Start over with new answers

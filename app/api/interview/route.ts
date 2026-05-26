@@ -57,6 +57,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
 
+    if (phase !== "generate" && messages.length === 0) {
+      return NextResponse.json({ error: "messages: at least one message is required" }, { status: 400 });
+    }
+
     if (phase === "generate") {
       const transcript = messages
         .map((m: { role: string; content: string }) =>
