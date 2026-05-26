@@ -89,11 +89,17 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
   const [draftStory, setDraftStory] = useState("");
   const [editedStory, setEditedStory] = useState("");
   const [interviewComplete, setInterviewComplete] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const lastMsgRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = chatContainerRef.current;
+    const el = lastMsgRef.current;
+    if (!container || !el) return;
+    const containerRect = container.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    container.scrollTo({ top: container.scrollTop + (elRect.top - containerRect.top), behavior: "smooth" });
   }, [messages, loading]);
 
   async function fetchText(res: Response): Promise<string> {
@@ -266,9 +272,9 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
       )}
 
       {/* Chat messages */}
-      <div className="flex flex-col gap-4 max-h-[440px] overflow-y-auto pr-1 scroll-smooth">
+      <div ref={chatContainerRef} className="flex flex-col gap-4 max-h-[440px] overflow-y-auto pr-1 scroll-smooth">
         {messages.map((msg, i) => (
-          <div key={i} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
+          <div key={i} ref={i === messages.length - 1 && !loading ? lastMsgRef : undefined} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
             {msg.role === "assistant" && (
               <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
                 <svg className="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20">
@@ -289,7 +295,7 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
         ))}
 
         {loading && (
-          <div className="flex gap-3">
+          <div ref={lastMsgRef} className="flex gap-3">
             <div className="w-8 h-8 rounded-full bg-navy flex items-center justify-center flex-shrink-0 shadow-sm">
               <svg className="w-4 h-4 text-gold" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-6-3a2 2 0 11-4 0 2 2 0 014 0zm-2 4a5 5 0 00-4.546 2.916A5.986 5.986 0 0010 16a5.986 5.986 0 004.546-2.084A5 5 0 0010 11z" clipRule="evenodd" />
@@ -306,7 +312,6 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
             </div>
           </div>
         )}
-        <div ref={chatEndRef} />
       </div>
 
       {/* Input */}
