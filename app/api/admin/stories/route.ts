@@ -30,7 +30,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: error.message, details: error }, { status: 500 });
     }
 
-    return NextResponse.json({ stories: data });
+    const stories = (data ?? []).map((s) => ({
+      ...s,
+      status: s.status ?? "pending",
+    }));
+
+    return NextResponse.json({ stories });
   } catch (err) {
     console.error("[admin/stories] Unexpected error:", err);
     return NextResponse.json({ error: "Unexpected server error", details: String(err) }, { status: 500 });
