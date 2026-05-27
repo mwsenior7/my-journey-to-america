@@ -58,8 +58,8 @@ function BrowseContent() {
   useEffect(() => {
     async function loadMeta() {
       const [cRes, pRes] = await Promise.all([
-        supabase.from("stories").select("country"),
-        supabase.from("stories").select("profession").not("profession", "is", null),
+        supabase.from("stories").select("country").eq("status", "approved"),
+        supabase.from("stories").select("profession").eq("status", "approved").not("profession", "is", null),
       ]);
       if (cRes.data) {
         setCountries(
@@ -79,6 +79,7 @@ function BrowseContent() {
     let q = supabase
       .from("stories")
       .select("*")
+      .eq("status", "approved")
       .order("created_at", { ascending: false })
       .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
 

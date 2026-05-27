@@ -534,6 +534,7 @@ export default function SharePage() {
         audio_url,
         tags: tags.length > 0 ? tags : null,
         original_language: form.original_language || "en",
+        status: "pending",
       })
       .select("id")
       .single();
