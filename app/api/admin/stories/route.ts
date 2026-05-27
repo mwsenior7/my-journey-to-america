@@ -17,7 +17,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from("stories")
-      .select("id, name, country, year_arrived, us_state, profession, story_text, status, created_at, tags")
+      .select("id, title, author_name, country_of_origin, us_state, year_of_arrival, profession, story_text, audio_url, is_featured, created_at, original_language, status")
       .order("created_at", { ascending: false });
 
     if (error) {
