@@ -77,7 +77,7 @@ type Message = { role: "user" | "assistant"; content: string };
 
 const TOTAL_QUESTIONS = 8;
 
-function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
+function AIInterview({ onUseStory, language }: { onUseStory: (story: string) => void; language: string }) {
   const OPENING_MESSAGE = "Welcome — I'm so glad you're here to share your story! These stories matter so much. Let's start at the very beginning: where were you born, and what was life like there growing up?";
 
   const [messages, setMessages] = useState<Message[]>([
@@ -94,12 +94,9 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    const container = chatContainerRef.current;
     const el = lastMsgRef.current;
-    if (!container || !el) return;
-    const containerRect = container.getBoundingClientRect();
-    const elRect = el.getBoundingClientRect();
-    container.scrollTo({ top: container.scrollTop + (elRect.top - containerRect.top), behavior: "smooth" });
+    if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [messages, loading]);
 
   async function fetchText(res: Response): Promise<string> {
@@ -130,7 +127,7 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
       const res = await fetch("/api/interview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages, phase: "interview" }),
+        body: JSON.stringify({ messages: newMessages, phase: "interview", language }),
       });
 
       const finalText = await fetchText(res);
@@ -164,7 +161,7 @@ function AIInterview({ onUseStory }: { onUseStory: (story: string) => void }) {
     const res = await fetch("/api/interview", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages, phase: "generate" }),
+      body: JSON.stringify({ messages, phase: "generate", language }),
     });
 
     const finalStory = await fetchText(res);
@@ -373,6 +370,7 @@ export default function SharePage() {
   const [form, setForm] = useState<FormState>(EMPTY);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
+  const [honeypot, setHoneypot] = useState("");
 
   // Audio state
   const [audioMode, setAudioMode] = useState<"record" | "upload">("record");
@@ -458,6 +456,7 @@ export default function SharePage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (honeypot) { setStatus("success"); return; }
     setStatus("loading");
     setErrorMsg("");
 
@@ -625,6 +624,30 @@ export default function SharePage() {
         </button>
       </div>
 
+      {/* Story Language selector */}
+      <div className="flex flex-col gap-1.5 mb-6">
+        <label className="text-sm font-semibold text-navy" htmlFor="story_language">
+          Story Language
+        </label>
+        <select
+          id="story_language"
+          value={form.original_language}
+          onChange={set("original_language")}
+          className={INPUT}
+        >
+          {SUPPORTED_LANGUAGES.map(l => (
+            <option key={l.code} value={l.code}>
+              {l.name} — {l.nativeName}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-navy/40">
+          {mode === "interview"
+            ? "The AI assistant will interview you in this language"
+            : "Select the language your story is written in"}
+        </p>
+      </div>
+
       {/* AI Interview panel */}
       {mode === "interview" && (
         <div className="bg-white rounded-2xl border border-navy/10 shadow-sm p-6 mb-8">
@@ -642,7 +665,7 @@ export default function SharePage() {
               </p>
             </div>
           </div>
-          <AIInterview onUseStory={handleUseStory} />
+          <AIInterview onUseStory={handleUseStory} language={form.original_language} />
         </div>
       )}
 
@@ -651,6 +674,20 @@ export default function SharePage() {
         onSubmit={handleSubmit}
         className="flex flex-col gap-8 bg-white rounded-2xl border border-navy/10 shadow-sm p-8"
       >
+        {/* Honeypot — invisible to users, catches bots */}
+        <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", opacity: 0, height: 0, overflow: "hidden" }}>
+          <label htmlFor="hp_website">Website</label>
+          <input
+            id="hp_website"
+            name="website"
+            type="text"
+            value={honeypot}
+            onChange={e => setHoneypot(e.target.value)}
+            tabIndex={-1}
+            autoComplete="off"
+          />
+        </div>
+
         {mode === "interview" && form.story_text && (
           <div className="flex items-center gap-2 text-sm text-emerald-700 bg-emerald-50 border border-emerald-200 px-4 py-3 rounded-lg">
             <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -743,20 +780,6 @@ export default function SharePage() {
             />
           </Field>
 
-          <Field label="Story Language" htmlFor="original_language" hint="Select the language your story is written in">
-            <select
-              id="original_language"
-              value={form.original_language}
-              onChange={set("original_language")}
-              className={INPUT}
-            >
-              {SUPPORTED_LANGUAGES.map(l => (
-                <option key={l.code} value={l.code}>
-                  {l.name} — {l.nativeName}
-                </option>
-              ))}
-            </select>
-          </Field>
         </div>
 
         {/* ── Audio ── */}

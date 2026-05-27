@@ -75,7 +75,23 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { messages, phase } = await req.json();
+    const { messages, phase, language } = await req.json();
+
+    // Build language-aware system prompts
+    const langMap: Record<string, string> = {
+      es: "Spanish", fr: "French", pt: "Portuguese", de: "German", it: "Italian",
+      zh: "Chinese", ja: "Japanese", ko: "Korean", ar: "Arabic", hi: "Hindi",
+      ru: "Russian", uk: "Ukrainian", el: "Greek",
+    };
+    const targetLang = language && language !== "en" ? langMap[language] : null;
+
+    const interviewSystem = targetLang
+      ? `${INTERVIEW_SYSTEM}\n\nIMPORTANT: Conduct this entire interview in ${targetLang}. All your responses, questions, and acknowledgments must be written in ${targetLang}. When you reach the closing phrase, write the line "I have everything I need to write your story." in ${targetLang} as well, but also include the exact English phrase "I have everything I need to write your story." on the same line in parentheses so the system can detect it.`
+      : INTERVIEW_SYSTEM;
+
+    const generateSystem = targetLang
+      ? `${GENERATE_SYSTEM}\n\nIMPORTANT: Write the entire story in ${targetLang}.`
+      : GENERATE_SYSTEM;
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
@@ -97,7 +113,7 @@ export async function POST(req: NextRequest) {
       const response = await client.messages.create({
         model: "claude-sonnet-4-6",
         max_tokens: 2048,
-        system: GENERATE_SYSTEM,
+        system: generateSystem,
         messages: [
           {
             role: "user",
@@ -117,7 +133,7 @@ export async function POST(req: NextRequest) {
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 350,
-      system: INTERVIEW_SYSTEM,
+      system: interviewSystem,
       messages: messages.map((m: { role: string; content: string }) => ({
         role: m.role as "user" | "assistant",
         content: m.content,
