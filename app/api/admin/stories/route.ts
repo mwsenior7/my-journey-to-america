@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "admin123";
-
 export async function GET(request: Request) {
   const auth = request.headers.get("x-admin-password");
-  if (auth !== ADMIN_PASSWORD) {
+  console.log("[admin/stories] received password:", auth, "| expected: admin123");
+  if (auth !== "admin123") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

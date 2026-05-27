@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "admin123";
 const VALID_STATUSES = ["pending", "approved", "rejected"];
 
 export async function POST(request: Request) {
@@ -16,7 +15,8 @@ export async function POST(request: Request) {
     status: string;
   };
 
-  if (password !== ADMIN_PASSWORD) {
+  console.log("[admin/update-status] received password:", password, "| expected: admin123");
+  if (password !== "admin123") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
