@@ -3,6 +3,21 @@ import { NextRequest, NextResponse } from "next/server";
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+// In-memory rate limiter: 10 requests per IP per hour
+const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
+
+function checkRateLimit(ip: string): boolean {
+  const now = Date.now();
+  const entry = rateLimitStore.get(ip);
+  if (!entry || now > entry.resetAt) {
+    rateLimitStore.set(ip, { count: 1, resetAt: now + 60 * 60 * 1000 });
+    return true;
+  }
+  if (entry.count >= 10) return false;
+  entry.count += 1;
+  return true;
+}
+
 const INTERVIEW_SYSTEM = `You are a warm, encouraging interviewer helping immigrants share their stories for "My Journey to America" — a living digital archive preserving immigration stories for future generations. Many of the people you talk to don't consider themselves writers, so your job is to make this feel like a friendly conversation, not an interview. Be genuinely curious, supportive, and enthusiastic about what they share.
 
 Ask these 8 questions in order, one at a time. After each answer, respond with a warm, specific acknowledgment of what they said (1-2 sentences), then ask the next question. Reference details they mentioned to show you were truly listening.
@@ -50,6 +65,15 @@ STYLE GUIDE:
 Output ONLY the story text. No title, no "Here is the story:", no preamble. Begin directly with the first word of the story.`;
 
 export async function POST(req: NextRequest) {
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json(
+      { error: "You've reached the limit for now — please try again in an hour" },
+      { status: 429 }
+    );
+  }
+
   try {
     const { messages, phase } = await req.json();
 
