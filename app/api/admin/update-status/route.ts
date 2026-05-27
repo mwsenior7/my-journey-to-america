@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "MJA-admin-2024";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "admin123";
 const VALID_STATUSES = ["pending", "approved", "rejected"];
 
 export async function POST(request: Request) {
