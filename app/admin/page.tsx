@@ -31,7 +31,7 @@ function formatDate(iso: string) {
 }
 
 export default function AdminPage() {
-  const [password, setPassword] = useState("");
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [inputPassword, setInputPassword] = useState("");
   const [authError, setAuthError] = useState("");
   const [stories, setStories] = useState<AdminStory[]>([]);
@@ -43,19 +43,13 @@ export default function AdminPage() {
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    setAuthError("");
-    setLoading(true);
-    const res = await fetch("/api/admin/stories", {
-      headers: { "x-admin-password": inputPassword },
-    });
-    setLoading(false);
-    if (!res.ok) {
+    if (inputPassword === "admin123") {
+      setIsAuthenticated(true);
+      setAuthError("");
+      refreshStories();
+    } else {
       setAuthError("Incorrect password. Please try again.");
-      return;
     }
-    const { stories: data } = await res.json();
-    setPassword(inputPassword);
-    setStories(data ?? []);
   }
 
   async function updateStatus(storyId: string, status: "approved" | "rejected" | "pending") {
@@ -63,7 +57,7 @@ export default function AdminPage() {
     const res = await fetch("/api/admin/update-status", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password, storyId, status }),
+      body: JSON.stringify({ password: "admin123", storyId, status }),
     });
     setUpdating(null);
     if (!res.ok) {
@@ -79,7 +73,7 @@ export default function AdminPage() {
     setLoading(true);
     setFetchError("");
     const res = await fetch("/api/admin/stories", {
-      headers: { "x-admin-password": password },
+      headers: { "x-admin-password": "admin123" },
     });
     setLoading(false);
     if (!res.ok) {
@@ -91,7 +85,7 @@ export default function AdminPage() {
   }
 
   // ── Not authenticated yet ──────────────────────────────────────────────────
-  if (!password) {
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl border border-navy/10 shadow-sm p-10 w-full max-w-sm">
@@ -112,10 +106,10 @@ export default function AdminPage() {
             )}
             <button
               type="submit"
-              disabled={loading || !inputPassword}
+              disabled={!inputPassword}
               className="bg-navy text-cream font-semibold py-3 rounded-lg hover:bg-navy/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Checking…" : "Sign In"}
+              Sign In
             </button>
           </form>
         </div>
@@ -151,7 +145,7 @@ export default function AdminPage() {
             {loading ? "Refreshing…" : "Refresh"}
           </button>
           <button
-            onClick={() => setPassword("")}
+            onClick={() => { setIsAuthenticated(false); setStories([]); }}
             className="text-sm font-semibold text-navy/60 hover:text-navy transition-colors border border-navy/20 rounded-lg px-4 py-2 hover:border-navy/40"
           >
             Sign out
