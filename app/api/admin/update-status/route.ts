@@ -24,19 +24,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid storyId or status" }, { status: 400 });
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  const { error } = await supabase
-    .from("stories")
-    .update({ status })
-    .eq("id", storyId);
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error("[admin/update-status] Missing env vars — SUPABASE_SERVICE_ROLE_KEY not set");
+    return NextResponse.json({ error: "Server configuration error: missing Supabase service role key" }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true });
+  try {
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false },
+    });
+
+    const { error } = await supabase
+      .from("stories")
+      .update({ status })
+      .eq("id", storyId);
+
+    if (error) {
+      console.error("[admin/update-status] Supabase error:", error);
+      return NextResponse.json({ error: error.message, details: error }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("[admin/update-status] Unexpected error:", err);
+    return NextResponse.json({ error: "Unexpected server error", details: String(err) }, { status: 500 });
+  }
 }

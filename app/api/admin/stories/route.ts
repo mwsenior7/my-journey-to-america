@@ -3,24 +3,36 @@ import { createClient } from "@supabase/supabase-js";
 
 export async function GET(request: Request) {
   const auth = request.headers.get("x-admin-password");
-  console.log("[admin/stories] received password:", auth, "| expected: admin123");
   if (auth !== "admin123") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-  const { data, error } = await supabase
-    .from("stories")
-    .select("id, name, country, year_arrived, us_state, profession, story_text, status, created_at, tags")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error("[admin/stories] Missing env vars — NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY not set");
+    return NextResponse.json({ error: "Server configuration error: missing Supabase service role key" }, { status: 500 });
   }
 
-  return NextResponse.json({ stories: data });
+  try {
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false },
+    });
+
+    const { data, error } = await supabase
+      .from("stories")
+      .select("id, name, country, year_arrived, us_state, profession, story_text, status, created_at, tags")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("[admin/stories] Supabase error:", error);
+      return NextResponse.json({ error: error.message, details: error }, { status: 500 });
+    }
+
+    return NextResponse.json({ stories: data });
+  } catch (err) {
+    console.error("[admin/stories] Unexpected error:", err);
+    return NextResponse.json({ error: "Unexpected server error", details: String(err) }, { status: 500 });
+  }
 }
