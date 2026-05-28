@@ -64,9 +64,11 @@ export default function AdminPage() {
       alert("Failed to update status. Please try again.");
       return;
     }
+    // Optimistic update for instant feedback, then re-fetch to confirm DB state
     setStories((prev) =>
       prev.map((s) => (s.id === storyId ? { ...s, status } : s))
     );
+    refreshStories();
   }
 
   async function refreshStories() {

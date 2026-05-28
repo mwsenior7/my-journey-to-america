@@ -17,7 +17,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from("stories")
-      .select("id, title, author_name, country_of_origin, us_state, year_of_arrival, profession, story_text, audio_url, is_featured, created_at, original_language, status")
+      .select("id, title, author_name, country_of_origin, us_state, year_of_arrival, profession, story_text, audio_url, is_featured, created_at, original_language, status, tags")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -26,8 +26,16 @@ export async function GET() {
     }
 
     const stories = (data ?? []).map((s) => ({
-      ...s,
-      status: s.status ?? "pending",
+      id: s.id,
+      name: s.author_name,
+      country: s.country_of_origin,
+      year_arrived: s.year_of_arrival,
+      us_state: s.us_state,
+      profession: s.profession,
+      story_text: s.story_text,
+      status: (s.status ?? "pending") as "pending" | "approved" | "rejected",
+      created_at: s.created_at,
+      tags: s.tags ?? null,
     }));
 
     return NextResponse.json({ stories });

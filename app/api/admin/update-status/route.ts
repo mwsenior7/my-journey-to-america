@@ -37,17 +37,23 @@ export async function POST(request: Request) {
       auth: { persistSession: false },
     });
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("stories")
       .update({ status })
-      .eq("id", storyId);
+      .eq("id", storyId)
+      .select("id, status");
 
     if (error) {
       console.error("[admin/update-status] Supabase error:", error);
       return NextResponse.json({ error: error.message, details: error }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true });
+    if (!data || data.length === 0) {
+      console.error("[admin/update-status] No rows updated for storyId:", storyId);
+      return NextResponse.json({ error: "Story not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, story: data[0] });
   } catch (err) {
     console.error("[admin/update-status] Unexpected error:", err);
     return NextResponse.json({ error: "Unexpected server error", details: String(err) }, { status: 500 });
