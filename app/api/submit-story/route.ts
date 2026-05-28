@@ -26,7 +26,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing required fields: name, country, story_text" }, { status: 400 });
   }
 
+  const firstName = String(name).split(" ")[0];
+  const title = `${firstName}'s Journey from ${country}`;
+
   const { error } = await supabase.from("stories").insert({
+    title,
     author_name: name,
     country_of_origin: country,
     us_state: us_state ?? null,
