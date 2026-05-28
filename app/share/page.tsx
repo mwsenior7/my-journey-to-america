@@ -480,6 +480,7 @@ export default function SharePage() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoProgress, setVideoProgress] = useState(0);
   const [videoUploading, setVideoUploading] = useState(false);
+  const [videoUploadedUrl, setVideoUploadedUrl] = useState<string | null>(null);
   const videoProgressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Set default language from browser
@@ -546,6 +547,7 @@ export default function SharePage() {
     setVideoFile(null);
     setVideoProgress(0);
     setVideoUploading(false);
+    setVideoUploadedUrl(null);
     if (videoProgressTimerRef.current) clearInterval(videoProgressTimerRef.current);
   }
 
@@ -607,32 +609,8 @@ export default function SharePage() {
     }
 
     let video_url: string | null = form.video_url || null;
-    if (videoMode === "upload" && videoFile) {
-      setVideoUploading(true);
-      setVideoProgress(0);
-      videoProgressTimerRef.current = setInterval(() => {
-        setVideoProgress((p) => (p < 90 ? +(p + Math.random() * 8).toFixed(1) : 90));
-      }, 300);
-
-      const ext = videoFile.name.split(".").pop() ?? "mp4";
-      const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-      const { data: vidUpload, error: vidErr } = await supabase.storage
-        .from("story-videos")
-        .upload(path, videoFile, { contentType: videoFile.type });
-
-      if (videoProgressTimerRef.current) clearInterval(videoProgressTimerRef.current);
-
-      if (vidErr) {
-        console.error("Video upload error:", vidErr);
-      } else {
-        setVideoProgress(100);
-        const { data: vidUrl } = supabase.storage
-          .from("story-videos")
-          .getPublicUrl(vidUpload.path);
-        video_url = vidUrl.publicUrl;
-      }
-      await new Promise((r) => setTimeout(r, 400));
-      setVideoUploading(false);
+    if (videoMode === "upload" && videoUploadedUrl) {
+      video_url = videoUploadedUrl;
     }
 
     const tags = form.tags.trim()
@@ -1065,9 +1043,39 @@ export default function SharePage() {
                   type="file"
                   accept={ACCEPTED_VIDEO}
                   className="sr-only"
-                  onChange={(e) => {
+                  onChange={async (e) => {
                     const file = e.target.files?.[0];
-                    if (file) setVideoFile(file);
+                    if (!file) return;
+                    setVideoFile(file);
+                    setVideoUploadedUrl(null);
+                    setVideoUploading(true);
+                    setVideoProgress(0);
+
+                    videoProgressTimerRef.current = setInterval(() => {
+                      setVideoProgress((p) => (p < 90 ? +(p + Math.random() * 8).toFixed(1) : 90));
+                    }, 300);
+
+                    const ext = file.name.split(".").pop() ?? "mp4";
+                    const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+                    const { data: vidUpload, error: vidErr } = await supabase.storage
+                      .from("story-videos")
+                      .upload(path, file, { contentType: file.type });
+
+                    if (videoProgressTimerRef.current) clearInterval(videoProgressTimerRef.current);
+
+                    if (vidErr) {
+                      console.error("Video upload error:", vidErr);
+                      setVideoUploading(false);
+                      setVideoProgress(0);
+                    } else {
+                      setVideoProgress(100);
+                      const { data: vidUrl } = supabase.storage
+                        .from("story-videos")
+                        .getPublicUrl(vidUpload.path);
+                      setVideoUploadedUrl(vidUrl.publicUrl);
+                      await new Promise((r) => setTimeout(r, 400));
+                      setVideoUploading(false);
+                    }
                   }}
                 />
 
@@ -1120,10 +1128,14 @@ export default function SharePage() {
 
         <button
           type="submit"
-          disabled={status === "loading"}
+          disabled={status === "loading" || videoUploading}
           className="bg-navy text-cream font-semibold py-3 rounded-full hover:bg-navy/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {status === "loading" ? "Submitting…" : "Submit Your Story"}
+          {videoUploading
+            ? "Uploading video… please wait"
+            : status === "loading"
+            ? "Submitting…"
+            : "Submit Your Story"}
         </button>
       </form>
     </div>
