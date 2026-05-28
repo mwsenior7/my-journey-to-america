@@ -89,6 +89,8 @@ function AIInterview({ onUseStory, language }: { onUseStory: (story: string) => 
   const [draftStory, setDraftStory] = useState("");
   const [editedStory, setEditedStory] = useState("");
   const [interviewComplete, setInterviewComplete] = useState(false);
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingText, setEditingText] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -167,6 +169,40 @@ function AIInterview({ onUseStory, language }: { onUseStory: (story: string) => 
     setDraftStory(finalStory);
     setEditedStory(finalStory);
     setPhase("done");
+  }
+
+  function startEdit(index: number, content: string) {
+    setEditingIndex(index);
+    setEditingText(content);
+  }
+
+  function cancelEdit() {
+    setEditingIndex(null);
+    setEditingText("");
+  }
+
+  function saveEdit() {
+    if (editingIndex === null) return;
+    const updated = messages.map((m, i) =>
+      i === editingIndex ? { ...m, content: editingText.trim() || m.content } : m
+    );
+    setMessages([
+      ...updated,
+      { role: "assistant", content: "Got it — I've noted your updated answer and will use it when writing your story." },
+    ]);
+    setEditingIndex(null);
+    setEditingText("");
+  }
+
+  function startOver() {
+    setMessages([{ role: "assistant", content: OPENING_MESSAGE }]);
+    setInput("");
+    setInterviewComplete(false);
+    setPhase("interview");
+    setDraftStory("");
+    setEditedStory("");
+    setEditingIndex(null);
+    setEditingText("");
   }
 
   const userMessageCount = messages.filter(m => m.role === "user").length;
@@ -249,7 +285,7 @@ function AIInterview({ onUseStory, language }: { onUseStory: (story: string) => 
   // ── Interview chat view ───────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-3" style={{ height: "560px" }}>
-      {/* Progress - always rendered so height never shifts */}
+      {/* Progress row — also holds Start Over when the interview is underway */}
       <div className="flex items-center gap-3 py-1 flex-shrink-0">
         <div className="flex-1 h-1.5 bg-navy/10 rounded-full overflow-hidden">
           <div
@@ -263,6 +299,15 @@ function AIInterview({ onUseStory, language }: { onUseStory: (story: string) => 
         <span className="text-xs text-navy/40 flex-shrink-0 tabular-nums">
           {progress}/{TOTAL_QUESTIONS} questions
         </span>
+        {userMessageCount > 0 && (
+          <button
+            type="button"
+            onClick={startOver}
+            className="text-xs text-navy/35 hover:text-navy/60 transition-colors underline underline-offset-2 flex-shrink-0"
+          >
+            Start Over
+          </button>
+        )}
       </div>
 
       {/* Chat messages — flex-1 + min-h-0 lets this fill remaining space and scroll internally */}
@@ -276,15 +321,59 @@ function AIInterview({ onUseStory, language }: { onUseStory: (story: string) => 
                 </svg>
               </div>
             )}
-            <div
-              className={`max-w-[82%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
-                msg.role === "assistant"
-                  ? "bg-white border border-navy/8 text-navy/80 rounded-tl-sm shadow-sm"
-                  : "bg-navy text-cream rounded-tr-sm"
-              }`}
-            >
-              {msg.content}
-            </div>
+
+            {/* User message: show inline editor when editing, otherwise bubble + Edit button */}
+            {msg.role === "user" && editingIndex === i ? (
+              <div className="flex flex-col gap-2 max-w-[82%]">
+                <textarea
+                  autoFocus
+                  value={editingText}
+                  onChange={e => setEditingText(e.target.value)}
+                  rows={3}
+                  className={`${INPUT} resize-none text-sm`}
+                />
+                <div className="flex gap-2 justify-end">
+                  <button
+                    type="button"
+                    onClick={cancelEdit}
+                    className="text-xs px-3 py-1.5 rounded-lg border border-navy/20 text-navy/60 hover:text-navy/80 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={saveEdit}
+                    className="text-xs px-3 py-1.5 rounded-lg bg-navy text-cream hover:bg-navy/90 transition-colors"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+            ) : msg.role === "user" ? (
+              <div className="flex flex-col items-end gap-1 max-w-[82%]">
+                <div className="px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap bg-navy text-cream rounded-tr-sm">
+                  {msg.content}
+                </div>
+                {!loading && editingIndex === null && (
+                  <button
+                    type="button"
+                    onClick={() => startEdit(i, msg.content)}
+                    className="flex items-center gap-1 text-xs text-navy/35 hover:text-navy/60 transition-colors px-1"
+                    aria-label="Edit this answer"
+                  >
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                    Edit
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="max-w-[82%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap bg-white border border-navy/8 text-navy/80 rounded-tl-sm shadow-sm">
+                {msg.content}
+              </div>
+            )}
           </div>
         ))}
 
