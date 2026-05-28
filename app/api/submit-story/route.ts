@@ -27,21 +27,25 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing required fields: name, country, story_text" }, { status: 400 });
   }
 
+  const insertData = {
+    author_name: name,
+    country_of_origin: country,
+    year_of_arrival: year_arrived ?? null,
+    us_state: us_state ?? null,
+    profession: profession ?? null,
+    story_text,
+    video_url: video_url ?? null,
+    audio_url: audio_url ?? null,
+    tags: tags ?? null,
+    original_language: original_language ?? "en",
+    status: "pending",
+  };
+
+  console.log("[submit-story] Inserting data:", JSON.stringify(insertData, null, 2));
+
   const { data, error } = await supabase
     .from("stories")
-    .insert({
-      name,
-      country,
-      year_arrived: year_arrived ?? null,
-      us_state: us_state ?? null,
-      profession: profession ?? null,
-      story_text,
-      video_url: video_url ?? null,
-      audio_url: audio_url ?? null,
-      tags: tags ?? null,
-      original_language: original_language ?? "en",
-      status: "pending",
-    })
+    .insert(insertData)
     .select("id")
     .single();
 
