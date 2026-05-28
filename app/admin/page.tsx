@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 
 type AdminStory = {
@@ -31,7 +31,7 @@ function formatDate(iso: string) {
 }
 
 export default function AdminPage() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [inputPassword, setInputPassword] = useState("");
   const [authError, setAuthError] = useState("");
   const [stories, setStories] = useState<AdminStory[]>([]);
@@ -41,9 +41,20 @@ export default function AdminPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (localStorage.getItem("admin_auth") === "true") {
+      setIsAuthenticated(true);
+      refreshStories();
+    } else {
+      setIsAuthenticated(false);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     if (inputPassword === "admin123") {
+      localStorage.setItem("admin_auth", "true");
       setIsAuthenticated(true);
       setAuthError("");
       refreshStories();
@@ -95,6 +106,9 @@ export default function AdminPage() {
       setLoading(false);
     }
   }
+
+  // ── Still checking localStorage ───────────────────────────────────────────
+  if (isAuthenticated === null) return null;
 
   // ── Not authenticated yet ──────────────────────────────────────────────────
   if (!isAuthenticated) {
@@ -157,7 +171,7 @@ export default function AdminPage() {
             {loading ? "Refreshing…" : "Refresh"}
           </button>
           <button
-            onClick={() => { setIsAuthenticated(false); setStories([]); }}
+            onClick={() => { localStorage.removeItem("admin_auth"); setIsAuthenticated(false); setStories([]); }}
             className="text-sm font-semibold text-navy/60 hover:text-navy transition-colors border border-navy/20 rounded-lg px-4 py-2 hover:border-navy/40"
           >
             Sign out
