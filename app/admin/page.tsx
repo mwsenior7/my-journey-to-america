@@ -42,7 +42,7 @@ export default function AdminPage() {
   const [updating, setUpdating] = useState<string | null>(null);
 
   useEffect(() => {
-    if (localStorage.getItem("admin_auth") === "true") {
+    if (localStorage.getItem("adminAuthenticated") === "true") {
       setIsAuthenticated(true);
       refreshStories();
     } else {
@@ -54,7 +54,7 @@ export default function AdminPage() {
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     if (inputPassword === "admin123") {
-      localStorage.setItem("admin_auth", "true");
+      localStorage.setItem("adminAuthenticated", "true");
       setIsAuthenticated(true);
       setAuthError("");
       refreshStories();
@@ -171,7 +171,7 @@ export default function AdminPage() {
             {loading ? "Refreshing…" : "Refresh"}
           </button>
           <button
-            onClick={() => { localStorage.removeItem("admin_auth"); setIsAuthenticated(false); setStories([]); }}
+            onClick={() => { localStorage.removeItem("adminAuthenticated"); setIsAuthenticated(false); setStories([]); }}
             className="text-sm font-semibold text-navy/60 hover:text-navy transition-colors border border-navy/20 rounded-lg px-4 py-2 hover:border-navy/40"
           >
             Sign out
