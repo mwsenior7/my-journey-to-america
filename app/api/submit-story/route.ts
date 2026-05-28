@@ -6,7 +6,6 @@ export async function POST(req: NextRequest) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
-    console.error("[submit-story] Missing env vars");
     return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
   }
 
@@ -21,38 +20,27 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { name, country, year_arrived, us_state, profession, story_text, video_url, audio_url, tags, original_language } = body;
+  const { name, country, year_arrived, us_state, profession, story_text, original_language } = body;
 
   if (!name || !country || !story_text) {
     return NextResponse.json({ error: "Missing required fields: name, country, story_text" }, { status: 400 });
   }
 
-  const insertData = {
+  const { error } = await supabase.from("stories").insert({
     author_name: name,
     country_of_origin: country,
-    year_of_arrival: year_arrived ?? null,
     us_state: us_state ?? null,
+    year_of_arrival: year_arrived ?? null,
     profession: profession ?? null,
     story_text,
-    video_url: video_url ?? null,
-    audio_url: audio_url ?? null,
-    tags: tags ?? null,
     original_language: original_language ?? "en",
     status: "pending",
-  };
-
-  console.log("[submit-story] Inserting data:", JSON.stringify(insertData, null, 2));
-
-  const { data, error } = await supabase
-    .from("stories")
-    .insert(insertData)
-    .select("id")
-    .single();
+  });
 
   if (error) {
     console.error("[submit-story] Supabase error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ id: data.id });
+  return NextResponse.json({ success: true });
 }
