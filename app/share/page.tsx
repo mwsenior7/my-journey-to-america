@@ -90,6 +90,13 @@ function AIInterview({ onUseStory, language }: { onUseStory: (story: string) => 
   const [editedStory, setEditedStory] = useState("");
   const [interviewComplete, setInterviewComplete] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [messages, loading]);
 
   async function fetchText(res: Response): Promise<string> {
     if (!res.ok) {
@@ -261,7 +268,7 @@ function AIInterview({ onUseStory, language }: { onUseStory: (story: string) => 
       )}
 
       {/* Chat messages */}
-      <div className="flex flex-col gap-4 max-h-[440px] overflow-y-auto pr-1">
+      <div ref={chatContainerRef} className="flex flex-col gap-4 max-h-[440px] overflow-y-auto pr-1">
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
             {msg.role === "assistant" && (
@@ -315,12 +322,12 @@ function AIInterview({ onUseStory, language }: { onUseStory: (story: string) => 
               sendMessage();
             }
           }}
-          disabled={loading}
           rows={2}
-          placeholder="Share your answer… (Enter to send, Shift+Enter for new line)"
+          placeholder={loading ? "Waiting for response…" : "Share your answer… (Enter to send, Shift+Enter for new line)"}
           className={`${INPUT} resize-none flex-1`}
         />
         <button
+          type="button"
           onClick={sendMessage}
           disabled={loading || !input.trim()}
           className="bg-navy text-cream p-3 rounded-xl hover:bg-navy/90 transition-colors disabled:opacity-40 flex-shrink-0"
@@ -512,9 +519,10 @@ export default function SharePage() {
       ? form.tags.split(",").map((t) => t.trim()).filter(Boolean)
       : [];
 
-    const { data: inserted, error } = await supabase
-      .from("stories")
-      .insert({
+    const res = await fetch("/api/submit-story", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
         name: form.name,
         country: form.country,
         year_arrived: form.year_arrived ? parseInt(form.year_arrived, 10) : null,
@@ -525,22 +533,21 @@ export default function SharePage() {
         audio_url,
         tags: tags.length > 0 ? tags : null,
         original_language: form.original_language || "en",
-        status: "pending",
-      })
-      .select("id")
-      .single();
+      }),
+    });
 
-    if (error) {
-      console.error("Supabase insert error:", error);
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      console.error("Story submit error:", body);
       setErrorMsg("Something went wrong submitting your story. Please try again.");
       setStatus("error");
     } else {
-      // Fire-and-forget: translate into all 10 languages in the background.
-      if (inserted?.id) {
+      const { id } = await res.json();
+      if (id) {
         fetch("/api/translate-story", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ storyId: inserted.id }),
+          body: JSON.stringify({ storyId: id }),
         }).catch(() => {/* non-critical */});
       }
       setStatus("success");
