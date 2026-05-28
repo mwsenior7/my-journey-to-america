@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 
 type AdminStory = {
@@ -54,36 +54,46 @@ export default function AdminPage() {
 
   async function updateStatus(storyId: string, status: "approved" | "rejected" | "pending") {
     setUpdating(storyId);
-    const res = await fetch("/api/admin/update-status", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: "admin123", storyId, status }),
-    });
-    setUpdating(null);
-    if (!res.ok) {
-      alert("Failed to update status. Please try again.");
-      return;
+    setFetchError("");
+    try {
+      const res = await fetch("/api/admin/update-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password: "admin123", storyId, status }),
+      });
+      if (!res.ok) {
+        setFetchError("Failed to update status. Please try again.");
+        return;
+      }
+      setStories((prev) =>
+        prev.map((s) => (s.id === storyId ? { ...s, status } : s))
+      );
+      await refreshStories();
+    } catch {
+      setFetchError("Network error updating status. Please try again.");
+    } finally {
+      setUpdating(null);
     }
-    // Optimistic update for instant feedback, then re-fetch to confirm DB state
-    setStories((prev) =>
-      prev.map((s) => (s.id === storyId ? { ...s, status } : s))
-    );
-    refreshStories();
   }
 
   async function refreshStories() {
     setLoading(true);
     setFetchError("");
-    const res = await fetch("/api/admin/stories", {
-      headers: { "x-admin-password": "admin123" },
-    });
-    setLoading(false);
-    if (!res.ok) {
-      setFetchError("Failed to refresh stories.");
-      return;
+    try {
+      const res = await fetch("/api/admin/stories", {
+        headers: { "x-admin-password": "admin123" },
+      });
+      if (!res.ok) {
+        setFetchError("Failed to refresh stories.");
+        return;
+      }
+      const { stories: data } = await res.json();
+      setStories(data ?? []);
+    } catch {
+      setFetchError("Network error fetching stories.");
+    } finally {
+      setLoading(false);
     }
-    const { stories: data } = await res.json();
-    setStories(data ?? []);
   }
 
   // ── Not authenticated yet ──────────────────────────────────────────────────
