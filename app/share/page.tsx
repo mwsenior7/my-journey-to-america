@@ -248,27 +248,25 @@ function AIInterview({ onUseStory, language }: { onUseStory: (story: string) => 
 
   // ── Interview chat view ───────────────────────────────────────────────────
   return (
-    <div className="flex flex-col gap-4">
-      {/* Progress */}
-      {userMessageCount > 0 && (
-        <div className="flex items-center gap-3 py-1">
-          <div className="flex-1 h-1.5 bg-navy/10 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-700 ease-out"
-              style={{
-                width: `${progressPct}%`,
-                background: "linear-gradient(to right, rgba(201,168,76,0.5), #C9A84C)",
-              }}
-            />
-          </div>
-          <span className="text-xs text-navy/40 flex-shrink-0 tabular-nums">
-            {progress}/{TOTAL_QUESTIONS} questions
-          </span>
+    <div className="flex flex-col gap-3" style={{ height: "560px" }}>
+      {/* Progress - always rendered so height never shifts */}
+      <div className="flex items-center gap-3 py-1 flex-shrink-0">
+        <div className="flex-1 h-1.5 bg-navy/10 rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-700 ease-out"
+            style={{
+              width: `${progressPct}%`,
+              background: "linear-gradient(to right, rgba(201,168,76,0.5), #C9A84C)",
+            }}
+          />
         </div>
-      )}
+        <span className="text-xs text-navy/40 flex-shrink-0 tabular-nums">
+          {progress}/{TOTAL_QUESTIONS} questions
+        </span>
+      </div>
 
-      {/* Chat messages */}
-      <div ref={chatContainerRef} className="flex flex-col gap-4 max-h-[440px] overflow-y-auto pr-1">
+      {/* Chat messages — flex-1 + min-h-0 lets this fill remaining space and scroll internally */}
+      <div ref={chatContainerRef} className="flex-1 min-h-0 flex flex-col gap-4 overflow-y-auto pr-1">
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
             {msg.role === "assistant" && (
@@ -311,7 +309,7 @@ function AIInterview({ onUseStory, language }: { onUseStory: (story: string) => 
       </div>
 
       {/* Input */}
-      <div className="flex gap-2 items-end">
+      <div className="flex gap-2 items-end flex-shrink-0">
         <textarea
           ref={inputRef}
           value={input}
@@ -339,25 +337,25 @@ function AIInterview({ onUseStory, language }: { onUseStory: (story: string) => 
         </button>
       </div>
 
-      {/* Write My Story button — only appears after all questions are answered */}
-      {interviewComplete && (
-        <button
-          onClick={generateStory}
-          className="flex items-center justify-center gap-2 bg-gradient-to-r from-gold/90 to-gold text-navy font-bold py-4 rounded-full hover:opacity-90 transition-opacity shadow-md text-base"
-        >
-          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-          </svg>
-          Write My Story
-        </button>
-      )}
-
-      {!interviewComplete && userMessageCount > 0 && userMessageCount < TOTAL_QUESTIONS && (
-        <p className="text-xs text-center text-navy/35">
-          {TOTAL_QUESTIONS - userMessageCount} question{TOTAL_QUESTIONS - userMessageCount !== 1 ? "s" : ""} to go — you&rsquo;re doing great!
-        </p>
-      )}
+      {/* Footer — fixed slot so toggling button/text never shifts the page */}
+      <div className="flex-shrink-0">
+        {interviewComplete ? (
+          <button
+            onClick={generateStory}
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-gold/90 to-gold text-navy font-bold py-4 rounded-full hover:opacity-90 transition-opacity shadow-md text-base"
+          >
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            Write My Story
+          </button>
+        ) : userMessageCount > 0 && userMessageCount < TOTAL_QUESTIONS ? (
+          <p className="text-xs text-center text-navy/35">
+            {TOTAL_QUESTIONS - userMessageCount} question{TOTAL_QUESTIONS - userMessageCount !== 1 ? "s" : ""} to go — you&rsquo;re doing great!
+          </p>
+        ) : null}
+      </div>
     </div>
   );
 }
