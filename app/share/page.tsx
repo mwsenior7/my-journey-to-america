@@ -46,6 +46,37 @@ const EMPTY: FormState = {
 const INPUT =
   "border border-navy/20 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold w-full bg-white";
 
+const DRAFT_KEY = "mjtoa_share_draft";
+
+const OPENING_MESSAGE =
+  "Welcome — I'm so glad you're here to share your story! These stories matter so much. Let's start at the very beginning: where were you born, and what was life like there growing up?";
+
+type Message = { role: "user" | "assistant"; content: string };
+
+type AIInterviewState = {
+  messages: Message[];
+  phase: "interview" | "generating" | "done";
+  editedStory: string;
+  interviewComplete: boolean;
+};
+
+type SavedDraft = AIInterviewState & {
+  form: FormState;
+  mode: "form" | "interview";
+  savedAt: number;
+};
+
+function formatRelativeTime(ts: number): string {
+  const diff = Date.now() - ts;
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} minute${minutes !== 1 ? "s" : ""} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days !== 1 ? "s" : ""} ago`;
+}
+
 function Field({
   label,
   htmlFor,
@@ -73,22 +104,34 @@ function Field({
 
 // ── AI Interview Component ─────────────────────────────────────────────────────
 
-type Message = { role: "user" | "assistant"; content: string };
-
 const TOTAL_QUESTIONS = 8;
 
-function AIInterview({ onUseStory, language, highlightUseStory }: { onUseStory: (story: string) => void; language: string; highlightUseStory?: boolean }) {
-  const OPENING_MESSAGE = "Welcome — I'm so glad you're here to share your story! These stories matter so much. Let's start at the very beginning: where were you born, and what was life like there growing up?";
-
-  const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: OPENING_MESSAGE },
-  ]);
+function AIInterview({
+  onUseStory,
+  language,
+  highlightUseStory,
+  initialState,
+  onSave,
+}: {
+  onUseStory: (story: string) => void;
+  language: string;
+  highlightUseStory?: boolean;
+  initialState?: AIInterviewState | null;
+  onSave?: (state: AIInterviewState) => void;
+}) {
+  const [messages, setMessages] = useState<Message[]>(
+    initialState?.messages ?? [{ role: "assistant", content: OPENING_MESSAGE }]
+  );
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [phase, setPhase] = useState<"interview" | "generating" | "done">("interview");
+  const [phase, setPhase] = useState<"interview" | "generating" | "done">(
+    initialState?.phase ?? "interview"
+  );
   const [draftStory, setDraftStory] = useState("");
-  const [editedStory, setEditedStory] = useState("");
-  const [interviewComplete, setInterviewComplete] = useState(false);
+  const [editedStory, setEditedStory] = useState(initialState?.editedStory ?? "");
+  const [interviewComplete, setInterviewComplete] = useState(
+    initialState?.interviewComplete ?? false
+  );
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingText, setEditingText] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -99,6 +142,14 @@ function AIInterview({ onUseStory, language, highlightUseStory }: { onUseStory: 
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages, loading]);
+
+  // Save draft when user edits the generated story
+  useEffect(() => {
+    if (phase === "done" && editedStory) {
+      onSave?.({ messages, phase, editedStory, interviewComplete });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editedStory]);
 
   async function fetchText(res: Response): Promise<string> {
     if (!res.ok) {
@@ -140,12 +191,19 @@ function AIInterview({ onUseStory, language, highlightUseStory }: { onUseStory: 
       setMessages(updatedMessages);
 
       const answeredCount = newMessages.filter(m => m.role === "user").length;
-      if (
+      const nowComplete =
         finalText.includes("I have everything I need to write your story") ||
-        answeredCount >= TOTAL_QUESTIONS
-      ) {
+        answeredCount >= TOTAL_QUESTIONS;
+      if (nowComplete) {
         setInterviewComplete(true);
       }
+
+      onSave?.({
+        messages: updatedMessages,
+        phase: "interview",
+        editedStory,
+        interviewComplete: nowComplete || interviewComplete,
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
       setMessages([...newMessages, { role: "assistant", content: msg }]);
@@ -169,6 +227,8 @@ function AIInterview({ onUseStory, language, highlightUseStory }: { onUseStory: 
     setDraftStory(finalStory);
     setEditedStory(finalStory);
     setPhase("done");
+
+    onSave?.({ messages, phase: "done", editedStory: finalStory, interviewComplete: true });
   }
 
   function startEdit(index: number, content: string) {
@@ -195,7 +255,8 @@ function AIInterview({ onUseStory, language, highlightUseStory }: { onUseStory: 
   }
 
   function startOver() {
-    setMessages([{ role: "assistant", content: OPENING_MESSAGE }]);
+    const freshMessages: Message[] = [{ role: "assistant", content: OPENING_MESSAGE }];
+    setMessages(freshMessages);
     setInput("");
     setInterviewComplete(false);
     setPhase("interview");
@@ -203,6 +264,7 @@ function AIInterview({ onUseStory, language, highlightUseStory }: { onUseStory: 
     setEditedStory("");
     setEditingIndex(null);
     setEditingText("");
+    onSave?.({ messages: freshMessages, phase: "interview", editedStory: "", interviewComplete: false });
   }
 
   const userMessageCount = messages.filter(m => m.role === "user").length;
@@ -277,7 +339,7 @@ function AIInterview({ onUseStory, language, highlightUseStory }: { onUseStory: 
               You&rsquo;ll still be able to edit everything before submitting
             </p>
             <button
-              onClick={() => { setPhase("interview"); setDraftStory(""); setEditedStory(""); setMessages([{ role: "assistant", content: OPENING_MESSAGE }]); setInterviewComplete(false); }}
+              onClick={startOver}
               className="text-sm text-navy/40 hover:text-navy/60 transition-colors underline underline-offset-2 text-center"
             >
               Start over with new answers
@@ -466,6 +528,18 @@ export default function SharePage() {
   const [highlightUseStory, setHighlightUseStory] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; country?: string; story?: string }>({});
 
+  // Draft state
+  const [savedDraft, setSavedDraft] = useState<SavedDraft | null>(null);
+  const [isUsingDraft, setIsUsingDraft] = useState(false);
+  const [draftKey, setDraftKey] = useState(0);
+  const [draftInterviewState, setDraftInterviewState] = useState<AIInterviewState | null>(null);
+  const interviewStateRef = useRef<AIInterviewState>({
+    messages: [{ role: "assistant", content: OPENING_MESSAGE }],
+    phase: "interview",
+    editedStory: "",
+    interviewComplete: false,
+  });
+
   // Audio state
   const [audioMode, setAudioMode] = useState<"record" | "upload">("record");
   const [recState, setRecState] = useState<"idle" | "recording" | "stopped">("idle");
@@ -483,14 +557,103 @@ export default function SharePage() {
   const [videoUploadedUrl, setVideoUploadedUrl] = useState<string | null>(null);
   const videoProgressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Set default language from browser
+  // Set default language from browser + load any saved draft
   useEffect(() => {
     const browserLang = navigator.language.split("-")[0];
     const supported = SUPPORTED_LANGUAGES.find(l => l.code === browserLang);
     if (supported) {
       setForm(prev => ({ ...prev, original_language: supported.code }));
     }
+
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as SavedDraft;
+        const hasContent =
+          parsed.messages.filter((m: Message) => m.role === "user").length > 0 ||
+          !!parsed.editedStory ||
+          !!parsed.form.name ||
+          !!parsed.form.story_text;
+        if (hasContent) setSavedDraft(parsed);
+      }
+    } catch {
+      // ignore corrupt data
+    }
   }, []);
+
+  // Save form changes to draft
+  useEffect(() => {
+    const hasFormContent = !!(form.name || form.story_text || form.country);
+    const iState = interviewStateRef.current;
+    const hasInterviewContent =
+      iState.messages.filter(m => m.role === "user").length > 0 || !!iState.editedStory;
+
+    if (!hasFormContent && !hasInterviewContent) return;
+
+    try {
+      localStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({ ...iState, form, mode, savedAt: Date.now() })
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }, [form, mode]);
+
+  function handleInterviewSave(state: AIInterviewState) {
+    interviewStateRef.current = state;
+    const hasInterviewContent =
+      state.messages.filter(m => m.role === "user").length > 0 || !!state.editedStory;
+    const hasFormContent = !!(form.name || form.story_text || form.country);
+
+    if (!hasInterviewContent && !hasFormContent) {
+      localStorage.removeItem(DRAFT_KEY);
+      setIsUsingDraft(false);
+      return;
+    }
+
+    try {
+      localStorage.setItem(
+        DRAFT_KEY,
+        JSON.stringify({ ...state, form, mode, savedAt: Date.now() })
+      );
+    } catch {
+      // ignore storage errors
+    }
+  }
+
+  function continueDraft() {
+    if (!savedDraft) return;
+    setForm(savedDraft.form);
+    setMode(savedDraft.mode);
+    const iState: AIInterviewState = {
+      messages: savedDraft.messages,
+      phase: savedDraft.phase,
+      editedStory: savedDraft.editedStory,
+      interviewComplete: savedDraft.interviewComplete,
+    };
+    setDraftInterviewState(iState);
+    interviewStateRef.current = iState;
+    setDraftKey(k => k + 1);
+    setIsUsingDraft(true);
+    setSavedDraft(null);
+  }
+
+  function clearDraft() {
+    localStorage.removeItem(DRAFT_KEY);
+    setSavedDraft(null);
+    setIsUsingDraft(false);
+    setDraftInterviewState(null);
+    interviewStateRef.current = {
+      messages: [{ role: "assistant", content: OPENING_MESSAGE }],
+      phase: "interview",
+      editedStory: "",
+      interviewComplete: false,
+    };
+    setDraftKey(k => k + 1);
+    setForm(EMPTY);
+    setMode("interview");
+  }
 
   function set(field: keyof FormState) {
     return (
@@ -648,6 +811,16 @@ export default function SharePage() {
           body: JSON.stringify({ storyId: id }),
         }).catch(() => {/* non-critical */});
       }
+      // Clear draft on successful submission
+      localStorage.removeItem(DRAFT_KEY);
+      setIsUsingDraft(false);
+      setDraftInterviewState(null);
+      interviewStateRef.current = {
+        messages: [{ role: "assistant", content: OPENING_MESSAGE }],
+        phase: "interview",
+        editedStory: "",
+        interviewComplete: false,
+      };
       setStatus("success");
       setForm(EMPTY);
       clearAudio();
@@ -665,7 +838,10 @@ export default function SharePage() {
           shortly. Thank you for sharing your journey.
         </p>
         <button
-          onClick={() => setStatus("idle")}
+          onClick={() => {
+            setStatus("idle");
+            setDraftKey(k => k + 1);
+          }}
           className="bg-navy text-cream font-semibold px-8 py-3 rounded-full hover:bg-navy/90 transition-colors"
         >
           Share Another Story
@@ -674,8 +850,40 @@ export default function SharePage() {
     );
   }
 
+  const draftAnswerCount = savedDraft?.messages.filter(m => m.role === "user").length ?? 0;
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-16">
+      {/* Saved draft banner */}
+      {savedDraft && (
+        <div className="mb-6 bg-gold/10 border border-gold/30 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-navy text-sm">You have a saved draft</p>
+            <p className="text-xs text-navy/50 mt-0.5">
+              Saved {formatRelativeTime(savedDraft.savedAt)}
+              {draftAnswerCount > 0 && ` · ${draftAnswerCount} question${draftAnswerCount !== 1 ? "s" : ""} answered`}
+              {savedDraft.editedStory && " · story generated"}
+            </p>
+          </div>
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              type="button"
+              onClick={clearDraft}
+              className="text-sm px-4 py-2 rounded-full border border-navy/20 text-navy/60 hover:text-navy hover:border-navy/40 transition-colors"
+            >
+              Start Fresh
+            </button>
+            <button
+              type="button"
+              onClick={continueDraft}
+              className="text-sm px-4 py-2 rounded-full bg-navy text-cream hover:bg-navy/90 transition-colors font-semibold"
+            >
+              Continue Draft
+            </button>
+          </div>
+        </div>
+      )}
+
       <h1 className="text-4xl font-bold text-navy mb-2">Share Your Story</h1>
       <p className="text-navy/60 mb-2 text-lg">
         Your journey matters. Help us preserve it for future generations.
@@ -747,23 +955,43 @@ export default function SharePage() {
 
       {/* AI Interview panel */}
       {mode === "interview" && (
-        <div className="bg-white rounded-2xl border border-navy/10 shadow-sm p-6 mb-8">
-          <div className="flex items-start gap-3 mb-5 pb-5 border-b border-navy/8">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold/40 to-gold/15 flex items-center justify-center flex-shrink-0">
-              <svg className="w-5 h-5 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
+        <>
+          {isUsingDraft && (
+            <div className="flex justify-end mb-2">
+              <button
+                type="button"
+                onClick={clearDraft}
+                className="text-xs text-navy/40 hover:text-navy/60 transition-colors underline underline-offset-2"
+              >
+                Clear draft &amp; start fresh
+              </button>
             </div>
-            <div>
-              <p className="font-bold text-navy">Your Personal Story Assistant</p>
-              <p className="text-sm text-navy/55 mt-0.5 leading-relaxed">
-                Don&rsquo;t worry about being a writer — just answer 8 simple questions like you&rsquo;re talking to a friend. We&rsquo;ll turn your words into a beautiful, publication-quality story that you can edit before sharing.
-              </p>
+          )}
+          <div className="bg-white rounded-2xl border border-navy/10 shadow-sm p-6 mb-8">
+            <div className="flex items-start gap-3 mb-5 pb-5 border-b border-navy/8">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold/40 to-gold/15 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <div>
+                <p className="font-bold text-navy">Your Personal Story Assistant</p>
+                <p className="text-sm text-navy/55 mt-0.5 leading-relaxed">
+                  Don&rsquo;t worry about being a writer — just answer 8 simple questions like you&rsquo;re talking to a friend. We&rsquo;ll turn your words into a beautiful, publication-quality story that you can edit before sharing.
+                </p>
+              </div>
             </div>
+            <AIInterview
+              key={draftKey}
+              onUseStory={handleUseStory}
+              language={form.original_language}
+              highlightUseStory={highlightUseStory}
+              initialState={draftInterviewState}
+              onSave={handleInterviewSave}
+            />
           </div>
-          <AIInterview onUseStory={handleUseStory} language={form.original_language} highlightUseStory={highlightUseStory} />
-        </div>
+        </>
       )}
 
       {/* Submission form */}
