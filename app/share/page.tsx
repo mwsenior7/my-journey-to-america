@@ -77,7 +77,7 @@ type Message = { role: "user" | "assistant"; content: string };
 
 const TOTAL_QUESTIONS = 8;
 
-function AIInterview({ onUseStory, language }: { onUseStory: (story: string) => void; language: string }) {
+function AIInterview({ onUseStory, language, highlightUseStory }: { onUseStory: (story: string) => void; language: string; highlightUseStory?: boolean }) {
   const OPENING_MESSAGE = "Welcome — I'm so glad you're here to share your story! These stories matter so much. Let's start at the very beginning: where were you born, and what was life like there growing up?";
 
   const [messages, setMessages] = useState<Message[]>([
@@ -259,14 +259,20 @@ function AIInterview({ onUseStory, language }: { onUseStory: (story: string) => 
         {phase === "done" && (
           <div className="flex flex-col gap-3">
             <button
+              id="use-this-story-btn"
               onClick={() => onUseStory(editedStory)}
-              className="w-full bg-navy text-cream font-bold py-4 rounded-full hover:bg-navy/90 transition-colors flex items-center justify-center gap-2 text-base shadow-sm"
+              className={`w-full bg-navy text-cream font-bold py-4 rounded-full hover:bg-navy/90 transition-colors flex items-center justify-center gap-2 text-base shadow-sm${highlightUseStory ? " ring-2 ring-gold ring-offset-2 shadow-[0_0_14px_rgba(201,168,76,0.55)]" : ""}`}
             >
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
               Use This Story — Fill In My Details
             </button>
+            {highlightUseStory && (
+              <p className="text-sm text-center text-gold font-semibold">
+                👆 Click here first to add your story to the form
+              </p>
+            )}
             <p className="text-xs text-center text-navy/40">
               You&rsquo;ll still be able to edit everything before submitting
             </p>
@@ -457,6 +463,8 @@ export default function SharePage() {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [honeypot, setHoneypot] = useState("");
+  const [highlightUseStory, setHighlightUseStory] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; country?: string; story?: string }>({});
 
   // Audio state
   const [audioMode, setAudioMode] = useState<"record" | "upload">("record");
@@ -492,7 +500,8 @@ export default function SharePage() {
   function handleUseStory(story: string) {
     setForm(prev => ({ ...prev, story_text: story }));
     setMode("form");
-    // Scroll to form
+    setHighlightUseStory(false);
+    setFieldErrors(prev => ({ ...prev, story: undefined }));
     setTimeout(() => {
       document.getElementById("story_text")?.scrollIntoView({ behavior: "smooth", block: "center" });
     }, 100);
@@ -543,6 +552,30 @@ export default function SharePage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (honeypot) { setStatus("success"); return; }
+
+    // Manual validation (form has noValidate)
+    const errors: { name?: string; country?: string; story?: string } = {};
+    if (!form.name.trim()) errors.name = "Please enter your name";
+    if (!form.country.trim()) errors.country = "Please enter your country of origin";
+    if (!form.story_text.trim()) {
+      if (mode === "interview") {
+        setHighlightUseStory(true);
+        setTimeout(() => {
+          document.getElementById("use-this-story-btn")?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }, 50);
+        return;
+      }
+      errors.story = "Please tell us your story";
+    }
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      if (errors.name) document.getElementById("name")?.focus();
+      else if (errors.country) document.getElementById("country")?.focus();
+      else if (errors.story) document.getElementById("story_text")?.focus();
+      return;
+    }
+    setFieldErrors({});
+
     setStatus("loading");
     setErrorMsg("");
 
@@ -751,13 +784,14 @@ export default function SharePage() {
               </p>
             </div>
           </div>
-          <AIInterview onUseStory={handleUseStory} language={form.original_language} />
+          <AIInterview onUseStory={handleUseStory} language={form.original_language} highlightUseStory={highlightUseStory} />
         </div>
       )}
 
       {/* Submission form */}
       <form
         onSubmit={handleSubmit}
+        noValidate
         className="flex flex-col gap-8 bg-white rounded-2xl border border-navy/10 shadow-sm p-8"
       >
         {/* Honeypot — invisible to users, catches bots */}
@@ -792,10 +826,10 @@ export default function SharePage() {
                 type="text"
                 placeholder="Your full name"
                 value={form.name}
-                onChange={set("name")}
-                required
-                className={INPUT}
+                onChange={e => { set("name")(e); setFieldErrors(prev => ({ ...prev, name: undefined })); }}
+                className={`${INPUT}${fieldErrors.name ? " border-red-400 focus:ring-red-400" : ""}`}
               />
+              {fieldErrors.name && <p className="text-xs text-red-500">{fieldErrors.name}</p>}
             </Field>
 
             <Field label="Profession" htmlFor="profession">
@@ -817,10 +851,10 @@ export default function SharePage() {
                 type="text"
                 placeholder="Where did you come from?"
                 value={form.country}
-                onChange={set("country")}
-                required
-                className={INPUT}
+                onChange={e => { set("country")(e); setFieldErrors(prev => ({ ...prev, country: undefined })); }}
+                className={`${INPUT}${fieldErrors.country ? " border-red-400 focus:ring-red-400" : ""}`}
               />
+              {fieldErrors.country && <p className="text-xs text-red-500">{fieldErrors.country}</p>}
             </Field>
 
             <Field label="US State You Settled In" htmlFor="us_state">
@@ -860,10 +894,10 @@ export default function SharePage() {
               rows={9}
               placeholder="Tell us about your journey — why you came, what it was like to arrive, and how your life has changed…"
               value={form.story_text}
-              onChange={set("story_text")}
-              required
-              className={`${INPUT} resize-none`}
+              onChange={e => { set("story_text")(e); setFieldErrors(prev => ({ ...prev, story: undefined })); }}
+              className={`${INPUT} resize-none${fieldErrors.story ? " border-red-400 focus:ring-red-400" : ""}`}
             />
+            {fieldErrors.story && <p className="text-xs text-red-500">{fieldErrors.story}</p>}
           </Field>
 
         </div>
