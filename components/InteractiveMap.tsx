@@ -365,9 +365,9 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
     []
   );
 
-  const mapHeight = compact ? 380 : 600;
-  const mapScale  = compact ? 140 : 160;
-  const mapCenter: [number, number] = [-10, 20];
+  const mapHeight = compact ? 380 : 700;
+  const mapScale  = compact ? 140 : 220;
+  const mapCenter: [number, number] = [-30, 15];
 
   return (
     <div className="flex flex-col gap-0">
