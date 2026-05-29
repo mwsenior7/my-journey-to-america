@@ -1,28 +1,19 @@
-import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 
-const isShareRoute = createRouteMatcher(["/share(.*)"]);
-
-export default clerkMiddleware(async (auth, request) => {
-  if (process.env.COMING_SOON === "true") {
-    const { pathname } = request.nextUrl;
-    if (
-      !pathname.startsWith("/coming-soon") &&
-      !pathname.startsWith("/_next") &&
-      !pathname.startsWith("/favicon")
-    ) {
-      return NextResponse.redirect(new URL("/coming-soon", request.url));
+export function middleware(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (request.nextUrl.pathname === '/admin/login') {
+      return NextResponse.next()
+    }
+    const auth = request.cookies.get('admin_auth')
+    if (!auth || auth.value !== 'authenticated') {
+      return NextResponse.redirect(new URL('/admin/login', request.url))
     }
   }
-
-  if (isShareRoute(request)) {
-    await auth.protect();
-  }
-});
+  return NextResponse.next()
+}
 
 export const config = {
-  matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
-    "/(api|trpc)(.*)",
-  ],
-};
+  matcher: ['/admin/:path*']
+}

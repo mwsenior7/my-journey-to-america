@@ -8,11 +8,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid password" }, { status: 401 });
   }
   const response = NextResponse.json({ success: true });
-  response.cookies.set("admin_session", "1", {
+  response.cookies.set("admin_auth", "authenticated", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: 60 * 60 * 8, // 8 hours
+    sameSite: "strict",
+    maxAge: 60 * 60 * 8,
     path: "/",
   });
   return response;
