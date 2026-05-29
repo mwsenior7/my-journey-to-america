@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(/usr/local/bin/npx tsc *)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(git commit -m ' *)",
+      "Bash(git -C /Users/michaelsenior/my-journey-to-america log --oneline -10)",
+      "Bash(ls /usr/local/bin/npm* /opt/homebrew/bin/npm* /usr/bin/npm* ~/.nvm/versions/node/*/bin/npm 2>/dev/null | head -10; ls ~/.nvm/versions/node/ 2>/dev/null)",
+      "Read(//opt/homebrew/**)",
+      "Bash(~/.nvm/versions/node/v18.20.8/bin/npm install *)"
+    ]
+  }
+}

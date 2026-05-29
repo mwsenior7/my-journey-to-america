@@ -1,24 +1,21 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { cookies } from "next/headers";
 
 const VALID_STATUSES = ["pending", "approved", "rejected"];
 
 export async function POST(request: Request) {
+  const cookieStore = cookies();
+  if (cookieStore.get("admin_session")?.value !== "1") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const body = await request.json().catch(() => null);
   if (!body) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const { password, storyId, status } = body as {
-    password: string;
-    storyId: string;
-    status: string;
-  };
-
-  console.log("[admin/update-status] received password:", password, "| expected: admin123");
-  if (password !== "admin123") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { storyId, status } = body as { storyId: string; status: string };
 
   if (!storyId || !VALID_STATUSES.includes(status)) {
     return NextResponse.json({ error: "Invalid storyId or status" }, { status: 400 });
@@ -28,8 +25,11 @@ export async function POST(request: Request) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
-    console.error("[admin/update-status] Missing env vars — SUPABASE_SERVICE_ROLE_KEY not set");
-    return NextResponse.json({ error: "Server configuration error: missing Supabase service role key" }, { status: 500 });
+    console.error("[admin/update-status] Missing SUPABASE_SERVICE_ROLE_KEY env var");
+    return NextResponse.json(
+      { error: "Server configuration error: SUPABASE_SERVICE_ROLE_KEY not set — add it to your environment variables" },
+      { status: 500 }
+    );
   }
 
   try {

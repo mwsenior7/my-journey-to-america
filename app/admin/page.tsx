@@ -42,22 +42,20 @@ export default function AdminPage() {
   const [updating, setUpdating] = useState<string | null>(null);
 
   useEffect(() => {
-    if (localStorage.getItem("adminAuthenticated") === "true") {
-      setIsAuthenticated(true);
-      refreshStories();
-    } else {
-      setIsAuthenticated(false);
-    }
+    refreshStories();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (inputPassword === "admin123") {
-      localStorage.setItem("adminAuthenticated", "true");
-      setIsAuthenticated(true);
-      setAuthError("");
-      refreshStories();
+    setAuthError("");
+    const res = await fetch("/api/admin/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: inputPassword }),
+    });
+    if (res.ok) {
+      await refreshStories();
     } else {
       setAuthError("Incorrect password. Please try again.");
     }
@@ -70,18 +68,47 @@ export default function AdminPage() {
       const res = await fetch("/api/admin/update-status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ password: "admin123", storyId, status }),
+        body: JSON.stringify({ storyId, status }),
       });
-      if (!res.ok) {
-        setFetchError("Failed to update status. Please try again.");
+      if (res.status === 401) {
+        setIsAuthenticated(false);
         return;
       }
-      setStories((prev) =>
-        prev.map((s) => (s.id === storyId ? { ...s, status } : s))
-      );
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        setFetchError(errorData.error ?? "Failed to update status. Please try again.");
+        return;
+      }
       await refreshStories();
     } catch {
       setFetchError("Network error updating status. Please try again.");
+    } finally {
+      setUpdating(null);
+    }
+  }
+
+  async function deleteStory(storyId: string) {
+    if (!confirm("Are you sure you want to permanently delete this story?")) return;
+    setUpdating(storyId);
+    setFetchError("");
+    try {
+      const res = await fetch("/api/admin/delete-story", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storyId }),
+      });
+      if (res.status === 401) {
+        setIsAuthenticated(false);
+        return;
+      }
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        setFetchError(errorData.error ?? "Failed to delete story. Please try again.");
+        return;
+      }
+      await refreshStories();
+    } catch {
+      setFetchError("Network error deleting story. Please try again.");
     } finally {
       setUpdating(null);
     }
@@ -91,24 +118,36 @@ export default function AdminPage() {
     setLoading(true);
     setFetchError("");
     try {
-      const res = await fetch("/api/admin/stories", {
-        headers: { "x-admin-password": "admin123" },
-      });
+      const res = await fetch("/api/admin/stories");
+      if (res.status === 401) {
+        setIsAuthenticated(false);
+        return;
+      }
       if (!res.ok) {
-        setFetchError("Failed to refresh stories.");
+        const errorData = await res.json().catch(() => ({}));
+        setFetchError(errorData.error ?? "Failed to load stories.");
+        setIsAuthenticated(true);
         return;
       }
       const { stories: data } = await res.json();
       setStories(data ?? []);
+      setIsAuthenticated(true);
     } catch {
       setFetchError("Network error fetching stories.");
+      setIsAuthenticated(false);
     } finally {
       setLoading(false);
     }
   }
 
-  // ── Still checking localStorage ───────────────────────────────────────────
-  if (isAuthenticated === null) return null;
+  // ── Checking auth via cookie (API call in flight) ─────────────────────────
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <p className="text-navy/50 text-sm">Loading…</p>
+      </div>
+    );
+  }
 
   // ── Not authenticated yet ──────────────────────────────────────────────────
   if (!isAuthenticated) {
@@ -171,7 +210,11 @@ export default function AdminPage() {
             {loading ? "Refreshing…" : "Refresh"}
           </button>
           <button
-            onClick={() => { localStorage.removeItem("adminAuthenticated"); setIsAuthenticated(false); setStories([]); }}
+            onClick={async () => {
+              await fetch("/api/admin/logout", { method: "POST" });
+              setIsAuthenticated(false);
+              setStories([]);
+            }}
             className="text-sm font-semibold text-navy/60 hover:text-navy transition-colors border border-navy/20 rounded-lg px-4 py-2 hover:border-navy/40"
           >
             Sign out
@@ -296,6 +339,13 @@ export default function AdminPage() {
                       {isUpdating ? "…" : "Reset to pending"}
                     </button>
                   )}
+                  <button
+                    onClick={() => deleteStory(story.id)}
+                    disabled={isUpdating}
+                    className="text-xs font-semibold text-white bg-red-600 border border-red-700 rounded-lg px-3 py-1.5 hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isUpdating ? "…" : "Delete"}
+                  </button>
                 </div>
               </div>
 
