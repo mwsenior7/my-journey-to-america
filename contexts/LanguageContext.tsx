@@ -29,16 +29,12 @@ export const SUPPORTED_LANGUAGES: Language[] = [
 type LanguageContextType = {
   selectedLang: string;
   setSelectedLang: (lang: string) => void;
-  translate: (text: string, sourceLang?: string) => Promise<string>;
 };
 
 const LanguageContext = createContext<LanguageContextType>({
   selectedLang: "en",
   setSelectedLang: () => {},
-  translate: async (text) => text,
 });
-
-const translationCache = new Map<string, string>();
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
   const [selectedLang, setSelectedLangState] = useState("en");
@@ -61,29 +57,8 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("mjta_lang", lang);
   }, []);
 
-  const translate = useCallback(async (text: string, sourceLang = "en"): Promise<string> => {
-    if (selectedLang === sourceLang || selectedLang === "en") return text;
-
-    const key = `${sourceLang}:${selectedLang}:${text}`;
-    if (translationCache.has(key)) return translationCache.get(key)!;
-
-    try {
-      const res = await fetch("/api/translate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, source: sourceLang, target: selectedLang }),
-      });
-      if (!res.ok) return text;
-      const { translatedText } = await res.json();
-      translationCache.set(key, translatedText);
-      return translatedText;
-    } catch {
-      return text;
-    }
-  }, [selectedLang]);
-
   return (
-    <LanguageContext.Provider value={{ selectedLang, setSelectedLang, translate }}>
+    <LanguageContext.Provider value={{ selectedLang, setSelectedLang }}>
       {children}
     </LanguageContext.Provider>
   );

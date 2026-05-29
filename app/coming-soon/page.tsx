@@ -1,22 +1,4 @@
-"use client";
-
-import { useState } from "react";
-
 export default function ComingSoonPage() {
-  const [email, setEmail] = useState("");
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email) return;
-    setLoading(true);
-    // Simulate a brief submission delay; wire to a real API when ready
-    await new Promise((r) => setTimeout(r, 800));
-    setSubmitted(true);
-    setLoading(false);
-  }
-
   return (
     <div
       style={{
@@ -84,7 +66,6 @@ export default function ComingSoonPage() {
           textAlign: "center",
         }}
       >
-        {/* Eyebrow */}
         <p
           style={{
             color: "#C9A84C",
@@ -99,7 +80,6 @@ export default function ComingSoonPage() {
           An Archive of Immigration Stories
         </p>
 
-        {/* Site name */}
         <h1
           style={{
             fontSize: "clamp(2rem, 6vw, 3.5rem)",
@@ -112,7 +92,6 @@ export default function ComingSoonPage() {
           <span style={{ color: "#C9A84C" }}>to America</span>
         </h1>
 
-        {/* Description */}
         <p
           style={{
             fontSize: "1.125rem",
@@ -124,102 +103,16 @@ export default function ComingSoonPage() {
           A collection of immigrant stories — coming soon.
         </p>
 
-        {/* Gold divider */}
         <div
           style={{
             width: "48px",
             height: "2px",
             backgroundColor: "#C9A84C",
-            margin: "0 auto 2.5rem",
+            margin: "0 auto",
             opacity: 0.6,
           }}
         />
 
-        {/* Email signup */}
-        {submitted ? (
-          <div
-            style={{
-              backgroundColor: "rgba(201,168,76,0.12)",
-              border: "1px solid rgba(201,168,76,0.35)",
-              borderRadius: "1rem",
-              padding: "1.25rem 1.5rem",
-            }}
-          >
-            <p style={{ color: "#C9A84C", fontWeight: 600, marginBottom: "0.25rem" }}>
-              You&apos;re on the list.
-            </p>
-            <p style={{ opacity: 0.65, fontSize: "0.9rem" }}>
-              We&apos;ll let you know the moment we launch.
-            </p>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit}>
-            <p
-              style={{
-                fontSize: "0.875rem",
-                opacity: 0.6,
-                marginBottom: "1rem",
-              }}
-            >
-              Be the first to know when we launch.
-            </p>
-            <div
-              style={{
-                display: "flex",
-                gap: "0.5rem",
-                flexDirection: "column",
-              }}
-            >
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                <input
-                  type="email"
-                  required
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  style={{
-                    flex: 1,
-                    padding: "0.75rem 1rem",
-                    borderRadius: "9999px",
-                    border: "1.5px solid rgba(201,168,76,0.35)",
-                    backgroundColor: "rgba(255,255,255,0.06)",
-                    color: "#FAF7F2",
-                    fontSize: "0.95rem",
-                    outline: "none",
-                    minWidth: 0,
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = "rgba(201,168,76,0.7)";
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = "rgba(201,168,76,0.35)";
-                  }}
-                />
-                <button
-                  type="submit"
-                  disabled={loading}
-                  style={{
-                    backgroundColor: "#C9A84C",
-                    color: "#1B2A4A",
-                    fontWeight: 700,
-                    padding: "0.75rem 1.5rem",
-                    borderRadius: "9999px",
-                    border: "none",
-                    cursor: loading ? "not-allowed" : "pointer",
-                    fontSize: "0.9rem",
-                    opacity: loading ? 0.7 : 1,
-                    whiteSpace: "nowrap",
-                    flexShrink: 0,
-                  }}
-                >
-                  {loading ? "…" : "Notify me"}
-                </button>
-              </div>
-            </div>
-          </form>
-        )}
-
-        {/* Footer note */}
         <p
           style={{
             marginTop: "3rem",

@@ -69,10 +69,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "storyId required" }, { status: 400 });
   }
 
-  // Use the service-side Supabase client (server-only — keys not exposed to client).
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } }
   );
 
   // Fetch the story text server-side so the client can't inject arbitrary text.
@@ -114,17 +114,12 @@ export async function POST(req: NextRequest) {
     .filter(r => r.status === "rejected")
     .map(r => (r as PromiseRejectedResult).reason?.message ?? "unknown");
 
-  if (failed.length > 0) {
-    console.error("Some translations failed:", failed);
-  }
-
   if (rows.length > 0) {
     const { error: insertErr } = await supabase
       .from("story_translations")
       .upsert(rows, { onConflict: "story_id,language_code" });
 
     if (insertErr) {
-      console.error("Supabase insert error:", insertErr);
       return NextResponse.json({ error: "Failed to store translations" }, { status: 500 });
     }
   }

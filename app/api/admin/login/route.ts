@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server'
 
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'admin123'
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD
 
 export async function POST(request: Request) {
+  if (!ADMIN_PASSWORD) {
+    return NextResponse.json({ error: 'Admin not configured' }, { status: 503 })
+  }
   const body = await request.json().catch(() => null)
   if (!body || body.password !== ADMIN_PASSWORD) {
     return NextResponse.json({ error: 'Invalid password' }, { status: 401 })

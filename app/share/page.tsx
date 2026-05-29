@@ -3,22 +3,10 @@ export const dynamic = "force-dynamic"
 
 import { useRef, useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { SUPPORTED_LANGUAGES } from "@/contexts/LanguageContext";
-
-const US_STATES = [
-  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
-  "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho",
-  "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana",
-  "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota",
-  "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada",
-  "New Hampshire", "New Jersey", "New Mexico", "New York",
-  "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon",
-  "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota",
-  "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington",
-  "West Virginia", "Wisconsin", "Wyoming", "District of Columbia",
-];
+import { US_STATES } from "@/lib/us-states";
 
 type FormState = {
   name: string;
@@ -512,10 +500,13 @@ function AIInterview({
 
 export default function SharePage() {
   const { userId, isLoaded, isSignedIn } = useAuth();
+  const router = useRouter();
 
-  if (isLoaded && !isSignedIn) {
-    redirect("/sign-in?redirect_url=/share");
-  }
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push("/sign-in?redirect_url=/share");
+    }
+  }, [isLoaded, isSignedIn, router]);
 
   const [mode, setMode] = useState<"form" | "interview">("interview");
   const [form, setForm] = useState<FormState>(EMPTY);
@@ -756,9 +747,7 @@ export default function SharePage() {
         .from("story-audio")
         .upload(path, mediaToUpload, { contentType });
 
-      if (uploadErr) {
-        console.error("Audio upload error:", uploadErr);
-      } else {
+      if (!uploadErr) {
         const { data: urlData } = supabase.storage
           .from("story-audio")
           .getPublicUrl(upload.path);
@@ -794,8 +783,6 @@ export default function SharePage() {
     });
 
     if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      console.error("Story submit error:", body);
       setErrorMsg("Something went wrong submitting your story. Please try again.");
       setStatus("error");
     } else {
@@ -822,6 +809,8 @@ export default function SharePage() {
       clearVideo();
     }
   }
+
+  if (!isLoaded || !isSignedIn) return null;
 
   if (status === "success") {
     return (
@@ -1276,7 +1265,6 @@ export default function SharePage() {
                     if (videoProgressTimerRef.current) clearInterval(videoProgressTimerRef.current);
 
                     if (vidErr) {
-                      console.error("Video upload error:", vidErr);
                       setVideoUploading(false);
                       setVideoProgress(0);
                     } else {

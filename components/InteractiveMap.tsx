@@ -265,8 +265,6 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
 
   useEffect(() => {
     async function fetchStories() {
-      console.log("[InteractiveMap] Fetching stories from Supabase...");
-      // DB uses old column names: author_name, country_of_origin, year_of_arrival
       const { data, error } = await supabase
         .from("stories")
         .select("id, author_name, country_of_origin, us_state, year_of_arrival, story_text, profession")
@@ -274,13 +272,7 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
         .order("created_at", { ascending: false })
         .limit(500);
 
-      console.log("[InteractiveMap] Raw Supabase response:", { data, error });
-
-      if (error) {
-        console.error("[InteractiveMap] Supabase error:", error);
-      }
-
-      if (data) {
+      if (!error && data) {
         const mapped: MapStory[] = data.map((s: Record<string, unknown>) => ({
           id: s.id as string,
           name: (s.author_name as string) ?? "",
@@ -290,9 +282,7 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
           story_text: (s.story_text as string) ?? "",
           profession: (s.profession as string | null) ?? null,
         }));
-        // Deduplicate by ID in case the DB has phantom/duplicate records
         const unique = Array.from(new Map(mapped.map((s) => [s.id, s])).values());
-        console.log("[InteractiveMap] Mapped stories:", unique, "| raw count:", data.length, "| deduped count:", unique.length);
         setStories(unique);
       }
       setLoading(false);
@@ -375,21 +365,15 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
   }, []);
 
   const arcs = useMemo<StoryArc[]>(() => {
-    console.log("[InteractiveMap] Computing arcs for", stories.length, "stories");
     const result: StoryArc[] = [];
     let idx = 0;
     for (const story of stories) {
-      if (!story.country || !story.us_state) {
-        console.log("[InteractiveMap] Skip (no country/state):", story.name, "| country:", story.country, "| us_state:", story.us_state);
-        continue;
-      }
+      if (!story.country || !story.us_state) continue;
       const from = lookupCountry(story.country);
       const to = lookupState(story.us_state);
-      if (!from) { console.log("[InteractiveMap] No coords for country:", story.country); continue; }
-      if (!to)   { console.log("[InteractiveMap] No coords for state:", story.us_state); continue; }
+      if (!from || !to) continue;
       result.push({ story, from, to, color: getDecadeColor(story.year_arrived), idx: idx++ });
     }
-    console.log("[InteractiveMap] Generated", result.length, "arcs");
     return result;
   }, [stories]);
 

@@ -22,10 +22,6 @@ body {
   50%       { opacity: 0.85; }
 }
 
-@keyframes pulseRing {
-  0%, 100% { opacity: 0.15; r: 13; }
-  50%       { opacity: 0.55; r: 18; }
-}
 
 @keyframes drawLine {
   from { stroke-dashoffset: 2000; opacity: 0; }

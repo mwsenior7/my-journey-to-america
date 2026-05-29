@@ -6,10 +6,10 @@ import { supabase } from "@/lib/supabase";
 export const revalidate = 60;
 
 const communityHubs = [
-  { name: "Latin America",       emoji: "🌎", count: "2,400+" },
-  { name: "South Asia",          emoji: "🌏", count: "1,800+" },
-  { name: "Middle East & Africa",emoji: "🌍", count: "1,200+" },
-  { name: "Europe",              emoji: "🏛️", count: "900+"   },
+  { name: "Latin America",        emoji: "🌎" },
+  { name: "South Asia",           emoji: "🌏" },
+  { name: "Middle East & Africa", emoji: "🌍" },
+  { name: "Europe",               emoji: "🏛️" },
 ];
 
 export default async function HomePage() {
@@ -21,21 +21,23 @@ export default async function HomePage() {
   ] = await Promise.all([
     supabase
       .from("stories")
-      .select("id, name, country, year_arrived, story_text")
+      .select("id, author_name, country_of_origin, year_of_arrival, story_text")
+      .eq("status", "approved")
       .order("created_at", { ascending: false })
       .limit(3),
-    supabase.from("stories").select("*", { count: "exact", head: true }),
-    supabase.from("stories").select("country"),
+    supabase.from("stories").select("*", { count: "exact", head: true }).eq("status", "approved"),
+    supabase.from("stories").select("country_of_origin").eq("status", "approved"),
     supabase
       .from("stories")
       .select("us_state")
+      .eq("status", "approved")
       .not("us_state", "is", null),
   ]);
 
   const stories = recent ?? [];
   const totalStories = storyCount ?? 0;
   const uniqueCountries = new Set(
-    (countryRows ?? []).map((r) => r.country).filter(Boolean)
+    (countryRows ?? []).map((r) => r.country_of_origin).filter(Boolean)
   ).size;
   const uniqueStates = new Set(
     (stateRows ?? []).map((r) => r.us_state).filter(Boolean)
@@ -172,11 +174,11 @@ export default async function HomePage() {
                   >
                     <div>
                       <h3 style={{ color: "#1B2A4A" }} className="font-bold text-lg">
-                        {story.name}
+                        {story.author_name}
                       </h3>
                       <p style={{ color: "#1B2A4A", opacity: 0.6 }} className="text-sm">
-                        {story.country}
-                        {story.year_arrived ? ` · ${story.year_arrived}` : ""}
+                        {story.country_of_origin}
+                        {story.year_of_arrival ? ` · ${story.year_of_arrival}` : ""}
                       </p>
                     </div>
                     <p
@@ -247,9 +249,6 @@ export default async function HomePage() {
                 <span className="text-4xl">{hub.emoji}</span>
                 <span className="font-semibold" style={{ color: "#FAF7F2" }}>
                   {hub.name}
-                </span>
-                <span className="text-xs" style={{ color: "#FAF7F2", opacity: 0.6 }}>
-                  {hub.count} stories
                 </span>
               </Link>
             ))}

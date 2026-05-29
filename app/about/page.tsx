@@ -1,10 +1,4 @@
 export default function AboutPage() {
-  const team = [
-    { name: "Elena Vasquez", role: "Co-Founder & CEO", origin: "Originally from Guadalajara, Mexico" },
-    { name: "James Okafor", role: "Co-Founder & CTO", origin: "Originally from Lagos, Nigeria" },
-    { name: "Lin Wei", role: "Head of Community", origin: "Originally from Chengdu, China" },
-  ];
-
   return (
     <div className="max-w-4xl mx-auto px-4 py-16">
       {/* Intro */}
@@ -49,26 +43,6 @@ export default function AboutPage() {
             >
               <h3 className="text-gold font-bold text-xl mb-2">{v.title}</h3>
               <p className="text-navy/70 text-sm">{v.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* Team */}
-      <section>
-        <h2 className="text-3xl font-bold text-navy mb-8">Our Team</h2>
-        <div className="grid md:grid-cols-3 gap-6">
-          {team.map((member) => (
-            <div
-              key={member.name}
-              className="bg-white rounded-2xl border border-navy/10 shadow-sm p-6 text-center"
-            >
-              <div className="w-16 h-16 bg-gold/20 rounded-full mx-auto mb-4 flex items-center justify-center text-2xl font-bold text-gold">
-                {member.name[0]}
-              </div>
-              <h3 className="font-bold text-navy">{member.name}</h3>
-              <p className="text-sm text-gold font-medium">{member.role}</p>
-              <p className="text-xs text-navy/50 mt-1">{member.origin}</p>
             </div>
           ))}
         </div>

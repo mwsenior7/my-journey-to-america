@@ -6,9 +6,9 @@ import Link from "next/link";
 
 type AdminStory = {
   id: string;
-  name: string;
-  country: string;
-  year_arrived: number | null;
+  author_name: string;
+  country_of_origin: string;
+  year_of_arrival: number | null;
   us_state: string | null;
   profession: string | null;
   story_text: string;
@@ -31,7 +31,7 @@ function formatDate(iso: string) {
   });
 }
 
-export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
+export default function AdminPanel() {
   const router = useRouter();
   const [stories, setStories] = useState<AdminStory[]>([]);
   const [loading, setLoading] = useState(false);
@@ -45,32 +45,31 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  async function handleLogout() {
+    await fetch("/api/admin/login", { method: "DELETE" });
+    router.push("/admin/login");
+  }
+
   async function updateStatus(storyId: string, status: "approved" | "rejected" | "pending") {
     setUpdating(storyId);
     setFetchError("");
-    console.log("[AdminPanel] updateStatus sending:", { storyId, status });
     try {
       const res = await fetch("/api/admin/update-status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ storyId, status }),
       });
-      console.log("[AdminPanel] updateStatus response status:", res.status);
       if (res.status === 401) {
-        router.push("/admin");
+        router.push("/admin/login");
         return;
       }
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        console.error("[AdminPanel] updateStatus error response:", errorData);
         setFetchError(errorData.error ?? "Failed to update status. Please try again.");
         return;
       }
-      const data = await res.json().catch(() => ({}));
-      console.log("[AdminPanel] updateStatus success:", data);
       await refreshStories();
-    } catch (err) {
-      console.error("[AdminPanel] updateStatus network error:", err);
+    } catch {
       setFetchError("Network error updating status. Please try again.");
     } finally {
       setUpdating(null);
@@ -88,7 +87,7 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
         body: JSON.stringify({ storyId }),
       });
       if (res.status === 401) {
-        router.push("/admin");
+        router.push("/admin/login");
         return;
       }
       if (!res.ok) {
@@ -110,13 +109,12 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
     try {
       const res = await fetch("/api/admin/stories");
       if (res.status === 401) {
-        router.push("/admin");
+        router.push("/admin/login");
         return;
       }
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         setFetchError(errorData.error ?? "Failed to load stories.");
-        // Don't change auth state on non-401 errors
         return;
       }
       const { stories: data } = await res.json();
@@ -128,7 +126,6 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
     }
   }
 
-  // ── Compute stats ──────────────────────────────────────────────────────────
   const total    = stories.length;
   const pending  = stories.filter((s) => s.status === "pending").length;
   const approved = stories.filter((s) => s.status === "approved").length;
@@ -138,10 +135,8 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
     ? stories
     : stories.filter((s) => s.status === statusFilter);
 
-  // ── Admin dashboard ────────────────────────────────────────────────────────
   return (
     <div className="max-w-5xl mx-auto px-4 py-14">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-navy">Story Moderation</h1>
@@ -156,7 +151,7 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
             {loading ? "Refreshing…" : "Refresh"}
           </button>
           <button
-            onClick={onLogout}
+            onClick={handleLogout}
             className="text-sm font-semibold text-navy/60 hover:text-navy transition-colors border border-navy/20 rounded-lg px-4 py-2 hover:border-navy/40"
           >
             Sign out
@@ -164,7 +159,6 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
         {[
           { label: "Total",    value: total,    color: "text-navy" },
@@ -179,7 +173,6 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
         ))}
       </div>
 
-      {/* Filter tabs */}
       <div className="flex gap-2 mb-6">
         {(["pending", "all", "approved", "rejected"] as StatusFilter[]).map((f) => (
           <button
@@ -201,14 +194,12 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
         ))}
       </div>
 
-      {/* Error */}
       {fetchError && (
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-5 py-3 text-sm mb-6">
           {fetchError}
         </div>
       )}
 
-      {/* Stories */}
       {loading && stories.length === 0 && (
         <div className="text-center py-24 text-navy/40">
           <p className="text-sm">Loading stories…</p>
@@ -232,25 +223,23 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
               key={story.id}
               className="bg-white rounded-2xl border border-navy/10 shadow-sm p-6"
             >
-              {/* Story header */}
               <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="font-bold text-navy text-lg">{story.name}</h2>
+                    <h2 className="font-bold text-navy text-lg">{story.author_name}</h2>
                     <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full capitalize ${STATUS_BADGE[story.status]}`}>
                       {story.status}
                     </span>
                   </div>
                   <p className="text-sm text-navy/50 mt-0.5">
-                    {story.country}
-                    {story.us_state    && ` · ${story.us_state}`}
-                    {story.year_arrived && ` · arrived ${story.year_arrived}`}
-                    {story.profession  && ` · ${story.profession}`}
+                    {story.country_of_origin}
+                    {story.us_state      && ` · ${story.us_state}`}
+                    {story.year_of_arrival && ` · arrived ${story.year_of_arrival}`}
+                    {story.profession    && ` · ${story.profession}`}
                     <span className="ml-2 text-navy/35">Submitted {formatDate(story.created_at)}</span>
                   </p>
                 </div>
 
-                {/* Actions */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <Link
                     href={`/stories/${story.id}`}
@@ -297,7 +286,6 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
                 </div>
               </div>
 
-              {/* Story preview / full text */}
               <p className="text-sm text-navy/70 leading-relaxed">
                 {isExpanded ? story.story_text : preview}
               </p>
@@ -309,7 +297,6 @@ export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
                 {isExpanded ? "Show less" : "Read full story"}
               </button>
 
-              {/* Tags */}
               {story.tags && story.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-3">
                   {story.tags.map((tag) => (

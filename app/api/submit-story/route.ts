@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   const firstName = String(name).split(" ")[0];
   const title = `${firstName}'s Journey from ${country}`;
 
-  const { error } = await supabase.from("stories").insert({
+  const { data, error } = await supabase.from("stories").insert({
     title,
     author_name: name,
     country_of_origin: country,
@@ -40,12 +40,11 @@ export async function POST(req: NextRequest) {
     original_language: original_language ?? "en",
     status: "pending",
     clerk_user_id: clerk_user_id ?? null,
-  });
+  }).select("id").single();
 
   if (error) {
-    console.error("[submit-story] Supabase error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ id: data.id });
 }

@@ -29,10 +29,10 @@ export async function generateMetadata({
       : story.story_text;
 
   return {
-    title: `${story.name}'s Journey — My Journey to America`,
+    title: `${story.author_name}'s Journey — My Journey to America`,
     description: excerpt,
     openGraph: {
-      title: `${story.name}'s Immigration Journey`,
+      title: `${story.author_name}'s Immigration Journey`,
       description: excerpt,
       type: "article",
     },
@@ -91,8 +91,9 @@ export default async function StoryPage({ params }: { params: { id: string } }) 
       .eq("story_id", story.id),
     supabase
       .from("stories")
-      .select("id, name, country, year_arrived, story_text")
-      .eq("country", story.country)
+      .select("id, author_name, country_of_origin, year_of_arrival, story_text")
+      .eq("country_of_origin", story.country_of_origin)
+      .eq("status", "approved")
       .neq("id", story.id)
       .order("created_at", { ascending: false })
       .limit(3),
@@ -116,14 +117,14 @@ export default async function StoryPage({ params }: { params: { id: string } }) 
       {/* Header */}
       <div className="mb-10">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-navy/50 mb-3">
-          <span className="font-medium text-navy/70">{story.country}</span>
-          {story.us_state && <><span>·</span><span>{story.us_state}</span></>}
-          {story.year_arrived && <><span>·</span><span>{story.year_arrived}</span></>}
-          {story.profession && <><span>·</span><span>{story.profession}</span></>}
+          <span className="font-medium text-navy/70">{story.country_of_origin}</span>
+          {story.us_state     && <><span>·</span><span>{story.us_state}</span></>}
+          {story.year_of_arrival && <><span>·</span><span>{story.year_of_arrival}</span></>}
+          {story.profession   && <><span>·</span><span>{story.profession}</span></>}
         </div>
 
         <h1 className="text-4xl font-extrabold text-navy leading-tight mb-2">
-          {story.name}
+          {story.author_name}
         </h1>
 
         {story.tags && story.tags.length > 0 && (
@@ -187,7 +188,7 @@ export default async function StoryPage({ params }: { params: { id: string } }) 
       {related.length > 0 && (
         <div>
           <h2 className="text-2xl font-bold text-navy mb-6">
-            More stories from {story.country}
+            More stories from {story.country_of_origin}
           </h2>
           <div className="flex flex-col gap-4">
             {related.map((r) => {
@@ -203,11 +204,11 @@ export default async function StoryPage({ params }: { params: { id: string } }) 
                 >
                   <div>
                     <p className="font-bold text-navy group-hover:text-navy leading-snug">
-                      {r.name}
+                      {r.author_name}
                     </p>
                     <p className="text-xs text-navy/50">
-                      {r.country}
-                      {r.year_arrived ? ` · ${r.year_arrived}` : ""}
+                      {r.country_of_origin}
+                      {r.year_of_arrival ? ` · ${r.year_of_arrival}` : ""}
                     </p>
                   </div>
                   <p className="text-sm text-navy/65 leading-relaxed">{excerpt}</p>

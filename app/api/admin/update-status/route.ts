@@ -6,7 +6,7 @@ const VALID_STATUSES = ["pending", "approved", "rejected"];
 
 export async function POST(request: Request) {
   const cookieStore = cookies();
-  if (cookieStore.get("admin_session")?.value !== "1") {
+  if (cookieStore.get("admin_auth")?.value !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -25,11 +25,7 @@ export async function POST(request: Request) {
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceRoleKey) {
-    console.error("[admin/update-status] Missing SUPABASE_SERVICE_ROLE_KEY env var");
-    return NextResponse.json(
-      { error: "Server configuration error: SUPABASE_SERVICE_ROLE_KEY not set — add it to your environment variables" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
   }
 
   try {
@@ -37,30 +33,22 @@ export async function POST(request: Request) {
       auth: { persistSession: false },
     });
 
-    console.log("[admin/update-status] Sending to Supabase:", { storyId, status });
-
     const { data, error } = await supabase
       .from("stories")
       .update({ status })
       .eq("id", storyId)
       .select("id, status");
 
-    console.log("[admin/update-status] Supabase returned:", { data, error });
-
     if (error) {
-      console.error("[admin/update-status] Supabase error:", error);
-      return NextResponse.json({ error: error.message, details: error }, { status: 500 });
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     if (!data || data.length === 0) {
-      console.error("[admin/update-status] No rows updated for storyId:", storyId);
-      return NextResponse.json({ error: "Story not found — the ID may not exist in the database" }, { status: 404 });
+      return NextResponse.json({ error: "Story not found" }, { status: 404 });
     }
 
-    console.log("[admin/update-status] Success:", data[0]);
     return NextResponse.json({ success: true, story: data[0] });
   } catch (err) {
-    console.error("[admin/update-status] Unexpected error:", err);
-    return NextResponse.json({ error: "Unexpected server error", details: String(err) }, { status: 500 });
+    return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }

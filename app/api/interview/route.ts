@@ -108,8 +108,6 @@ export async function POST(req: NextRequest) {
         )
         .join("\n\n");
 
-      console.log("[/api/interview] generating story from", messages.length, "messages");
-
       const response = await client.messages.create({
         model: "claude-sonnet-4-6",
         max_tokens: 2048,
@@ -127,9 +125,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ text });
     }
 
-    // Interview phase
-    console.log("[/api/interview] interview turn, messages:", messages.length);
-
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
       max_tokens: 350,
@@ -144,7 +139,6 @@ export async function POST(req: NextRequest) {
       response.content[0].type === "text" ? response.content[0].text : "";
     return NextResponse.json({ text });
   } catch (err) {
-    console.error("[/api/interview] error:", err);
     const message =
       err instanceof Error ? err.message : "An unexpected error occurred.";
     return NextResponse.json({ error: message }, { status: 500 });

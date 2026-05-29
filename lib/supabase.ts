@@ -9,9 +9,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export type Story = {
   id: string;
-  name: string;
-  country: string;
-  year_arrived: number | null;
+  author_name: string;
+  country_of_origin: string;
+  year_of_arrival: number | null;
   us_state: string | null;
   profession: string | null;
   story_text: string;

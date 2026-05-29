@@ -4,21 +4,9 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase, type Story } from "@/lib/supabase";
+import { US_STATES } from "@/lib/us-states";
 
 const PAGE_SIZE = 12;
-
-const US_STATES = [
-  "Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado",
-  "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho",
-  "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana",
-  "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota",
-  "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada",
-  "New Hampshire", "New Jersey", "New Mexico", "New York",
-  "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon",
-  "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota",
-  "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington",
-  "West Virginia", "Wisconsin", "Wyoming", "District of Columbia",
-];
 
 const DECADES = Array.from({ length: 13 }, (_, i) => ({
   label: `${1900 + i * 10}s`,
@@ -58,12 +46,12 @@ function BrowseContent() {
   useEffect(() => {
     async function loadMeta() {
       const [cRes, pRes] = await Promise.all([
-        supabase.from("stories").select("country").eq("status", "approved"),
+        supabase.from("stories").select("country_of_origin").eq("status", "approved"),
         supabase.from("stories").select("profession").eq("status", "approved").not("profession", "is", null),
       ]);
       if (cRes.data) {
         setCountries(
-          Array.from(new Set(cRes.data.map((r) => r.country).filter(Boolean))).sort()
+          Array.from(new Set(cRes.data.map((r) => r.country_of_origin).filter(Boolean))).sort()
         );
       }
       if (pRes.data) {
@@ -83,17 +71,16 @@ function BrowseContent() {
       .order("created_at", { ascending: false })
       .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
 
-    if (filtersArg.country)    q = q.eq("country", filtersArg.country);
+    if (filtersArg.country)    q = q.eq("country_of_origin", filtersArg.country);
     if (filtersArg.us_state)   q = q.eq("us_state", filtersArg.us_state);
     if (filtersArg.decade) {
       const start = parseInt(filtersArg.decade, 10);
-      q = q.gte("year_arrived", start).lt("year_arrived", start + 10);
+      q = q.gte("year_of_arrival", start).lt("year_of_arrival", start + 10);
     }
     if (filtersArg.profession) q = q.eq("profession", filtersArg.profession);
 
     const { data, error } = await q;
     if (error) {
-      console.error("Browse fetch error:", error);
       setFetchError("Failed to load stories. Please refresh and try again.");
     } else {
       const rows = data ?? [];
@@ -128,8 +115,8 @@ function BrowseContent() {
     if (!query.trim()) return true;
     const q = query.toLowerCase();
     return (
-      s.name.toLowerCase().includes(q) ||
-      s.country.toLowerCase().includes(q) ||
+      s.author_name.toLowerCase().includes(q) ||
+      s.country_of_origin.toLowerCase().includes(q) ||
       s.story_text.toLowerCase().includes(q) ||
       (s.us_state?.toLowerCase().includes(q) ?? false) ||
       (s.profession?.toLowerCase().includes(q) ?? false) ||
@@ -260,12 +247,12 @@ function BrowseContent() {
             >
               {/* Header */}
               <div className="flex flex-col gap-0.5">
-                <h2 className="font-bold text-navy text-lg leading-snug">{s.name}</h2>
+                <h2 className="font-bold text-navy text-lg leading-snug">{s.author_name}</h2>
                 <p className="text-sm text-navy/50">
-                  {s.country}
-                  {s.us_state    && ` · ${s.us_state}`}
-                  {s.year_arrived && ` · ${s.year_arrived}`}
-                  {s.profession  && ` · ${s.profession}`}
+                  {s.country_of_origin}
+                  {s.us_state      && ` · ${s.us_state}`}
+                  {s.year_of_arrival && ` · ${s.year_of_arrival}`}
+                  {s.profession    && ` · ${s.profession}`}
                 </p>
               </div>
 
