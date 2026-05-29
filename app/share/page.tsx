@@ -810,8 +810,6 @@ export default function SharePage() {
     }
   }
 
-  if (!isLoaded || !isSignedIn) return null;
-
   if (status === "success") {
     return (
       <div className="max-w-2xl mx-auto px-4 py-24 text-center">

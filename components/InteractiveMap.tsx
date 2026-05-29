@@ -169,10 +169,10 @@ const LEGEND = [
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface MapStory {
   id: string;
-  name: string;
-  country: string;
+  author_name: string;
+  country_of_origin: string;
   us_state: string | null;
-  year_arrived: number | null;
+  year_of_arrival: number | null;
   story_text: string;
   profession: string | null;
 }
@@ -197,8 +197,8 @@ function StoryCard({
     story.story_text.length > 220
       ? story.story_text.slice(0, 220) + "…"
       : story.story_text;
-  const color = getDecadeColor(story.year_arrived);
-  const decade = getDecadeLabel(story.year_arrived);
+  const color = getDecadeColor(story.year_of_arrival);
+  const decade = getDecadeLabel(story.year_of_arrival);
 
   return (
     <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none px-4">
@@ -208,9 +208,9 @@ function StoryCard({
       >
         <div className="flex items-start justify-between p-5 pb-3">
           <div className="flex-1 min-w-0">
-            <h3 className="font-bold text-navy text-base leading-tight">{story.name}</h3>
+            <h3 className="font-bold text-navy text-base leading-tight">{story.author_name}</h3>
             <p className="text-sm text-navy/60 mt-0.5">
-              {story.country}
+              {story.country_of_origin}
               {story.us_state ? ` → ${story.us_state}` : ""}
             </p>
           </div>
@@ -226,7 +226,7 @@ function StoryCard({
         </div>
 
         <div className="px-5 pb-5 flex flex-col gap-3">
-          {story.year_arrived && (
+          {story.year_of_arrival && (
             <span
               className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full self-start"
               style={{ backgroundColor: `${color}1A`, color }}
@@ -235,7 +235,7 @@ function StoryCard({
                 className="w-2 h-2 rounded-full inline-block"
                 style={{ backgroundColor: color }}
               />
-              Arrived {story.year_arrived} · {decade}
+              Arrived {story.year_of_arrival} · {decade}
             </span>
           )}
 
@@ -275,10 +275,10 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
       if (!error && data) {
         const mapped: MapStory[] = data.map((s: Record<string, unknown>) => ({
           id: s.id as string,
-          name: (s.author_name as string) ?? "",
-          country: (s.country_of_origin as string) ?? "",
+          author_name: (s.author_name as string) ?? "",
+          country_of_origin: (s.country_of_origin as string) ?? "",
           us_state: (s.us_state as string | null) ?? null,
-          year_arrived: (s.year_of_arrival as number | null) ?? null,
+          year_of_arrival: (s.year_of_arrival as number | null) ?? null,
           story_text: (s.story_text as string) ?? "",
           profession: (s.profession as string | null) ?? null,
         }));
@@ -301,10 +301,10 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
           if (s.status !== "approved") return;
           const mapped: MapStory = {
             id: s.id as string,
-            name: (s.author_name as string) ?? "",
-            country: (s.country_of_origin as string) ?? "",
+            author_name: (s.author_name as string) ?? "",
+            country_of_origin: (s.country_of_origin as string) ?? "",
             us_state: (s.us_state as string | null) ?? null,
-            year_arrived: (s.year_of_arrival as number | null) ?? null,
+            year_of_arrival: (s.year_of_arrival as number | null) ?? null,
             story_text: (s.story_text as string) ?? "",
             profession: (s.profession as string | null) ?? null,
           };
@@ -329,10 +329,10 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
             // Story was approved — add it to the map if not already present
             const mapped: MapStory = {
               id,
-              name: (s.author_name as string) ?? "",
-              country: (s.country_of_origin as string) ?? "",
+              author_name: (s.author_name as string) ?? "",
+              country_of_origin: (s.country_of_origin as string) ?? "",
               us_state: (s.us_state as string | null) ?? null,
-              year_arrived: (s.year_of_arrival as number | null) ?? null,
+              year_of_arrival: (s.year_of_arrival as number | null) ?? null,
               story_text: (s.story_text as string) ?? "",
               profession: (s.profession as string | null) ?? null,
             };
@@ -368,11 +368,11 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
     const result: StoryArc[] = [];
     let idx = 0;
     for (const story of stories) {
-      if (!story.country || !story.us_state) continue;
-      const from = lookupCountry(story.country);
+      if (!story.country_of_origin || !story.us_state) continue;
+      const from = lookupCountry(story.country_of_origin);
       const to = lookupState(story.us_state);
       if (!from || !to) continue;
-      result.push({ story, from, to, color: getDecadeColor(story.year_arrived), idx: idx++ });
+      result.push({ story, from, to, color: getDecadeColor(story.year_of_arrival), idx: idx++ });
     }
     return result;
   }, [stories]);
