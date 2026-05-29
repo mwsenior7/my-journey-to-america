@@ -105,8 +105,6 @@ function Field({
   );
 }
 
-// ── AI Interview Component ─────────────────────────────────────────────────────
-
 const TOTAL_QUESTIONS = 8;
 
 function AIInterview({
@@ -146,7 +144,6 @@ function AIInterview({
     }
   }, [messages, loading]);
 
-  // Save draft when user edits the generated story
   useEffect(() => {
     if (phase === "done" && editedStory) {
       onSave?.({ messages, phase, editedStory, interviewComplete });
@@ -274,7 +271,6 @@ function AIInterview({
   const progress = Math.min(userMessageCount, TOTAL_QUESTIONS);
   const progressPct = Math.round((progress / TOTAL_QUESTIONS) * 100);
 
-  // ── Story draft view ──────────────────────────────────────────────────────
   if (phase === "generating" || phase === "done") {
     const wordCount = editedStory.trim().split(/\s+/).filter(Boolean).length;
     return (
@@ -353,10 +349,8 @@ function AIInterview({
     );
   }
 
-  // ── Interview chat view ───────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-3" style={{ height: "560px" }}>
-      {/* Progress row — also holds Start Over when the interview is underway */}
       <div className="flex items-center gap-3 py-1 flex-shrink-0">
         <div className="flex-1 h-1.5 bg-navy/10 rounded-full overflow-hidden">
           <div
@@ -381,7 +375,6 @@ function AIInterview({
         )}
       </div>
 
-      {/* Chat messages — flex-1 + min-h-0 lets this fill remaining space and scroll internally */}
       <div ref={chatContainerRef} className="flex-1 min-h-0 flex flex-col gap-4 overflow-y-auto pr-1">
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
@@ -393,7 +386,6 @@ function AIInterview({
               </div>
             )}
 
-            {/* User message: show inline editor when editing, otherwise bubble + Edit button */}
             {msg.role === "user" && editingIndex === i ? (
               <div className="flex flex-col gap-2 max-w-[82%]">
                 <textarea
@@ -468,7 +460,6 @@ function AIInterview({
         )}
       </div>
 
-      {/* Input */}
       <div className="flex gap-2 items-end flex-shrink-0">
         <textarea
           ref={inputRef}
@@ -497,7 +488,6 @@ function AIInterview({
         </button>
       </div>
 
-      {/* Footer — fixed slot so toggling button/text never shifts the page */}
       <div className="flex-shrink-0">
         {interviewComplete ? (
           <button
@@ -520,13 +510,11 @@ function AIInterview({
   );
 }
 
-// ── Main Share Page ────────────────────────────────────────────────────────────
-
 export default function SharePage() {
-  const { userId, isLoaded, isSignedIn } = useAuth()
+  const { userId, isLoaded, isSignedIn } = useAuth();
 
   if (isLoaded && !isSignedIn) {
-    redirect('/sign-in?redirect_url=/share')
+    redirect("/sign-in?redirect_url=/share");
   }
 
   const [mode, setMode] = useState<"form" | "interview">("interview");
@@ -537,7 +525,6 @@ export default function SharePage() {
   const [highlightUseStory, setHighlightUseStory] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; country?: string; story?: string }>({});
 
-  // Draft state
   const [savedDraft, setSavedDraft] = useState<SavedDraft | null>(null);
   const [isUsingDraft, setIsUsingDraft] = useState(false);
   const [draftKey, setDraftKey] = useState(0);
@@ -549,7 +536,6 @@ export default function SharePage() {
     interviewComplete: false,
   });
 
-  // Audio state
   const [audioMode, setAudioMode] = useState<"record" | "upload">("record");
   const [recState, setRecState] = useState<"idle" | "recording" | "stopped">("idle");
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -558,7 +544,6 @@ export default function SharePage() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
-  // Video state
   const [videoMode, setVideoMode] = useState<"url" | "upload">("url");
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoProgress, setVideoProgress] = useState(0);
@@ -566,7 +551,6 @@ export default function SharePage() {
   const [videoUploadedUrl, setVideoUploadedUrl] = useState<string | null>(null);
   const videoProgressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Set default language from browser + load any saved draft
   useEffect(() => {
     const browserLang = navigator.language.split("-")[0];
     const supported = SUPPORTED_LANGUAGES.find(l => l.code === browserLang);
@@ -590,7 +574,6 @@ export default function SharePage() {
     }
   }, []);
 
-  // Save form changes to draft
   useEffect(() => {
     const hasFormContent = !!(form.name || form.story_text || form.country);
     const iState = interviewStateRef.current;
@@ -731,7 +714,6 @@ export default function SharePage() {
     e.preventDefault();
     if (honeypot) { setStatus("success"); return; }
 
-    // Manual validation (form has noValidate)
     const errors: { name?: string; country?: string; story?: string } = {};
     if (!form.name.trim()) errors.name = "Please enter your name";
     if (!form.country.trim()) errors.country = "Please enter your country of origin";
@@ -825,7 +807,6 @@ export default function SharePage() {
           body: JSON.stringify({ storyId: id }),
         }).catch(() => {/* non-critical */});
       }
-      // Clear draft on successful submission
       localStorage.removeItem(DRAFT_KEY);
       setIsUsingDraft(false);
       setDraftInterviewState(null);
@@ -868,7 +849,6 @@ export default function SharePage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-16">
-      {/* Saved draft banner */}
       {savedDraft && (
         <div className="mb-6 bg-gold/10 border border-gold/30 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center gap-3">
           <div className="flex-1 min-w-0">
@@ -906,7 +886,6 @@ export default function SharePage() {
         Not sure how to start? Let our AI guide you — just answer a few simple questions and we&rsquo;ll write a beautiful story for you.
       </p>
 
-      {/* Mode toggle */}
       <div className="flex bg-navy/5 rounded-xl p-1 gap-1 mb-8">
         <button
           type="button"
@@ -943,7 +922,6 @@ export default function SharePage() {
         </button>
       </div>
 
-      {/* Story Language selector */}
       <div className="flex flex-col gap-1.5 mb-6">
         <label className="text-sm font-semibold text-navy" htmlFor="story_language">
           Story Language
@@ -967,7 +945,6 @@ export default function SharePage() {
         </p>
       </div>
 
-      {/* AI Interview panel */}
       {mode === "interview" && (
         <>
           {isUsingDraft && (
@@ -1008,13 +985,11 @@ export default function SharePage() {
         </>
       )}
 
-      {/* Submission form */}
       <form
         onSubmit={handleSubmit}
         noValidate
         className="flex flex-col gap-8 bg-white rounded-2xl border border-navy/10 shadow-sm p-8"
       >
-        {/* Honeypot — invisible to users, catches bots */}
         <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", opacity: 0, height: 0, overflow: "hidden" }}>
           <label htmlFor="hp_website">Website</label>
           <input
@@ -1037,7 +1012,6 @@ export default function SharePage() {
           </div>
         )}
 
-        {/* ── Personal details ── */}
         <div className="flex flex-col gap-6">
           <div className="grid sm:grid-cols-2 gap-6">
             <Field label="Full Name" htmlFor="name" required>
@@ -1106,7 +1080,6 @@ export default function SharePage() {
           </Field>
         </div>
 
-        {/* ── Story text ── */}
         <div className="flex flex-col gap-4">
           <Field label="Your Story" htmlFor="story_text" required>
             <textarea
@@ -1119,10 +1092,8 @@ export default function SharePage() {
             />
             {fieldErrors.story && <p className="text-xs text-red-500">{fieldErrors.story}</p>}
           </Field>
-
         </div>
 
-        {/* ── Audio ── */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-navy">
@@ -1228,7 +1199,6 @@ export default function SharePage() {
           </div>
         </div>
 
-        {/* ── Video ── */}
         <div className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-navy">
@@ -1350,7 +1320,6 @@ export default function SharePage() {
           </div>
         </div>
 
-        {/* ── Tags ── */}
         <Field label="Tags" htmlFor="tags" hint="Comma-separated — e.g. family, career change, 1990s">
           <input
             id="tags"
