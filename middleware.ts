@@ -1,22 +1,28 @@
-import { NextRequest, NextResponse } from "next/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
-export function middleware(request: NextRequest) {
-  if (process.env.COMING_SOON !== "true") return NextResponse.next();
+const isShareRoute = createRouteMatcher(["/share(.*)"]);
 
-  const { pathname } = request.nextUrl;
-
-  // Allow the coming-soon page and its assets through
-  if (
-    pathname.startsWith("/coming-soon") ||
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon")
-  ) {
-    return NextResponse.next();
+export default clerkMiddleware(async (auth, request) => {
+  if (process.env.COMING_SOON === "true") {
+    const { pathname } = request.nextUrl;
+    if (
+      !pathname.startsWith("/coming-soon") &&
+      !pathname.startsWith("/_next") &&
+      !pathname.startsWith("/favicon")
+    ) {
+      return NextResponse.redirect(new URL("/coming-soon", request.url));
+    }
   }
 
-  return NextResponse.redirect(new URL("/coming-soon", request.url));
-}
+  if (isShareRoute(request)) {
+    await auth.protect();
+  }
+});
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: [
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/(api|trpc)(.*)",
+  ],
 };

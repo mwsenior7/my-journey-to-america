@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { name, country, year_arrived, us_state, profession, story_text, original_language } = body;
+  const { name, country, year_arrived, us_state, profession, story_text, original_language, clerk_user_id } = body;
 
   if (!name || !country || !story_text) {
     return NextResponse.json({ error: "Missing required fields: name, country, story_text" }, { status: 400 });
@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
     story_text,
     original_language: original_language ?? "en",
     status: "pending",
+    clerk_user_id: clerk_user_id ?? null,
   });
 
   if (error) {

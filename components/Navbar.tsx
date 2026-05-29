@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { useLanguage, SUPPORTED_LANGUAGES } from "@/contexts/LanguageContext";
+import { SignedIn, SignedOut, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
 
 const links = [
   { label: "Home", href: "/" },
@@ -79,6 +80,48 @@ function LanguageToggle() {
   );
 }
 
+function AuthButtons({ mobile }: { mobile?: boolean }) {
+  const btnBase = mobile
+    ? "block w-full text-center text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+    : "text-sm font-semibold px-4 py-1.5 rounded-full transition-colors";
+
+  return (
+    <div className={mobile ? "flex flex-col gap-2 pt-2" : "flex items-center gap-2"}>
+      <SignedOut>
+        <SignInButton forceRedirectUrl="/share">
+          <button
+            className={btnBase}
+            style={{ color: "#FAF7F2", border: "1px solid #C9A84C55" }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = "#C9A84C22")}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
+          >
+            Sign In
+          </button>
+        </SignInButton>
+        <SignUpButton forceRedirectUrl="/share">
+          <button
+            className={btnBase}
+            style={{ backgroundColor: "#C9A84C", color: "#1B2A4A", border: "1px solid #C9A84C" }}
+            onMouseEnter={e => (e.currentTarget.style.opacity = "0.9")}
+            onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
+          >
+            Sign Up
+          </button>
+        </SignUpButton>
+      </SignedOut>
+      <SignedIn>
+        <UserButton
+          appearance={{
+            elements: {
+              avatarBox: "w-8 h-8 ring-2 ring-gold/40",
+            },
+          }}
+        />
+      </SignedIn>
+    </div>
+  );
+}
+
 export default function Navbar() {
   const [open, setOpen] = useState(false);
 
@@ -112,6 +155,7 @@ export default function Navbar() {
             ))}
           </ul>
           <LanguageToggle />
+          <AuthButtons />
         </div>
 
         <button
@@ -144,8 +188,9 @@ export default function Navbar() {
               </li>
             ))}
           </ul>
-          <div className="pt-2">
+          <div className="pt-2 flex items-center justify-between">
             <LanguageToggle />
+            <AuthButtons mobile />
           </div>
         </div>
       )}

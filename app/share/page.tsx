@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useEffect } from "react";
+import { useAuth } from "@clerk/nextjs";
 import { supabase } from "@/lib/supabase";
 import { SUPPORTED_LANGUAGES } from "@/contexts/LanguageContext";
 
@@ -520,6 +521,7 @@ function AIInterview({
 // ── Main Share Page ────────────────────────────────────────────────────────────
 
 export default function SharePage() {
+  const { userId } = useAuth();
   const [mode, setMode] = useState<"form" | "interview">("interview");
   const [form, setForm] = useState<FormState>(EMPTY);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -794,6 +796,7 @@ export default function SharePage() {
         audio_url,
         tags: tags.length > 0 ? tags : null,
         original_language: form.original_language || "en",
+        clerk_user_id: userId ?? null,
       }),
     });
 
