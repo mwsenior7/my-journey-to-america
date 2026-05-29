@@ -1384,4 +1384,3 @@ export default function SharePage() {
     </div>
   );
 }
-export const dynamic = 'force-dynamic'
