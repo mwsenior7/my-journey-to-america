@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 type AdminStory = {
@@ -30,10 +31,8 @@ function formatDate(iso: string) {
   });
 }
 
-export default function AdminPanel({ initiallyAuthenticated }: { initiallyAuthenticated: boolean }) {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(initiallyAuthenticated);
-  const [inputPassword, setInputPassword] = useState("");
-  const [authError, setAuthError] = useState("");
+export default function AdminPanel({ onLogout }: { onLogout?: () => void }) {
+  const router = useRouter();
   const [stories, setStories] = useState<AdminStory[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetchError, setFetchError] = useState("");
@@ -42,26 +41,9 @@ export default function AdminPanel({ initiallyAuthenticated }: { initiallyAuthen
   const [updating, setUpdating] = useState<string | null>(null);
 
   useEffect(() => {
-    if (initiallyAuthenticated) {
-      refreshStories();
-    }
+    refreshStories();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setAuthError("");
-    const res = await fetch("/api/admin/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ password: inputPassword }),
-    });
-    if (res.ok) {
-      await refreshStories();
-    } else {
-      setAuthError("Incorrect password. Please try again.");
-    }
-  }
 
   async function updateStatus(storyId: string, status: "approved" | "rejected" | "pending") {
     setUpdating(storyId);
@@ -75,7 +57,7 @@ export default function AdminPanel({ initiallyAuthenticated }: { initiallyAuthen
       });
       console.log("[AdminPanel] updateStatus response status:", res.status);
       if (res.status === 401) {
-        setIsAuthenticated(false);
+        router.push("/admin");
         return;
       }
       if (!res.ok) {
@@ -106,7 +88,7 @@ export default function AdminPanel({ initiallyAuthenticated }: { initiallyAuthen
         body: JSON.stringify({ storyId }),
       });
       if (res.status === 401) {
-        setIsAuthenticated(false);
+        router.push("/admin");
         return;
       }
       if (!res.ok) {
@@ -128,7 +110,7 @@ export default function AdminPanel({ initiallyAuthenticated }: { initiallyAuthen
     try {
       const res = await fetch("/api/admin/stories");
       if (res.status === 401) {
-        setIsAuthenticated(false);
+        router.push("/admin");
         return;
       }
       if (!res.ok) {
@@ -139,46 +121,11 @@ export default function AdminPanel({ initiallyAuthenticated }: { initiallyAuthen
       }
       const { stories: data } = await res.json();
       setStories(data ?? []);
-      setIsAuthenticated(true);
     } catch {
       setFetchError("Network error fetching stories.");
-      setIsAuthenticated(false);
     } finally {
       setLoading(false);
     }
-  }
-
-  // ── Not authenticated ──────────────────────────────────────────────────────
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-cream flex items-center justify-center px-4">
-        <div className="bg-white rounded-2xl border border-navy/10 shadow-sm p-10 w-full max-w-sm">
-          <h1 className="text-2xl font-bold text-navy mb-1">Admin Panel</h1>
-          <p className="text-navy/50 text-sm mb-8">My Journey to America</p>
-          <form onSubmit={handleLogin} className="flex flex-col gap-4">
-            <input
-              type="password"
-              placeholder="Admin password"
-              value={inputPassword}
-              onChange={(e) => setInputPassword(e.target.value)}
-              className="border border-navy/20 rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-gold"
-              autoFocus
-              required
-            />
-            {authError && (
-              <p className="text-red-600 text-sm">{authError}</p>
-            )}
-            <button
-              type="submit"
-              disabled={!inputPassword}
-              className="bg-navy text-cream font-semibold py-3 rounded-lg hover:bg-navy/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Sign In
-            </button>
-          </form>
-        </div>
-      </div>
-    );
   }
 
   // ── Compute stats ──────────────────────────────────────────────────────────
@@ -209,11 +156,7 @@ export default function AdminPanel({ initiallyAuthenticated }: { initiallyAuthen
             {loading ? "Refreshing…" : "Refresh"}
           </button>
           <button
-            onClick={async () => {
-              await fetch("/api/admin/logout", { method: "POST" });
-              setIsAuthenticated(false);
-              setStories([]);
-            }}
+            onClick={onLogout}
             className="text-sm font-semibold text-navy/60 hover:text-navy transition-colors border border-navy/20 rounded-lg px-4 py-2 hover:border-navy/40"
           >
             Sign out
