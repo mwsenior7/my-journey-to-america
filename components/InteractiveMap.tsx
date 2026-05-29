@@ -63,7 +63,7 @@ const COUNTRY_COORDS: Record<string, [number, number]> = {
   Georgia: [44, 42], Armenia: [45, 40],
   // Africa
   Nigeria: [8, 10], Ethiopia: [40, 8], Kenya: [38, 0], Ghana: [-1, 8],
-  "South Africa": [25, -29], Tanzania: [35, -6], Uganda: [32, 1],
+  "South Africa": [22.9375, -30.5595], Tanzania: [35, -6], Uganda: [32, 1],
   Cameroon: [12, 6], Somalia: [46, 6], Sudan: [30, 12],
   "South Sudan": [31, 7], Eritrea: [39, 15], Rwanda: [30, -2],
   Zimbabwe: [30, -20], Zambia: [27, -13], Senegal: [-14, 14],
@@ -289,8 +289,10 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
           story_text: (s.story_text as string) ?? "",
           profession: (s.profession as string | null) ?? null,
         }));
-        console.log("[InteractiveMap] Mapped stories:", mapped);
-        setStories(mapped);
+        // Deduplicate by ID in case the DB has phantom/duplicate records
+        const unique = Array.from(new Map(mapped.map((s) => [s.id, s])).values());
+        console.log("[InteractiveMap] Mapped stories:", unique, "| raw count:", data.length, "| deduped count:", unique.length);
+        setStories(unique);
       }
       setLoading(false);
     }
@@ -313,7 +315,7 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
             story_text: (s.story_text as string) ?? "",
             profession: (s.profession as string | null) ?? null,
           };
-          setStories((prev) => [mapped, ...prev]);
+          setStories((prev) => prev.some((s) => s.id === mapped.id) ? prev : [mapped, ...prev]);
           setNewArcIds((prev) => new Set(prev).add(mapped.id));
           setTimeout(() => {
             setNewArcIds((prev) => {
