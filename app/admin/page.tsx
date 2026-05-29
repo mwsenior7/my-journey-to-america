@@ -1,5 +1,5 @@
-import AdminPanel from "./AdminPanel";
+import AdminPanel from '@/components/AdminPanel'
 
 export default function AdminPage() {
-  return <AdminPanel />;
+  return <AdminPanel initiallyAuthenticated={false} />
 }
