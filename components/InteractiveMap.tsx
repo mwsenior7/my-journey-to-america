@@ -270,6 +270,7 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
       const { data, error } = await supabase
         .from("stories")
         .select("id, author_name, country_of_origin, us_state, year_of_arrival, story_text, profession")
+        .eq("status", "approved")
         .order("created_at", { ascending: false })
         .limit(500);
 
@@ -298,7 +299,7 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
     }
     fetchStories();
 
-    // Real-time: add new stories as they're submitted
+    // Real-time: react to inserts and status updates
     const channel = supabase
       .channel("map-stories-realtime")
       .on(
@@ -306,6 +307,8 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
         { event: "INSERT", schema: "public", table: "stories" },
         (payload) => {
           const s = payload.new as Record<string, unknown>;
+          // Only show approved stories on the map
+          if (s.status !== "approved") return;
           const mapped: MapStory = {
             id: s.id as string,
             name: (s.author_name as string) ?? "",
@@ -315,7 +318,7 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
             story_text: (s.story_text as string) ?? "",
             profession: (s.profession as string | null) ?? null,
           };
-          setStories((prev) => prev.some((s) => s.id === mapped.id) ? prev : [mapped, ...prev]);
+          setStories((prev) => prev.some((story) => story.id === mapped.id) ? prev : [mapped, ...prev]);
           setNewArcIds((prev) => new Set(prev).add(mapped.id));
           setTimeout(() => {
             setNewArcIds((prev) => {
@@ -324,6 +327,46 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
               return next;
             });
           }, 4000);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "stories" },
+        (payload) => {
+          const s = payload.new as Record<string, unknown>;
+          const id = s.id as string;
+          if (s.status === "approved") {
+            // Story was approved — add it to the map if not already present
+            const mapped: MapStory = {
+              id,
+              name: (s.author_name as string) ?? "",
+              country: (s.country_of_origin as string) ?? "",
+              us_state: (s.us_state as string | null) ?? null,
+              year_arrived: (s.year_of_arrival as number | null) ?? null,
+              story_text: (s.story_text as string) ?? "",
+              profession: (s.profession as string | null) ?? null,
+            };
+            setStories((prev) => prev.some((story) => story.id === id) ? prev : [mapped, ...prev]);
+            setNewArcIds((prev) => new Set(prev).add(id));
+            setTimeout(() => {
+              setNewArcIds((prev) => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+              });
+            }, 4000);
+          } else {
+            // Story was rejected/pending — remove it from the map
+            setStories((prev) => prev.filter((story) => story.id !== id));
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "stories" },
+        (payload) => {
+          const id = (payload.old as Record<string, unknown>).id as string;
+          setStories((prev) => prev.filter((story) => story.id !== id));
         }
       )
       .subscribe();
