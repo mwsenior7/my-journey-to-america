@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import { useAuth } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { SUPPORTED_LANGUAGES } from "@/contexts/LanguageContext";
 
@@ -521,7 +522,15 @@ function AIInterview({
 // ── Main Share Page ────────────────────────────────────────────────────────────
 
 export default function SharePage() {
-  const { userId } = useAuth();
+  const { userId, isLoaded, isSignedIn } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoaded && !isSignedIn) {
+      router.push('/sign-in?redirect_url=/share');
+    }
+  }, [isLoaded, isSignedIn, router]);
+
   const [mode, setMode] = useState<"form" | "interview">("interview");
   const [form, setForm] = useState<FormState>(EMPTY);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -601,6 +610,10 @@ export default function SharePage() {
       // ignore storage errors
     }
   }, [form, mode]);
+
+  if (!isLoaded || !isSignedIn) {
+    return null;
+  }
 
   function handleInterviewSave(state: AIInterviewState) {
     interviewStateRef.current = state;
