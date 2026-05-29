@@ -101,18 +101,18 @@ const STATE_COORDS: Record<string, [number, number]> = {
   Tennessee: [-86.7, 35.8], Texas: [-99.9, 31.5], Utah: [-111.1, 39.3],
   Vermont: [-72.7, 44.0], Virginia: [-78.7, 37.5], Washington: [-120.7, 47.5],
   "West Virginia": [-80.5, 38.6], Wisconsin: [-89.6, 44.3], Wyoming: [-107.5, 43.1],
-  "District of Columbia": [-77.0, 38.9],
+  "District of Columbia": [-77.0, 38.9], DC: [-77.0, 38.9],
 };
 
-// ── Decade color coding ───────────────────────────────────────────────────────
+// ── Decade color coding (vibrant palette) ─────────────────────────────────────
 function getDecadeColor(year: number | null): string {
   if (!year) return "#8A9BB5";
-  if (year < 1980) return "#D4A853";
-  if (year < 1990) return "#E07B54";
-  if (year < 2000) return "#4A8FA8";
-  if (year < 2010) return "#5B8C5A";
-  if (year < 2020) return "#7B5EA7";
-  return "#C9A84C";
+  if (year < 1980) return "#F0C050"; // bright gold
+  if (year < 1990) return "#F4875A"; // vibrant amber-orange
+  if (year < 2000) return "#44B8D4"; // vibrant teal
+  if (year < 2010) return "#68BC66"; // vibrant green
+  if (year < 2020) return "#9870D8"; // vibrant purple
+  return "#E8C440";                   // bright gold for 2020s
 }
 
 function getDecadeLabel(year: number | null): string {
@@ -128,15 +128,27 @@ function getDecadeLabel(year: number | null): string {
 function lookupCountry(name: string): [number, number] | null {
   if (!name) return null;
   const n = name.trim();
-  // Exact match (case-sensitive)
   if (COUNTRY_COORDS[n]) return COUNTRY_COORDS[n];
-  // Case-insensitive exact match
   const lower = n.toLowerCase();
   for (const [key, coords] of Object.entries(COUNTRY_COORDS)) {
     if (key.toLowerCase() === lower) return coords;
   }
-  // Partial match: input contains the key or key contains the input
   for (const [key, coords] of Object.entries(COUNTRY_COORDS)) {
+    const kl = key.toLowerCase();
+    if (lower.includes(kl) || kl.includes(lower)) return coords;
+  }
+  return null;
+}
+
+function lookupState(name: string): [number, number] | null {
+  if (!name) return null;
+  const n = name.trim();
+  if (STATE_COORDS[n]) return STATE_COORDS[n];
+  const lower = n.toLowerCase();
+  for (const [key, coords] of Object.entries(STATE_COORDS)) {
+    if (key.toLowerCase() === lower) return coords;
+  }
+  for (const [key, coords] of Object.entries(STATE_COORDS)) {
     const kl = key.toLowerCase();
     if (lower.includes(kl) || kl.includes(lower)) return coords;
   }
@@ -145,12 +157,12 @@ function lookupCountry(name: string): [number, number] | null {
 
 // ── Legend ────────────────────────────────────────────────────────────────────
 const LEGEND = [
-  { label: "Pre-1980", color: "#D4A853" },
-  { label: "1980s",    color: "#E07B54" },
-  { label: "1990s",    color: "#4A8FA8" },
-  { label: "2000s",    color: "#5B8C5A" },
-  { label: "2010s",    color: "#7B5EA7" },
-  { label: "2020s",    color: "#C9A84C" },
+  { label: "Pre-1980", color: "#F0C050" },
+  { label: "1980s",    color: "#F4875A" },
+  { label: "1990s",    color: "#44B8D4" },
+  { label: "2000s",    color: "#68BC66" },
+  { label: "2010s",    color: "#9870D8" },
+  { label: "2020s",    color: "#E8C440" },
   { label: "Unknown",  color: "#8A9BB5" },
 ];
 
@@ -194,7 +206,6 @@ function StoryCard({
         className="bg-white rounded-2xl shadow-2xl border pointer-events-auto w-full max-w-sm"
         style={{ borderColor: "rgba(27,42,74,0.12)" }}
       >
-        {/* Card header */}
         <div className="flex items-start justify-between p-5 pb-3">
           <div className="flex-1 min-w-0">
             <h3 className="font-bold text-navy text-base leading-tight">{story.name}</h3>
@@ -254,12 +265,33 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
 
   useEffect(() => {
     async function fetchStories() {
-      const { data } = await supabase
+      console.log("[InteractiveMap] Fetching stories from Supabase...");
+      // DB uses old column names: author_name, country_of_origin, year_of_arrival
+      const { data, error } = await supabase
         .from("stories")
-        .select("id, name, country, us_state, year_arrived, story_text, profession")
+        .select("id, author_name, country_of_origin, us_state, year_of_arrival, story_text, profession")
         .order("created_at", { ascending: false })
         .limit(500);
-      if (data) setStories(data as MapStory[]);
+
+      console.log("[InteractiveMap] Raw Supabase response:", { data, error });
+
+      if (error) {
+        console.error("[InteractiveMap] Supabase error:", error);
+      }
+
+      if (data) {
+        const mapped: MapStory[] = data.map((s: Record<string, unknown>) => ({
+          id: s.id as string,
+          name: (s.author_name as string) ?? "",
+          country: (s.country_of_origin as string) ?? "",
+          us_state: (s.us_state as string | null) ?? null,
+          year_arrived: (s.year_of_arrival as number | null) ?? null,
+          story_text: (s.story_text as string) ?? "",
+          profession: (s.profession as string | null) ?? null,
+        }));
+        console.log("[InteractiveMap] Mapped stories:", mapped);
+        setStories(mapped);
+      }
       setLoading(false);
     }
     fetchStories();
@@ -271,14 +303,22 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "stories" },
         (payload) => {
-          const s = payload.new as MapStory;
-          setStories((prev) => [s, ...prev]);
-          setNewArcIds((prev) => new Set(prev).add(s.id));
-          // Remove "new" highlight after animation finishes
+          const s = payload.new as Record<string, unknown>;
+          const mapped: MapStory = {
+            id: s.id as string,
+            name: (s.author_name as string) ?? "",
+            country: (s.country_of_origin as string) ?? "",
+            us_state: (s.us_state as string | null) ?? null,
+            year_arrived: (s.year_of_arrival as number | null) ?? null,
+            story_text: (s.story_text as string) ?? "",
+            profession: (s.profession as string | null) ?? null,
+          };
+          setStories((prev) => [mapped, ...prev]);
+          setNewArcIds((prev) => new Set(prev).add(mapped.id));
           setTimeout(() => {
             setNewArcIds((prev) => {
               const next = new Set(prev);
-              next.delete(s.id);
+              next.delete(mapped.id);
               return next;
             });
           }, 4000);
@@ -290,15 +330,21 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
   }, []);
 
   const arcs = useMemo<StoryArc[]>(() => {
+    console.log("[InteractiveMap] Computing arcs for", stories.length, "stories");
     const result: StoryArc[] = [];
     let idx = 0;
     for (const story of stories) {
-      if (!story.country || !story.us_state) continue;
+      if (!story.country || !story.us_state) {
+        console.log("[InteractiveMap] Skip (no country/state):", story.name, "| country:", story.country, "| us_state:", story.us_state);
+        continue;
+      }
       const from = lookupCountry(story.country);
-      const to = STATE_COORDS[story.us_state] ?? null;
-      if (!from || !to) continue;
+      const to = lookupState(story.us_state);
+      if (!from) { console.log("[InteractiveMap] No coords for country:", story.country); continue; }
+      if (!to)   { console.log("[InteractiveMap] No coords for state:", story.us_state); continue; }
       result.push({ story, from, to, color: getDecadeColor(story.year_arrived), idx: idx++ });
     }
+    console.log("[InteractiveMap] Generated", result.length, "arcs");
     return result;
   }, [stories]);
 
@@ -319,8 +365,8 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
     []
   );
 
-  const mapHeight = compact ? 380 : 580;
-  const mapScale  = compact ? 140 : 155;
+  const mapHeight = compact ? 380 : 600;
+  const mapScale  = compact ? 140 : 160;
   const mapCenter: [number, number] = [-10, 20];
 
   return (
@@ -330,7 +376,7 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
         className="relative rounded-xl overflow-hidden"
         style={{
           height: mapHeight,
-          background: "linear-gradient(180deg, #1B2A4A 0%, #243354 100%)",
+          background: "linear-gradient(180deg, #0F1E3A 0%, #1B2A4A 40%, #243354 100%)",
         }}
       >
         {loading && (
@@ -361,9 +407,9 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
                 <Geography
                   key={geo.rsmKey}
                   geography={geo}
-                  fill="rgba(250,247,242,0.07)"
-                  stroke="rgba(201,168,76,0.18)"
-                  strokeWidth={0.4}
+                  fill="rgba(250,247,242,0.13)"
+                  stroke="rgba(201,168,76,0.42)"
+                  strokeWidth={0.65}
                   style={{
                     default: { outline: "none" },
                     hover:   { outline: "none" },
@@ -385,21 +431,21 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
                 from={arc.from}
                 to={arc.to}
                 stroke={arc.color}
-                strokeWidth={isSelected ? 2.5 : 1.4}
+                strokeWidth={isSelected ? 4 : 2.5}
                 fill="none"
                 {...({
                   strokeDasharray: "2000",
                   strokeLinecap: "round",
                   opacity: selected
-                    ? isSelected ? 1 : 0.2
-                    : 0.75,
+                    ? isSelected ? 1 : 0.18
+                    : 0.88,
                   style: {
                     animation: `drawLine 2.8s ease-out ${delay}s both`,
                     cursor: "pointer",
                     transition: "opacity 0.25s, stroke-width 0.2s",
                     filter: isSelected
-                      ? `drop-shadow(0 0 4px ${arc.color})`
-                      : undefined,
+                      ? `drop-shadow(0 0 6px ${arc.color})`
+                      : `drop-shadow(0 0 2px ${arc.color}80)`,
                   },
                   onClick: () => handleLineClick(arc.story),
                 } as React.SVGProps<SVGPathElement>)}
@@ -410,14 +456,24 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
           {/* Origin pulsing dots */}
           {arcs.map((arc) => (
             <Marker key={`orig-${arc.story.id}`} coordinates={arc.from}>
+              {/* Outer pulse ring */}
               <circle
-                r={selected?.id === arc.story.id ? 5 : 3.5}
+                r={selected?.id === arc.story.id ? 11 : 8}
+                fill="none"
+                stroke={arc.color}
+                strokeWidth={0.8}
+                opacity={selected?.id === arc.story.id ? 0.5 : 0.28}
+                style={{ animation: `originPulse ${2 + (arc.idx % 5) * 0.25}s ease-in-out ${(arc.idx % 10) * 0.12}s infinite` }}
+              />
+              <circle
+                r={selected?.id === arc.story.id ? 7 : 5.5}
                 fill={arc.color}
-                opacity={selected ? (selected.id === arc.story.id ? 1 : 0.3) : 0.85}
+                opacity={selected ? (selected.id === arc.story.id ? 1 : 0.25) : 0.92}
                 style={{
                   animation: `originPulse ${2 + (arc.idx % 5) * 0.25}s ease-in-out ${(arc.idx % 10) * 0.12}s infinite`,
                   cursor: "pointer",
                   transition: "r 0.2s, opacity 0.25s",
+                  filter: `drop-shadow(0 0 3px ${arc.color})`,
                 }}
                 onClick={() => handleLineClick(arc.story)}
               />
@@ -427,21 +483,32 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
           {/* US destination star markers (one per state) */}
           {uniqueDestinations.map((arc) => (
             <Marker key={`dest-${arc.story.us_state}`} coordinates={arc.to}>
-              {/* Outer pulse ring */}
+              {/* Outer glow rings */}
               <circle
-                r={9}
+                r={16}
                 fill="none"
-                stroke="#C9A84C"
-                strokeWidth={0.8}
-                opacity={0.35}
-                style={{ animation: "pulseDot 2.8s ease-in-out infinite" }}
+                stroke="#E8C440"
+                strokeWidth={0.6}
+                opacity={0.2}
+                style={{ animation: "pulseDot 3.2s ease-in-out infinite" }}
               />
-              {/* Star shape */}
+              <circle
+                r={10}
+                fill="none"
+                stroke="#E8C440"
+                strokeWidth={1}
+                opacity={0.4}
+                style={{ animation: "pulseDot 2.8s ease-in-out 0.4s infinite" }}
+              />
+              {/* Star shape — scaled up for visibility */}
               <polygon
-                points="0,-5.5 1.6,-2 5.2,-2 2.5,0.8 3.4,5 0,2.8 -3.4,5 -2.5,0.8 -5.2,-2 -1.6,-2"
-                fill="#C9A84C"
-                opacity={0.9}
-                style={{ animation: "starGlow 2.4s ease-in-out infinite" }}
+                points="0,-7.5 2.2,-2.8 7.1,-2.8 3.4,1.1 4.6,6.8 0,3.8 -4.6,6.8 -3.4,1.1 -7.1,-2.8 -2.2,-2.8"
+                fill="#E8C440"
+                opacity={0.95}
+                style={{
+                  animation: "starGlow 2.4s ease-in-out infinite",
+                  filter: "drop-shadow(0 0 4px #E8C440)",
+                }}
               />
             </Marker>
           ))}
@@ -456,19 +523,26 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
         {!loading && arcs.length > 0 && (
           <div
             className="absolute bottom-3 left-3 text-xs font-semibold px-3 py-1.5 rounded-full"
-            style={{ backgroundColor: "rgba(27,42,74,0.85)", color: "#C9A84C" }}
+            style={{ backgroundColor: "rgba(27,42,74,0.9)", color: "#E8C440" }}
           >
             {arcs.length} {arcs.length === 1 ? "journey" : "journeys"} mapped
           </div>
         )}
 
-        {/* Click hint (shown only when no story is selected) */}
+        {/* Click hint */}
         {!loading && arcs.length > 0 && !selected && (
           <div
             className="absolute bottom-3 right-3 text-xs px-3 py-1.5 rounded-full"
             style={{ backgroundColor: "rgba(27,42,74,0.75)", color: "rgba(250,247,242,0.5)" }}
           >
             Click a line to see a story
+          </div>
+        )}
+
+        {/* No stories yet */}
+        {!loading && arcs.length === 0 && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <p className="text-cream/30 text-sm">No approved stories yet — be the first!</p>
           </div>
         )}
       </div>

@@ -11,7 +11,7 @@ export default function MapPage() {
   return (
     <div style={{ backgroundColor: "#1B2A4A", minHeight: "100vh" }}>
       {/* Page header */}
-      <div className="max-w-6xl mx-auto px-4 pt-12 pb-6">
+      <div className="max-w-6xl mx-auto px-4 pt-5 pb-3">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           <div>
             <p
