@@ -120,6 +120,11 @@ export default async function StoryPage({ params }: { params: { id: string } }) 
         Browse Stories
       </Link>
 
+      {/* DEBUG — remove before ship */}
+      <p className="bg-yellow-100 border border-yellow-400 text-yellow-900 text-xs font-mono p-3 rounded mb-6 break-all">
+        DEBUG — userId: {userId ?? "null"} | clerk_user_id: {story.clerk_user_id ?? "null"} | isAuthor: {String(isAuthor)}
+      </p>
+
       {/* Header */}
       <div className="mb-10">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-navy/50 mb-3">
