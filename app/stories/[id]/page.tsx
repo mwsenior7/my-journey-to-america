@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { cache } from "react";
+import { unstable_noStore as noStore } from "next/cache";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -10,6 +11,7 @@ import ShareButton from "./ShareButton";
 import StoryEditor from "./StoryEditor";
 
 const getStory = cache(async (id: string): Promise<Story | null> => {
+  noStore();
   const { data } = await supabase
     .from("stories")
     .select("*")
