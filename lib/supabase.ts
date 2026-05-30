@@ -21,6 +21,7 @@ export type Story = {
   status: string;
   original_language: string;
   clerk_user_id: string | null;
+  moderation_reason: string | null;
   created_at: string;
 };
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { moderateStory } from "@/lib/moderate-story";
 
 export async function POST(req: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -29,6 +30,8 @@ export async function POST(req: NextRequest) {
   const firstName = String(name).split(" ")[0];
   const title = `${firstName}'s Journey from ${country}`;
 
+  const moderation = await moderateStory(String(story_text), String(name), String(country));
+
   const { data, error } = await supabase.from("stories").insert({
     title,
     author_name: name,
@@ -38,7 +41,8 @@ export async function POST(req: NextRequest) {
     profession: profession ?? null,
     story_text,
     original_language: original_language ?? "en",
-    status: "pending",
+    status: moderation.decision,
+    moderation_reason: moderation.reason,
     clerk_user_id: clerk_user_id ?? null,
   }).select("id").single();
 

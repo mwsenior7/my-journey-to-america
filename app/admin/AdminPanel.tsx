@@ -15,6 +15,7 @@ type AdminStory = {
   status: "pending" | "approved" | "rejected";
   created_at: string;
   tags: string[] | null;
+  moderation_reason: string | null;
 };
 
 type StatusFilter = "all" | "pending" | "approved" | "rejected";
@@ -296,6 +297,13 @@ export default function AdminPanel() {
               >
                 {isExpanded ? "Show less" : "Read full story"}
               </button>
+
+              {story.moderation_reason && (
+                <div className="mt-3 flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                  <span className="text-blue-500 text-xs font-bold uppercase tracking-wide shrink-0 mt-0.5">AI</span>
+                  <p className="text-xs text-blue-700 leading-relaxed">{story.moderation_reason}</p>
+                </div>
+              )}
 
               {story.tags && story.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mt-3">
