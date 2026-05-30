@@ -14,14 +14,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
   }
 
-  let body: { storyId?: string; story_text?: string };
+  let body: { storyId?: string; story_text?: string; audio_url?: string | null; video_url?: string | null };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { storyId, story_text } = body;
+  const { storyId, story_text, audio_url, video_url } = body;
   if (!storyId || typeof story_text !== "string" || !story_text.trim()) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
@@ -44,9 +44,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const updateFields: Record<string, unknown> = { story_text: story_text.trim() };
+  if (audio_url !== undefined) updateFields.audio_url = audio_url;
+  if (video_url !== undefined) updateFields.video_url = video_url;
+
   const { error: updateError } = await supabase
     .from("stories")
-    .update({ story_text: story_text.trim() })
+    .update(updateFields)
     .eq("id", storyId);
 
   if (updateError) {

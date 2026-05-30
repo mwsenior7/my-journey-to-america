@@ -8,7 +8,7 @@ import type { Metadata } from "next";
 import { auth } from "@clerk/nextjs/server";
 import { supabase, type Story } from "@/lib/supabase";
 import ShareButton from "./ShareButton";
-import StoryEditor from "./StoryEditor";
+import StoryPageClient from "./StoryPageClient";
 
 const getStory = cache(async (id: string): Promise<Story | null> => {
   noStore();
@@ -44,46 +44,6 @@ export async function generateMetadata({
   };
 }
 
-function VideoEmbed({ url }: { url: string }) {
-  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s?#]+)/);
-  if (yt) {
-    return (
-      <iframe
-        src={`https://www.youtube.com/embed/${yt[1]}`}
-        className="w-full aspect-video rounded-xl border border-navy/10"
-        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-        allowFullScreen
-      />
-    );
-  }
-  const vimeo = url.match(/vimeo\.com\/(\d+)/);
-  if (vimeo) {
-    return (
-      <iframe
-        src={`https://player.vimeo.com/video/${vimeo[1]}`}
-        className="w-full aspect-video rounded-xl border border-navy/10"
-        allow="autoplay; fullscreen; picture-in-picture"
-        allowFullScreen
-      />
-    );
-  }
-  return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 text-sm font-semibold text-navy/60 hover:text-navy transition-colors border border-navy/20 px-4 py-2.5 rounded-lg"
-    >
-      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-          d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-      Watch video
-    </a>
-  );
-}
 
 export default async function StoryPage({ params }: { params: { id: string } }) {
   const story = await getStory(params.id);
@@ -122,62 +82,21 @@ export default async function StoryPage({ params }: { params: { id: string } }) 
         Browse Stories
       </Link>
 
-      {/* Header */}
-      <div className="mb-10">
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-navy/50 mb-3">
-          <span className="font-medium text-navy/70">{story.country_of_origin}</span>
-          {story.us_state     && <><span>·</span><span>{story.us_state}</span></>}
-          {story.year_of_arrival && <><span>·</span><span>{story.year_of_arrival}</span></>}
-          {story.profession   && <><span>·</span><span>{story.profession}</span></>}
-        </div>
-
-        <h1 className="text-4xl font-extrabold text-navy leading-tight mb-2">
-          {story.author_name}
-        </h1>
-
-        {story.tags && story.tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-4">
-            {story.tags.map((tag) => (
-              <Link
-                key={tag}
-                href={`/browse?q=${encodeURIComponent(tag)}`}
-                className="text-xs bg-gold/10 text-navy/60 font-medium px-3 py-1 rounded-full hover:bg-gold/20 transition-colors"
-              >
-                #{tag}
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Story text */}
-      <StoryEditor
+      <StoryPageClient
         storyId={story.id}
+        authorName={story.author_name}
+        countryOfOrigin={story.country_of_origin}
+        usState={story.us_state ?? null}
+        yearOfArrival={story.year_of_arrival ?? null}
+        profession={story.profession ?? null}
+        tags={story.tags ?? null}
         initialText={story.story_text}
+        initialAudioUrl={story.audio_url}
+        initialVideoUrl={story.video_url}
         isAuthor={isAuthor}
         originalLang={story.original_language ?? "en"}
         translations={translations}
       />
-
-      {/* Audio */}
-      {story.audio_url && (
-        <div className="mb-10">
-          <p className="text-xs font-semibold text-navy/40 uppercase tracking-widest mb-3">
-            Audio Recording
-          </p>
-          <audio controls src={story.audio_url} className="w-full" />
-        </div>
-      )}
-
-      {/* Video */}
-      {story.video_url && (
-        <div className="mb-10">
-          <p className="text-xs font-semibold text-navy/40 uppercase tracking-widest mb-3">
-            Video
-          </p>
-          <VideoEmbed url={story.video_url} />
-        </div>
-      )}
 
       {/* Footer row */}
       <div className="flex items-center justify-between pt-6 border-t border-navy/10 mb-16">
