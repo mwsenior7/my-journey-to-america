@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import StoryTranslator from "@/components/StoryTranslator";
 import type { StoryTranslation } from "@/lib/supabase";
 
@@ -176,20 +175,31 @@ export default function StoryPageClient({
     if (mediaToUpload) {
       const isRecorded = !!audioBlob;
       const ext = isRecorded ? "webm" : (audioFile!.name.split(".").pop() ?? "audio");
-      const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
       const contentType = isRecorded ? "audio/webm" : audioFile!.type || "audio/mpeg";
 
-      const { data: upload, error: uploadErr } = await supabase.storage
-        .from("story-audio")
-        .upload(path, mediaToUpload, { contentType });
-
-      if (uploadErr) {
+      const signRes = await fetch("/api/stories/upload-sign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ bucket: "story-audio", filename: `audio.${ext}` }),
+      });
+      if (!signRes.ok) {
         setError("Failed to upload audio. Please try again.");
         setSaving(false);
         return;
       }
-      const { data: urlData } = supabase.storage.from("story-audio").getPublicUrl(upload.path);
-      newAudioUrl = urlData.publicUrl;
+      const { signedUrl, publicUrl } = await signRes.json();
+
+      const uploadRes = await fetch(signedUrl, {
+        method: "PUT",
+        headers: { "Content-Type": contentType },
+        body: mediaToUpload,
+      });
+      if (!uploadRes.ok) {
+        setError("Failed to upload audio. Please try again.");
+        setSaving(false);
+        return;
+      }
+      newAudioUrl = publicUrl;
     }
 
     let newVideoUrl = videoMode === "upload" ? videoUploadedUrl : (videoUrlDraft.trim() || null);
@@ -464,24 +474,37 @@ export default function StoryPageClient({
                         setVideoProgress((p) => (p < 90 ? +(p + Math.random() * 8).toFixed(1) : 90));
                       }, 300);
 
-                      const ext = file.name.split(".").pop() ?? "mp4";
-                      const path = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-                      const { data: vidUpload, error: vidErr } = await supabase.storage
-                        .from("story-videos")
-                        .upload(path, file, { contentType: file.type });
+                      const signRes = await fetch("/api/stories/upload-sign", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ bucket: "story-videos", filename: file.name }),
+                      });
+
+                      if (!signRes.ok) {
+                        if (videoProgressTimerRef.current) clearInterval(videoProgressTimerRef.current);
+                        setVideoUploading(false);
+                        setVideoProgress(0);
+                        setError("Failed to upload video. Please try again.");
+                        return;
+                      }
+
+                      const { signedUrl, publicUrl } = await signRes.json();
+
+                      const uploadRes = await fetch(signedUrl, {
+                        method: "PUT",
+                        headers: { "Content-Type": file.type },
+                        body: file,
+                      });
 
                       if (videoProgressTimerRef.current) clearInterval(videoProgressTimerRef.current);
 
-                      if (vidErr) {
+                      if (!uploadRes.ok) {
                         setVideoUploading(false);
                         setVideoProgress(0);
                         setError("Failed to upload video. Please try again.");
                       } else {
                         setVideoProgress(100);
-                        const { data: vidUrl } = supabase.storage
-                          .from("story-videos")
-                          .getPublicUrl(vidUpload.path);
-                        setVideoUploadedUrl(vidUrl.publicUrl);
+                        setVideoUploadedUrl(publicUrl);
                         await new Promise((r) => setTimeout(r, 400));
                         setVideoUploading(false);
                       }
