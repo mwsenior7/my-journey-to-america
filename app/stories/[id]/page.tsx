@@ -2,9 +2,10 @@ import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { auth } from "@clerk/nextjs/server";
 import { supabase, type Story } from "@/lib/supabase";
 import ShareButton from "./ShareButton";
-import StoryTranslator from "@/components/StoryTranslator";
+import StoryEditor from "./StoryEditor";
 
 const getStory = cache(async (id: string): Promise<Story | null> => {
   const { data } = await supabase
@@ -84,6 +85,9 @@ export default async function StoryPage({ params }: { params: { id: string } }) 
   const story = await getStory(params.id);
   if (!story) notFound();
 
+  const { userId } = await auth();
+  const isAuthor = !!userId && story.clerk_user_id === userId;
+
   const [{ data: translationsRaw }, { data: relatedRaw }] = await Promise.all([
     supabase
       .from("story_translations")
@@ -143,13 +147,13 @@ export default async function StoryPage({ params }: { params: { id: string } }) 
       </div>
 
       {/* Story text */}
-      <div className="mb-12">
-        <StoryTranslator
-          originalText={story.story_text}
-          originalLang={story.original_language ?? "en"}
-          translations={translations}
-        />
-      </div>
+      <StoryEditor
+        storyId={story.id}
+        initialText={story.story_text}
+        isAuthor={isAuthor}
+        originalLang={story.original_language ?? "en"}
+        translations={translations}
+      />
 
       {/* Audio */}
       {story.audio_url && (

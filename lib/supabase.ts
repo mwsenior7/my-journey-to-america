@@ -20,6 +20,7 @@ export type Story = {
   tags: string[] | null;
   status: string;
   original_language: string;
+  clerk_user_id: string | null;
   created_at: string;
 };
 
