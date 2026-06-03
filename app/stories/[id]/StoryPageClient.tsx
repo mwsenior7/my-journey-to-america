@@ -89,6 +89,7 @@ export default function StoryPageClient({
   const [currentVideoUrl, setCurrentVideoUrl] = useState(initialVideoUrl);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showTranslationPanel, setShowTranslationPanel] = useState(false);
 
   // Audio state
   const [audioMode, setAudioMode] = useState<"record" | "upload">("upload");
@@ -122,6 +123,7 @@ export default function StoryPageClient({
     setVideoUploading(false);
     setVideoUploadedUrl(null);
     setError(null);
+    setShowTranslationPanel(false);
     setEditMode(true);
   }
 
@@ -245,24 +247,39 @@ export default function StoryPageClient({
     <>
       {/* Header */}
       <div className="mb-10">
-        <div className="flex items-start justify-between gap-4 mb-3">
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-3">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-navy/50">
             <span className="font-medium text-navy/70">{countryOfOrigin}</span>
             {usState && <><span>·</span><span>{usState}</span></>}
             {yearOfArrival && <><span>·</span><span>{yearOfArrival}</span></>}
             {profession && <><span>·</span><span>{profession}</span></>}
           </div>
-          {isAuthor && !editMode && (
-            <button
-              onClick={enterEditMode}
-              className="flex-shrink-0 inline-flex items-center gap-2 text-sm font-semibold bg-gold text-navy px-4 py-2 rounded-lg hover:bg-gold/90 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Edit My Story
-            </button>
+          {!editMode && (
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setShowTranslationPanel((open) => !open)}
+                className="flex-shrink-0 inline-flex items-center gap-2 text-sm font-semibold border border-navy/20 bg-white text-navy px-4 py-2 rounded-lg hover:border-navy/40 hover:text-navy transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M3 5h12M9 3v2m7 14h3m0 0l-2-2m2 2l-2 2M12 15l4-4m0 0l4-4m-4 4H4" />
+                </svg>
+                Translate
+              </button>
+              {isAuthor && (
+                <button
+                  onClick={enterEditMode}
+                  className="flex-shrink-0 inline-flex items-center gap-2 text-sm font-semibold bg-gold text-navy px-4 py-2 rounded-lg hover:bg-gold/90 transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  Edit My Story
+                </button>
+              )}
+            </div>
           )}
         </div>
 
@@ -568,6 +585,7 @@ export default function StoryPageClient({
             originalText={currentText}
             originalLang={originalLang}
             translations={translations}
+            showControls={showTranslationPanel}
           />
         </div>
       )}
