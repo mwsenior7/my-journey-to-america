@@ -111,6 +111,32 @@ function AIInterview({
   const [messages, setMessages] = useState<Message[]>(
     initialState?.messages ?? [{ role: "assistant", content: OPENING_MESSAGE }]
   );
+
+  // If there's no initial state and a non-English language is selected,
+  // request a translated opening message from the server so the assistant
+  // greets users in the chosen language rather than always showing the
+  // English `OPENING_MESSAGE` defined above.
+  useEffect(() => {
+    async function ensureOpeningInLang() {
+      if (initialState?.messages) return;
+      if (!language || language === "en") return;
+      try {
+        const res = await fetch("/api/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: OPENING_MESSAGE, source: "en", target: language }),
+        });
+        const data = await res.json();
+        if (res.ok && data.translated) {
+          setMessages([{ role: "assistant", content: data.translated }]);
+        }
+      } catch {
+        // fallback to English opening message on any failure
+      }
+    }
+    ensureOpeningInLang();
+    // Only run on mount / when language changes
+  }, [language, initialState]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [phase, setPhase] = useState<"interview" | "generating" | "done">(
