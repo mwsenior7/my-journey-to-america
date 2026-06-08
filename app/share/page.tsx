@@ -170,6 +170,7 @@ function AIInterview({
   );
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingText, setEditingText] = useState("");
+  const [debugVoices, setDebugVoices] = useState<SpeechSynthesisVoice[]>([]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const lastSpokenIndexRef = useRef(-1);
@@ -188,7 +189,8 @@ function AIInterview({
       const v = window.speechSynthesis.getVoices();
       if (v.length > 0) {
         voicesRef.current = v;
-        console.log("[TTS] voices:", v.map(x => `${x.name} (${x.lang})`).join(", "));
+        setDebugVoices(v);
+        console.log("Available voices:", v.map(x => x.lang + " " + x.name));
       }
     }
     load();
@@ -618,6 +620,17 @@ function AIInterview({
           </p>
         ) : null}
       </div>
+
+      {process.env.NODE_ENV === "development" && debugVoices.length > 0 && (
+        <details className="mt-2 text-[10px] text-navy/40 border border-navy/10 rounded-lg p-2">
+          <summary className="cursor-pointer font-mono">🔊 TTS debug — {debugVoices.length} voices</summary>
+          <ul className="mt-1 max-h-32 overflow-y-auto font-mono space-y-0.5">
+            {debugVoices.map(v => (
+              <li key={v.name}>{v.lang} — {v.name}</li>
+            ))}
+          </ul>
+        </details>
+      )}
     </div>
   );
 }
