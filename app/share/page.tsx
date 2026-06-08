@@ -1,7 +1,7 @@
 "use client"
 export const dynamic = "force-dynamic"
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
@@ -95,6 +95,25 @@ function Field({
 
 const TOTAL_QUESTIONS = 8;
 
+const LANG_TO_BCP47: Record<string, string> = {
+  en: "en-US",
+  es: "es-ES",
+  fr: "fr-FR",
+  pt: "pt-BR",
+  de: "de-DE",
+  it: "it-IT",
+  zh: "zh-CN",
+  ja: "ja-JP",
+  ko: "ko-KR",
+  ar: "ar-SA",
+  hi: "hi-IN",
+  ru: "ru-RU",
+  uk: "uk-UA",
+  el: "el-GR",
+  vi: "vi-VN",
+  tl: "fil-PH",
+};
+
 function AIInterview({
   onUseStory,
   language,
@@ -151,6 +170,7 @@ function AIInterview({
   const [editingText, setEditingText] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const lastSpokenIndexRef = useRef(-1);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -164,6 +184,23 @@ function AIInterview({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editedStory]);
+
+  const speak = useCallback((text: string) => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = LANG_TO_BCP47[language] ?? "en-US";
+    window.speechSynthesis.speak(utterance);
+  }, [language]);
+
+  useEffect(() => {
+    const lastMsg = messages[messages.length - 1];
+    if (!lastMsg || lastMsg.role !== "assistant") return;
+    const lastIndex = messages.length - 1;
+    if (lastIndex <= lastSpokenIndexRef.current) return;
+    lastSpokenIndexRef.current = lastIndex;
+    speak(lastMsg.content);
+  }, [messages, speak]);
 
   async function fetchText(res: Response): Promise<string> {
     if (!res.ok) {
@@ -183,6 +220,8 @@ function AIInterview({
   async function sendMessage() {
     const trimmed = input.trim();
     if (!trimmed || loading) return;
+
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
 
     const newMessages: Message[] = [...messages, { role: "user", content: trimmed }];
     setMessages(newMessages);
@@ -447,8 +486,18 @@ function AIInterview({
                 )}
               </div>
             ) : (
-              <div className="max-w-[82%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap bg-white border border-navy/8 text-navy/80 rounded-tl-sm shadow-sm">
-                {msg.content}
+              <div className="max-w-[82%] flex flex-col gap-1">
+                <div className="px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap bg-white border border-navy/8 text-navy/80 rounded-tl-sm shadow-sm">
+                  {msg.content}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => speak(msg.content)}
+                  className="flex items-center gap-1 text-xs text-navy/35 hover:text-navy/60 transition-colors px-1 self-start"
+                  aria-label="Read aloud"
+                >
+                  🔊 Replay
+                </button>
               </div>
             )}
           </div>
