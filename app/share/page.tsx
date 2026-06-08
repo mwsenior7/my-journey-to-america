@@ -138,7 +138,10 @@ function AIInterview({
   useEffect(() => {
     async function ensureOpeningInLang() {
       if (initialState?.messages) return;
-      if (!language || language === "en") return;
+      if (!language || language === "en") {
+        setMessages([{ role: "assistant", content: OPENING_MESSAGE }]);
+        return;
+      }
       try {
         const res = await fetch("/api/translate", {
           method: "POST",
@@ -154,7 +157,6 @@ function AIInterview({
       }
     }
     ensureOpeningInLang();
-    // Only run on mount / when language changes
   }, [language, initialState]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -189,7 +191,14 @@ function AIInterview({
     if (typeof window === "undefined" || !window.speechSynthesis) return;
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = LANG_TO_BCP47[language] ?? "en-US";
+    const bcp47 = LANG_TO_BCP47[language] ?? "en-US";
+    utterance.lang = bcp47;
+    const voices = window.speechSynthesis.getVoices();
+    if (voices.length > 0) {
+      const exact = voices.find(v => v.lang === bcp47);
+      const match = exact ?? voices.find(v => v.lang.startsWith(language));
+      if (match) utterance.voice = match;
+    }
     window.speechSynthesis.speak(utterance);
   }, [language]);
 
@@ -493,7 +502,7 @@ function AIInterview({
                 <button
                   type="button"
                   onClick={() => speak(msg.content)}
-                  className="flex items-center gap-1 text-xs text-navy/35 hover:text-navy/60 transition-colors px-1 self-start"
+                  className="flex items-center gap-1.5 text-xs font-semibold text-gold border border-gold/40 bg-gold/8 hover:bg-gold/15 transition-colors px-2.5 py-1 rounded-full self-start"
                   aria-label="Read aloud"
                 >
                   🔊 Replay
