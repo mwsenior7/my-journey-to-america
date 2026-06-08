@@ -173,12 +173,28 @@ function AIInterview({
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const lastSpokenIndexRef = useRef(-1);
+  const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
+  const prevLangRef = useRef(language);
 
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [messages, loading]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.speechSynthesis) return;
+    function load() {
+      const v = window.speechSynthesis.getVoices();
+      if (v.length > 0) {
+        voicesRef.current = v;
+        console.log("[TTS] voices:", v.map(x => `${x.name} (${x.lang})`).join(", "));
+      }
+    }
+    load();
+    window.speechSynthesis.onvoiceschanged = load;
+    return () => { if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = null; };
+  }, []);
 
   useEffect(() => {
     if (phase === "done" && editedStory) {
@@ -189,17 +205,30 @@ function AIInterview({
 
   const speak = useCallback((text: string) => {
     if (typeof window === "undefined" || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
     const bcp47 = LANG_TO_BCP47[language] ?? "en-US";
-    utterance.lang = bcp47;
-    const voices = window.speechSynthesis.getVoices();
-    if (voices.length > 0) {
+
+    function doSpeak(voices: SpeechSynthesisVoice[]) {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = bcp47;
       const exact = voices.find(v => v.lang === bcp47);
       const match = exact ?? voices.find(v => v.lang.startsWith(language));
       if (match) utterance.voice = match;
+      window.speechSynthesis.speak(utterance);
     }
-    window.speechSynthesis.speak(utterance);
+
+    if (voicesRef.current.length > 0) {
+      doSpeak(voicesRef.current);
+    } else {
+      // Voices haven't loaded yet — wait for onvoiceschanged then speak
+      window.speechSynthesis.onvoiceschanged = () => {
+        const v = window.speechSynthesis.getVoices();
+        voicesRef.current = v;
+        console.log("[TTS] voices (deferred):", v.map(x => `${x.name} (${x.lang})`).join(", "));
+        window.speechSynthesis.onvoiceschanged = null;
+        doSpeak(v);
+      };
+    }
   }, [language]);
 
   useEffect(() => {
@@ -210,6 +239,17 @@ function AIInterview({
     lastSpokenIndexRef.current = lastIndex;
     speak(lastMsg.content);
   }, [messages, speak]);
+
+  // Re-speak the current assistant message when language changes, and reset
+  // the index guard so the incoming translated opening can also auto-speak.
+  useEffect(() => {
+    if (prevLangRef.current === language) return;
+    prevLangRef.current = language;
+    lastSpokenIndexRef.current = -1;
+    const lastAssistant = [...messages].reverse().find(m => m.role === "assistant");
+    if (lastAssistant) speak(lastAssistant.content);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, speak]);
 
   async function fetchText(res: Response): Promise<string> {
     if (!res.ok) {
