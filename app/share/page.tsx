@@ -212,9 +212,13 @@ function AIInterview({
     function doSpeak(voices: SpeechSynthesisVoice[]) {
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = bcp47;
-      const exact = voices.find(v => v.lang === bcp47);
-      const match = exact ?? voices.find(v => v.lang.startsWith(language));
+      utterance.lang = bcp47; // always set regardless of voice found
+      // 1. exact lang match (e.g. v.lang === "fr-FR")
+      let match = voices.find(v => v.lang === bcp47);
+      // 2. any voice whose lang starts with the 2-letter code (e.g. "fr-CA")
+      if (!match) match = voices.find(v => v.lang.startsWith(language));
+      // 3. voice whose name contains the BCP-47 code (e.g. "Google français (fr-FR)")
+      if (!match) match = voices.find(v => v.name.includes(bcp47));
       if (match) utterance.voice = match;
       window.speechSynthesis.speak(utterance);
     }
