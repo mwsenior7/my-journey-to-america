@@ -96,6 +96,7 @@ export default async function StoryPage({ params }: { params: { id: string } }) 
         isAuthor={isAuthor}
         originalLang={story.original_language ?? "en"}
         translations={translations}
+        readCount={story.read_count ?? 0}
       />
 
       {/* Footer row */}

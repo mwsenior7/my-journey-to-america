@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import StoryTranslator from "@/components/StoryTranslator";
 import type { StoryTranslation } from "@/lib/supabase";
@@ -21,6 +21,7 @@ type Props = {
   isAuthor: boolean;
   originalLang: string;
   translations: Pick<StoryTranslation, "language_code" | "story_text">[];
+  readCount: number;
 };
 
 function getVideoContentType(file: File): string {
@@ -81,6 +82,7 @@ export default function StoryPageClient({
   isAuthor,
   originalLang,
   translations,
+  readCount,
 }: Props) {
   const [editMode, setEditMode] = useState(false);
   const [currentText, setCurrentText] = useState(initialText);
@@ -99,6 +101,11 @@ export default function StoryPageClient({
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+
+  useEffect(() => {
+    fetch(`/api/stories/${storyId}/view`, { method: "POST" });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Video state
   const [videoMode, setVideoMode] = useState<"url" | "upload">("url");
@@ -286,6 +293,12 @@ export default function StoryPageClient({
         <h1 className="text-4xl font-extrabold text-navy leading-tight mb-2">
           {authorName}
         </h1>
+
+        {readCount > 0 && (
+          <p className="text-sm font-medium mt-2" style={{ color: "#C9A84C" }}>
+            👁 {readCount} {readCount === 1 ? "person has" : "people have"} read this story
+          </p>
+        )}
 
         {tags && tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-4">

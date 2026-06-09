@@ -261,6 +261,13 @@ function BrowseContent() {
                 {s.story_text}
               </p>
 
+              {/* Read count */}
+              {(s.read_count ?? 0) > 0 && (
+                <p className="text-xs font-medium" style={{ color: "#C9A84C" }}>
+                  👁 {s.read_count} {s.read_count === 1 ? "read" : "reads"}
+                </p>
+              )}
+
               {/* Tags */}
               {s.tags && s.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">

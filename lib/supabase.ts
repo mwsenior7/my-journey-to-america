@@ -23,6 +23,7 @@ export type Story = {
   clerk_user_id: string | null;
   moderation_reason: string | null;
   created_at: string;
+  read_count: number;
 };
 
 export type StoryTranslation = {
