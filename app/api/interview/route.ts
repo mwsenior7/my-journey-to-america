@@ -122,7 +122,23 @@ export async function POST(req: NextRequest) {
 
       const text =
         response.content[0].type === "text" ? response.content[0].text : "";
-      return NextResponse.json({ text });
+
+      const previewResponse = await client.messages.create({
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 150,
+        messages: [
+          {
+            role: "user",
+            content: `Read this immigration story and extract the single most emotionally compelling sentence that would make a reader desperate to read the full story. Return ONLY that one sentence, nothing else, no quotes, no explanation.\n\n${text}`,
+          },
+        ],
+      });
+      const preview_text =
+        previewResponse.content[0].type === "text"
+          ? previewResponse.content[0].text.trim()
+          : null;
+
+      return NextResponse.json({ text, preview_text });
     }
 
     const response = await client.messages.create({

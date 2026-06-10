@@ -24,6 +24,7 @@ export type Story = {
   moderation_reason: string | null;
   created_at: string;
   read_count: number;
+  preview_text: string | null;
 };
 
 export type StoryTranslation = {

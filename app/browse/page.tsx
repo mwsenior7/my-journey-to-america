@@ -258,8 +258,19 @@ function BrowseContent() {
 
               {/* Excerpt */}
               <p className="text-sm text-navy/75 leading-relaxed line-clamp-5 flex-1">
-                {s.story_text}
+                {s.preview_text && s.preview_text.trim()
+                  ? s.preview_text.trim()
+                  : `${s.story_text.slice(0, 150)}...`}
               </p>
+
+              {/* CTA */}
+              <Link
+                href={`/stories/${s.id}`}
+                className="text-sm font-semibold hover:underline"
+                style={{ color: "#C9A84C" }}
+              >
+                Read their story →
+              </Link>
 
               {/* Read count */}
               {(s.read_count ?? 0) > 0 && (
@@ -288,8 +299,8 @@ function BrowseContent() {
               )}
 
               {/* Footer */}
-              <div className="flex items-center justify-between pt-1 mt-auto">
-                {s.video_url && (
+              {s.video_url && (
+                <div className="flex items-center pt-1 mt-auto">
                   <a
                     href={s.video_url}
                     target="_blank"
@@ -304,14 +315,8 @@ function BrowseContent() {
                     </svg>
                     Watch video
                   </a>
-                )}
-                <Link
-                  href={`/stories/${s.id}`}
-                  className="text-xs font-semibold text-gold hover:underline ml-auto"
-                >
-                  Read full story →
-                </Link>
-              </div>
+                </div>
+              )}
             </article>
           ))}
         </div>
