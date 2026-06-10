@@ -274,11 +274,18 @@ function AIInterview({
   }, []);
 
   async function startInterviewRecording() {
-    if (typeof window === "undefined") return;
+    console.log("mic button clicked");
+
+    if (typeof window === "undefined") {
+      console.log("[SR] skipping — window not defined (SSR context)");
+      return;
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-    console.log("[SR] SpeechRecognition available:", !!SR);
+    const w = window as any;
+    const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
+    console.log("[SR] SpeechRecognition available:", !!SR, "| webkitSpeechRecognition:", !!w.webkitSpeechRecognition);
+
     if (!SR) {
       setSrNotAvailable(true);
       return;
@@ -288,19 +295,24 @@ function AIInterview({
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       interviewChunksRef.current = [];
-      const mr = new MediaRecorder(stream);
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/webm";
+      const mr = new MediaRecorder(stream, { mimeType });
       mr.ondataavailable = (e) => {
         if (e.data.size > 0) interviewChunksRef.current.push(e.data);
       };
       mr.onstop = () => {
-        const blob = new Blob(interviewChunksRef.current, { type: "audio/webm" });
+        const blob = new Blob(interviewChunksRef.current, { type: mimeType });
         interviewAudioBlobsRef.current = [...interviewAudioBlobsRef.current, blob];
         onAudioBlobsChange?.(interviewAudioBlobsRef.current);
         stream.getTracks().forEach((t) => t.stop());
       };
-      mr.start();
+      mr.start(250);
       interviewRecorderRef.current = mr;
 
+      // Initialise SpeechRecognition entirely inside the click handler so it
+      // is never constructed outside a user-gesture context.
       const recognition = new SR();
       recognition.lang = LANG_TO_BCP47[language] ?? "en-US";
       recognition.continuous = true;
@@ -311,9 +323,9 @@ function AIInterview({
       recognition.onerror = (e: any) => console.log("[SR] error:", e.error, e.message);
       recognition.onend = () => {
         console.log("[SR] ended, recorder state:", interviewRecorderRef.current?.state);
-        // Chrome stops recognition after a pause — restart it while still recording
-        if (interviewRecorderRef.current?.state === "recording") {
-          try { recognition.start(); } catch { /* ignore duplicate start */ }
+        // Chrome stops recognition after silence — restart while still recording
+        if (typeof window !== "undefined" && interviewRecorderRef.current?.state === "recording") {
+          try { recognition.start(); } catch { /* ignore duplicate-start error */ }
         }
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -331,7 +343,6 @@ function AIInterview({
       setInterviewRecState("recording");
     } catch (err) {
       console.log("[SR] getUserMedia error:", err);
-      // Microphone access denied or unavailable — silently ignore
     }
   }
 
@@ -937,19 +948,24 @@ export default function SharePage() {
 
   async function startRecording() {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 44100 },
+      });
+      const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+        ? "audio/webm;codecs=opus"
+        : "audio/webm";
+      const mr = new MediaRecorder(stream, { mimeType });
       chunksRef.current = [];
       mr.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
       mr.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const blob = new Blob(chunksRef.current, { type: mimeType });
         setAudioBlob(blob);
         setAudioBlobUrl(URL.createObjectURL(blob));
         stream.getTracks().forEach((t) => t.stop());
       };
-      mr.start();
+      mr.start(250); // collect chunks every 250 ms so no data is lost on stop
       mediaRecorderRef.current = mr;
       setRecState("recording");
     } catch {
