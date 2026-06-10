@@ -821,8 +821,10 @@ export default function SharePage() {
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioBlobUrl, setAudioBlobUrl] = useState<string | null>(null);
   const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [recordingSeconds, setRecordingSeconds] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [videoMode, setVideoMode] = useState<"url" | "upload">("url");
   const [videoFile, setVideoFile] = useState<File | null>(null);
@@ -973,6 +975,8 @@ export default function SharePage() {
       };
       mr.start(250); // collect chunks every 250 ms so no data is lost on stop
       mediaRecorderRef.current = mr;
+      setRecordingSeconds(0);
+      recordingTimerRef.current = setInterval(() => setRecordingSeconds(s => s + 1), 1000);
       setRecState("recording");
     } catch {
       setErrorMsg("Microphone access was denied. Please allow microphone access and try again.");
@@ -980,6 +984,7 @@ export default function SharePage() {
   }
 
   function stopRecording() {
+    if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
     mediaRecorderRef.current?.stop();
     setRecState("stopped");
   }
@@ -989,6 +994,7 @@ export default function SharePage() {
     setAudioBlob(null);
     setAudioBlobUrl(null);
     setAudioFile(null);
+    setRecordingSeconds(0);
     setRecState("idle");
   }
 
@@ -1446,6 +1452,7 @@ export default function SharePage() {
 
                 {recState === "stopped" && audioBlobUrl && (
                   <div className="flex flex-col gap-3">
+                    <p className="text-xs text-navy/50">Recorded: {recordingSeconds} second{recordingSeconds !== 1 ? "s" : ""}</p>
                     <audio controls src={audioBlobUrl} preload="metadata" onPlay={() => { if (typeof window !== "undefined") window.speechSynthesis?.cancel(); }} className="w-full h-10" />
                     <button
                       type="button"
