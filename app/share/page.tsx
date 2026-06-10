@@ -676,7 +676,7 @@ function AIInterview({
         )}
         {interviewAudioBlobUrl && (
           <div className="flex items-center gap-2 bg-navy/5 rounded-lg px-2 py-1.5">
-            <audio controls src={interviewAudioBlobUrl} className="h-8 flex-1 min-w-0" />
+            <audio controls src={interviewAudioBlobUrl} preload="metadata" onPlay={() => { if (typeof window !== "undefined") window.speechSynthesis?.cancel(); }} className="h-8 flex-1 min-w-0" />
             <button
               type="button"
               onClick={clearInterviewRecording}
@@ -1446,7 +1446,7 @@ export default function SharePage() {
 
                 {recState === "stopped" && audioBlobUrl && (
                   <div className="flex flex-col gap-3">
-                    <audio controls src={audioBlobUrl} className="w-full h-10" />
+                    <audio controls src={audioBlobUrl} preload="metadata" onPlay={() => { if (typeof window !== "undefined") window.speechSynthesis?.cancel(); }} className="w-full h-10" />
                     <button
                       type="button"
                       onClick={clearAudio}
