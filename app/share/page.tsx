@@ -120,12 +120,14 @@ function AIInterview({
   highlightUseStory,
   initialState,
   onSave,
+  onAudioBlobsChange,
 }: {
   onUseStory: (story: string) => void;
   language: string;
   highlightUseStory?: boolean;
   initialState?: AIInterviewState | null;
   onSave?: (state: AIInterviewState) => void;
+  onAudioBlobsChange?: (blobs: Blob[]) => void;
 }) {
   const [messages, setMessages] = useState<Message[]>(
     initialState?.messages ?? [{ role: "assistant", content: OPENING_MESSAGE }]
@@ -176,6 +178,12 @@ function AIInterview({
   const lastSpokenIndexRef = useRef(-1);
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const prevLangRef = useRef(language);
+  const [interviewRecState, setInterviewRecState] = useState<"idle" | "recording">("idle");
+  const interviewRecorderRef = useRef<MediaRecorder | null>(null);
+  const interviewChunksRef = useRef<Blob[]>([]);
+  const interviewAudioBlobsRef = useRef<Blob[]>([]);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -257,6 +265,61 @@ function AIInterview({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language, speak]);
 
+  useEffect(() => {
+    return () => {
+      interviewRecorderRef.current?.stop();
+      recognitionRef.current?.stop();
+    };
+  }, []);
+
+  async function startInterviewRecording() {
+    if (typeof window === "undefined") return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      interviewChunksRef.current = [];
+      const mr = new MediaRecorder(stream);
+      mr.ondataavailable = (e) => {
+        if (e.data.size > 0) interviewChunksRef.current.push(e.data);
+      };
+      mr.onstop = () => {
+        const blob = new Blob(interviewChunksRef.current, { type: "audio/webm" });
+        interviewAudioBlobsRef.current = [...interviewAudioBlobsRef.current, blob];
+        onAudioBlobsChange?.(interviewAudioBlobsRef.current);
+        stream.getTracks().forEach((t) => t.stop());
+      };
+      mr.start();
+      interviewRecorderRef.current = mr;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SR) {
+        const recognition = new SR();
+        recognition.lang = LANG_TO_BCP47[language] ?? "en-US";
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        recognition.onresult = (event: any) => {
+          let transcript = "";
+          for (let i = 0; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+          }
+          setInput(transcript);
+        };
+        recognition.start();
+        recognitionRef.current = recognition;
+      }
+      setInterviewRecState("recording");
+    } catch {
+      // Microphone access denied or unavailable — silently ignore
+    }
+  }
+
+  function stopInterviewRecording() {
+    interviewRecorderRef.current?.stop();
+    recognitionRef.current?.stop();
+    recognitionRef.current = null;
+    setInterviewRecState("idle");
+  }
+
   async function fetchText(res: Response): Promise<string> {
     if (!res.ok) {
       let message = "Sorry, something went wrong. Please try refreshing the page.";
@@ -276,6 +339,7 @@ function AIInterview({
     const trimmed = input.trim();
     if (!trimmed || loading) return;
 
+    if (interviewRecState === "recording") stopInterviewRecording();
     if (typeof window !== "undefined") window.speechSynthesis?.cancel();
 
     const newMessages: Message[] = [...messages, { role: "user", content: trimmed }];
@@ -372,6 +436,8 @@ function AIInterview({
     setEditedStory("");
     setEditingIndex(null);
     setEditingText("");
+    interviewAudioBlobsRef.current = [];
+    onAudioBlobsChange?.([]);
     onSave?.({ messages: freshMessages, phase: "interview", editedStory: "", interviewComplete: false });
   }
 
@@ -578,32 +644,68 @@ function AIInterview({
         )}
       </div>
 
-      <div className="flex gap-2 items-end flex-shrink-0">
-        <textarea
-          ref={inputRef}
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          onKeyDown={e => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              sendMessage();
+      <div className="flex flex-col gap-1.5 flex-shrink-0">
+        {interviewRecState === "recording" && (
+          <div className="flex items-center gap-2 text-xs text-red-500 font-semibold px-1">
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse inline-block" />
+            Recording… speak your answer
+          </div>
+        )}
+        <div className="flex gap-2 items-end">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+              }
+            }}
+            rows={2}
+            placeholder={
+              interviewRecState === "recording"
+                ? "Listening… speak your answer"
+                : loading
+                ? "Waiting for response…"
+                : "Share your answer… (Enter to send, Shift+Enter for new line)"
             }
-          }}
-          rows={2}
-          placeholder={loading ? "Waiting for response…" : "Share your answer… (Enter to send, Shift+Enter for new line)"}
-          className={`${INPUT} resize-none flex-1`}
-        />
-        <button
-          type="button"
-          onClick={sendMessage}
-          disabled={loading || !input.trim()}
-          className="bg-navy text-cream p-3 rounded-xl hover:bg-navy/90 transition-colors disabled:opacity-40 flex-shrink-0"
-          aria-label="Send"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-          </svg>
-        </button>
+            className={`${INPUT} resize-none flex-1${interviewRecState === "recording" ? " border-red-300 focus:ring-red-300" : ""}`}
+          />
+          {interviewRecState === "idle" ? (
+            <button
+              type="button"
+              onClick={startInterviewRecording}
+              disabled={loading}
+              className="bg-navy/10 text-navy p-3 rounded-xl hover:bg-navy/20 transition-colors disabled:opacity-40 flex-shrink-0 text-base leading-none"
+              aria-label="Record answer"
+              title="Record your answer"
+            >
+              🎤
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={stopInterviewRecording}
+              className="bg-red-500 text-white p-3 rounded-xl hover:bg-red-600 transition-colors flex-shrink-0 text-base leading-none"
+              aria-label="Stop recording"
+              title="Stop recording"
+            >
+              ⏹
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={sendMessage}
+            disabled={loading || !input.trim()}
+            className="bg-navy text-cream p-3 rounded-xl hover:bg-navy/90 transition-colors disabled:opacity-40 flex-shrink-0"
+            aria-label="Send"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       <div className="flex-shrink-0">
@@ -668,6 +770,8 @@ export default function SharePage() {
     interviewComplete: false,
   });
 
+  const [interviewAudioBlobs, setInterviewAudioBlobs] = useState<Blob[]>([]);
+
   const [audioMode, setAudioMode] = useState<"record" | "upload">("record");
   const [recState, setRecState] = useState<"idle" | "recording" | "stopped">("idle");
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -728,6 +832,10 @@ export default function SharePage() {
     return null;
   }
 
+  function handleInterviewAudioBlobs(blobs: Blob[]) {
+    setInterviewAudioBlobs(blobs);
+  }
+
   function handleInterviewSave(state: AIInterviewState) {
     interviewStateRef.current = state;
     const hasInterviewContent =
@@ -781,6 +889,7 @@ export default function SharePage() {
     setDraftKey(k => k + 1);
     setForm(EMPTY);
     setMode("interview");
+    setInterviewAudioBlobs([]);
   }
 
   function set(field: keyof FormState) {
@@ -935,6 +1044,17 @@ export default function SharePage() {
           body: JSON.stringify({ storyId: id }),
         }).catch(() => {/* non-critical */});
       }
+      // Upload interview audio recordings (fire and forget)
+      if (interviewAudioBlobs.length > 0) {
+        const storyIdForPath = id ?? `${Date.now()}`;
+        Promise.all(
+          interviewAudioBlobs.map((blob, idx) =>
+            supabase.storage
+              .from("story-audio")
+              .upload(`interview/${storyIdForPath}_${idx}.webm`, blob, { contentType: "audio/webm" })
+          )
+        ).catch(() => {/* non-critical */});
+      }
       localStorage.removeItem(DRAFT_KEY);
       setIsUsingDraft(false);
       setDraftInterviewState(null);
@@ -948,6 +1068,7 @@ export default function SharePage() {
       setForm(EMPTY);
       clearAudio();
       clearVideo();
+      setInterviewAudioBlobs([]);
     }
   }
 
@@ -1108,6 +1229,7 @@ export default function SharePage() {
               highlightUseStory={highlightUseStory}
               initialState={draftInterviewState}
               onSave={handleInterviewSave}
+              onAudioBlobsChange={handleInterviewAudioBlobs}
             />
           </div>
         </>
