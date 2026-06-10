@@ -7,6 +7,15 @@ import type { StoryTranslation } from "@/lib/supabase";
 
 const ACCEPTED_VIDEO = ".mp4,.mov,.avi,.webm,video/mp4,video/quicktime,video/x-msvideo,video/webm";
 
+type ReactionCounts = { honored: number; inspired: number; relatable: number; moved: number };
+
+const REACTIONS: { key: keyof ReactionCounts; emoji: string; label: string }[] = [
+  { key: "honored", emoji: "🕊️", label: "Honored" },
+  { key: "inspired", emoji: "💪", label: "Inspired" },
+  { key: "relatable", emoji: "🤝", label: "Relatable" },
+  { key: "moved", emoji: "😢", label: "Moved" },
+];
+
 type Props = {
   storyId: string;
   authorName: string;
@@ -93,6 +102,10 @@ export default function StoryPageClient({
   const [error, setError] = useState<string | null>(null);
   const [showTranslationPanel, setShowTranslationPanel] = useState(false);
 
+  const [reactionCounts, setReactionCounts] = useState<ReactionCounts>({ honored: 0, inspired: 0, relatable: 0, moved: 0 });
+  const [activeReaction, setActiveReaction] = useState<keyof ReactionCounts | null>(null);
+  const [reactingTo, setReactingTo] = useState<keyof ReactionCounts | null>(null);
+
   // Audio state
   const [audioMode, setAudioMode] = useState<"record" | "upload">("upload");
   const [recState, setRecState] = useState<"idle" | "recording" | "stopped">("idle");
@@ -104,6 +117,10 @@ export default function StoryPageClient({
 
   useEffect(() => {
     fetch(`/api/stories/${storyId}/view`, { method: "POST" });
+    fetch(`/api/stories/${storyId}/reactions`)
+      .then((r) => r.json())
+      .then((d) => { if (d.counts) setReactionCounts(d.counts); })
+      .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -250,6 +267,27 @@ export default function StoryPageClient({
     setError(null);
   };
 
+  const handleReact = async (key: keyof ReactionCounts) => {
+    if (reactingTo) return;
+    setReactingTo(key);
+    try {
+      const res = await fetch(`/api/stories/${storyId}/react`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reaction: key }),
+      });
+      const data = await res.json();
+      if (data.counts) {
+        setReactionCounts(data.counts);
+        setActiveReaction(key);
+      }
+    } catch {
+      // silent fail
+    } finally {
+      setReactingTo(null);
+    }
+  };
+
   return (
     <>
       {/* Header */}
@@ -299,6 +337,42 @@ export default function StoryPageClient({
             👁 {readCount} {readCount === 1 ? "person has" : "people have"} read this story
           </p>
         )}
+
+        <div className="flex flex-wrap gap-2 mt-4">
+          {REACTIONS.map(({ key, emoji, label }) => {
+            const isActive = activeReaction === key;
+            const isLoading = reactingTo === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleReact(key)}
+                disabled={!!reactingTo}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all disabled:opacity-60"
+                style={{
+                  border: "1px solid #C9A84C",
+                  background: isActive ? "#C9A84C" : "#0A1628",
+                  color: isActive ? "#0A1628" : "#F5F0E8",
+                  opacity: isLoading ? 0.7 : 1,
+                }}
+              >
+                <span>{emoji}</span>
+                <span>{label}</span>
+                {reactionCounts[key] > 0 && (
+                  <span
+                    className="ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold"
+                    style={{
+                      background: isActive ? "#0A1628" : "#C9A84C22",
+                      color: isActive ? "#C9A84C" : "#C9A84C",
+                    }}
+                  >
+                    {reactionCounts[key]}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
 
         {tags && tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-4">
