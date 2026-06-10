@@ -108,6 +108,7 @@ function BrowseContent() {
 
   async function handleLoadMore() {
     if (loadingMoreRef.current) return;
+    console.log("loading more stories");
     loadingMoreRef.current = true;
     setLoadingMore(true);
     await fetchPage(filters, pageRef.current + 1, true);
@@ -123,10 +124,11 @@ function BrowseContent() {
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting && !loadingMoreRef.current) {
+          console.log("sentinel visible");
           handleLoadMore();
         }
       },
-      { rootMargin: "200px" }
+      { rootMargin: "400px" }
     );
 
     observer.observe(sentinel);
