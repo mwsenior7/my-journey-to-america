@@ -179,6 +179,7 @@ function AIInterview({
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const prevLangRef = useRef(language);
   const [interviewRecState, setInterviewRecState] = useState<"idle" | "recording">("idle");
+  const [srNotAvailable, setSrNotAvailable] = useState(false);
   const interviewRecorderRef = useRef<MediaRecorder | null>(null);
   const interviewChunksRef = useRef<Blob[]>([]);
   const interviewAudioBlobsRef = useRef<Blob[]>([]);
@@ -274,6 +275,16 @@ function AIInterview({
 
   async function startInterviewRecording() {
     if (typeof window === "undefined") return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    console.log("[SR] SpeechRecognition available:", !!SR);
+    if (!SR) {
+      setSrNotAvailable(true);
+      return;
+    }
+    setSrNotAvailable(false);
+
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       interviewChunksRef.current = [];
@@ -289,26 +300,37 @@ function AIInterview({
       };
       mr.start();
       interviewRecorderRef.current = mr;
+
+      const recognition = new SR();
+      recognition.lang = LANG_TO_BCP47[language] ?? "en-US";
+      recognition.continuous = true;
+      recognition.interimResults = true;
+
+      recognition.onstart = () => console.log("[SR] started, lang:", recognition.lang);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-      if (SR) {
-        const recognition = new SR();
-        recognition.lang = LANG_TO_BCP47[language] ?? "en-US";
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        recognition.onresult = (event: any) => {
-          let transcript = "";
-          for (let i = 0; i < event.results.length; i++) {
-            transcript += event.results[i][0].transcript;
-          }
-          setInput(transcript);
-        };
-        recognition.start();
-        recognitionRef.current = recognition;
-      }
+      recognition.onerror = (e: any) => console.log("[SR] error:", e.error, e.message);
+      recognition.onend = () => {
+        console.log("[SR] ended, recorder state:", interviewRecorderRef.current?.state);
+        // Chrome stops recognition after a pause — restart it while still recording
+        if (interviewRecorderRef.current?.state === "recording") {
+          try { recognition.start(); } catch { /* ignore duplicate start */ }
+        }
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      recognition.onresult = (event: any) => {
+        let transcript = "";
+        for (let i = 0; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        console.log("[SR] transcript:", transcript);
+        setInput(transcript);
+      };
+
+      recognition.start();
+      recognitionRef.current = recognition;
       setInterviewRecState("recording");
-    } catch {
+    } catch (err) {
+      console.log("[SR] getUserMedia error:", err);
       // Microphone access denied or unavailable — silently ignore
     }
   }
@@ -524,7 +546,7 @@ function AIInterview({
   }
 
   return (
-    <div className="flex flex-col gap-3" style={{ height: "560px" }}>
+    <div className="flex flex-col gap-3">
       <div className="flex items-center gap-3 py-1 flex-shrink-0">
         <div className="flex-1 h-1.5 bg-navy/10 rounded-full overflow-hidden">
           <div
@@ -549,7 +571,7 @@ function AIInterview({
         )}
       </div>
 
-      <div ref={chatContainerRef} className="flex-1 min-h-0 flex flex-col gap-4 overflow-y-auto pr-1">
+      <div ref={chatContainerRef} className="flex flex-col gap-4 overflow-y-auto pr-1" style={{ maxHeight: "320px" }}>
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
             {msg.role === "assistant" && (
@@ -645,6 +667,11 @@ function AIInterview({
       </div>
 
       <div className="flex flex-col gap-1.5 flex-shrink-0">
+        {srNotAvailable && (
+          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 rounded-lg">
+            Speech recognition not available in this browser — please type your answer
+          </p>
+        )}
         {interviewRecState === "recording" && (
           <div className="flex items-center gap-2 text-xs text-red-500 font-semibold px-1">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse inline-block" />
