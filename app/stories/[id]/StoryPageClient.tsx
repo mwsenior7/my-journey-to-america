@@ -119,7 +119,7 @@ export default function StoryPageClient({
     fetch(`/api/stories/${storyId}/view`, { method: "POST" });
     fetch(`/api/stories/${storyId}/reactions`)
       .then((r) => r.json())
-      .then((d) => { if (d.counts) setReactionCounts(d.counts); })
+      .then((d) => { if (d && 'honored' in d) setReactionCounts(d); })
       .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -278,9 +278,8 @@ export default function StoryPageClient({
         body: JSON.stringify({ reaction: key }),
       });
       const data = await res.json();
-      console.log(`[Reaction] API response (status ${res.status}):`, data);
-      if (data.counts) {
-        setReactionCounts(data.counts);
+      if (data && 'honored' in data) {
+        setReactionCounts(data);
         setActiveReaction(key);
       }
     } catch (err) {
