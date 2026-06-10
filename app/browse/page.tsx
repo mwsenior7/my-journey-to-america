@@ -119,11 +119,9 @@ function BrowseContent() {
   useEffect(() => {
     function onScroll() {
       console.log("scroll triggered");
-      if (
-        !hasMore ||
-        loadingMoreRef.current ||
-        window.scrollY + window.innerHeight < document.documentElement.scrollHeight - 300
-      ) return;
+      const scrollTop = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop;
+      const scrollHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+      if (!hasMore || loadingMoreRef.current || scrollTop + window.innerHeight < scrollHeight - 300) return;
       handleLoadMore();
     }
 
@@ -131,6 +129,16 @@ function BrowseContent() {
     return () => window.removeEventListener("scroll", onScroll);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMore, filters]);
+
+  // If the page doesn't overflow after loading (content fits viewport), auto-load next batch
+  useEffect(() => {
+    if (loading || !hasMore || loadingMoreRef.current) return;
+    const scrollHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+    if (scrollHeight <= window.innerHeight + 300) {
+      handleLoadMore();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stories, loading]);
 
   // Client-side text search on already-fetched results
   const filtered = stories.filter((s) => {
@@ -343,13 +351,21 @@ function BrowseContent() {
           ))}
         </div>
 
-        {/* Sentinel + footer */}
+        {/* Footer */}
         <div className="flex flex-col items-center mt-10 gap-4">
           {loadingMore && (
             <div className="flex items-center gap-2 text-navy/50 text-sm">
               <span className="w-5 h-5 border-2 border-navy/20 border-t-navy rounded-full animate-spin" />
               Loading more stories…
             </div>
+          )}
+          {hasMore && !loadingMore && (
+            <button
+              onClick={handleLoadMore}
+              className="bg-navy text-cream font-semibold px-8 py-3 rounded-full hover:opacity-90 transition-opacity text-sm"
+            >
+              Load More
+            </button>
           )}
           {!hasMore && !loading && filtered.length > 0 && (
             <p className="text-sm text-navy/40 font-medium">No more stories</p>
