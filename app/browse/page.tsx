@@ -32,6 +32,8 @@ function BrowseContent() {
   const [hasMore, setHasMore] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const pageRef = useRef(0);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+  const loadingMoreRef = useRef(false);
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [filters, setFilters] = useState<Filters>({
     country:    searchParams.get("country")    ?? "",
@@ -105,10 +107,32 @@ function BrowseContent() {
   }, [filters]);
 
   async function handleLoadMore() {
+    if (loadingMoreRef.current) return;
+    loadingMoreRef.current = true;
     setLoadingMore(true);
     await fetchPage(filters, pageRef.current + 1, true);
     setLoadingMore(false);
+    loadingMoreRef.current = false;
   }
+
+  // IntersectionObserver: trigger load when sentinel scrolls into view
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !loadingMoreRef.current) {
+          handleLoadMore();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMore, filters]);
 
   // Client-side text search on already-fetched results
   const filtered = stories.filter((s) => {
@@ -321,25 +345,21 @@ function BrowseContent() {
           ))}
         </div>
 
-        {/* Load more */}
-        {hasMore && !query && (
-          <div className="flex justify-center mt-10">
-            <button
-              onClick={handleLoadMore}
-              disabled={loadingMore}
-              className="bg-navy text-cream font-semibold px-10 py-3 rounded-full hover:bg-navy/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {loadingMore ? (
-                <>
-                  <span className="w-4 h-4 border-2 border-cream/30 border-t-cream rounded-full animate-spin" />
-                  Loading…
-                </>
-              ) : (
-                "Load more stories"
-              )}
-            </button>
-          </div>
-        )}
+        {/* Sentinel + footer */}
+        <div className="flex flex-col items-center mt-10 gap-4">
+          {hasMore && !query && (
+            <div ref={sentinelRef} className="h-1 w-full" aria-hidden />
+          )}
+          {loadingMore && (
+            <div className="flex items-center gap-2 text-navy/50 text-sm">
+              <span className="w-5 h-5 border-2 border-navy/20 border-t-navy rounded-full animate-spin" />
+              Loading more stories…
+            </div>
+          )}
+          {!hasMore && !loading && filtered.length > 0 && (
+            <p className="text-sm text-navy/40 font-medium">No more stories</p>
+          )}
+        </div>
         </>
       )}
     </div>
