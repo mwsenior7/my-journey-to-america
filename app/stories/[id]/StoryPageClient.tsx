@@ -338,41 +338,14 @@ export default function StoryPageClient({
           </p>
         )}
 
-        <div className="flex flex-wrap gap-2 mt-4">
-          {REACTIONS.map(({ key, emoji, label }) => {
-            const isActive = activeReaction === key;
-            const isLoading = reactingTo === key;
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => handleReact(key)}
-                disabled={!!reactingTo}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all disabled:opacity-60"
-                style={{
-                  border: "1px solid #C9A84C",
-                  background: isActive ? "#C9A84C" : "#0A1628",
-                  color: isActive ? "#0A1628" : "#F5F0E8",
-                  opacity: isLoading ? 0.7 : 1,
-                }}
-              >
-                <span>{emoji}</span>
-                <span>{label}</span>
-                {reactionCounts[key] > 0 && (
-                  <span
-                    className="ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold"
-                    style={{
-                      background: isActive ? "#0A1628" : "#C9A84C22",
-                      color: isActive ? "#C9A84C" : "#C9A84C",
-                    }}
-                  >
-                    {reactionCounts[key]}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
+        {(() => {
+          const totalReactions = reactionCounts.honored + reactionCounts.inspired + reactionCounts.relatable + reactionCounts.moved;
+          return totalReactions > 0 ? (
+            <p className="text-sm font-medium mt-4" style={{ color: "#C9A84C" }}>
+              ❤️ {totalReactions} {totalReactions === 1 ? "person reacted" : "people reacted"} to this story
+            </p>
+          ) : null;
+        })()}
 
         {tags && tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-4">
@@ -674,6 +647,47 @@ export default function StoryPageClient({
             translations={translations}
             showControls={showTranslationPanel}
           />
+        </div>
+      )}
+
+      {/* Reactions */}
+      {!editMode && (
+        <div className="mb-10">
+          <div className="flex flex-wrap gap-2">
+            {REACTIONS.map(({ key, emoji, label }) => {
+              const isActive = activeReaction === key;
+              const isLoading = reactingTo === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => handleReact(key)}
+                  disabled={!!reactingTo}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all disabled:opacity-60"
+                  style={{
+                    border: "1px solid #C9A84C",
+                    background: isActive ? "#C9A84C" : "#0A1628",
+                    color: isActive ? "#0A1628" : "#F5F0E8",
+                    opacity: isLoading ? 0.7 : 1,
+                  }}
+                >
+                  <span>{emoji}</span>
+                  <span>{label}</span>
+                  {reactionCounts[key] > 0 && (
+                    <span
+                      className="ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold"
+                      style={{
+                        background: isActive ? "#0A1628" : "#C9A84C22",
+                        color: isActive ? "#C9A84C" : "#C9A84C",
+                      }}
+                    >
+                      {reactionCounts[key]}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
 
