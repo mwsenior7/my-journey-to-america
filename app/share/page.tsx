@@ -180,9 +180,11 @@ function AIInterview({
   const prevLangRef = useRef(language);
   const [interviewRecState, setInterviewRecState] = useState<"idle" | "recording" | "transcribing" | "stopped">("idle");
   const [interviewAudioBlobUrl, setInterviewAudioBlobUrl] = useState<string | null>(null);
+  const [interviewRecordingSeconds, setInterviewRecordingSeconds] = useState(0);
   const interviewRecorderRef = useRef<MediaRecorder | null>(null);
   const interviewChunksRef = useRef<Blob[]>([]);
   const interviewAudioBlobsRef = useRef<Blob[]>([]);
+  const interviewTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -267,6 +269,7 @@ function AIInterview({
   useEffect(() => {
     return () => {
       interviewRecorderRef.current?.stop();
+      if (interviewTimerRef.current) clearInterval(interviewTimerRef.current);
     };
   }, []);
 
@@ -313,6 +316,8 @@ function AIInterview({
         }
       };
 
+      setInterviewRecordingSeconds(0);
+      interviewTimerRef.current = setInterval(() => setInterviewRecordingSeconds(s => s + 1), 1000);
       mr.start(250);
       interviewRecorderRef.current = mr;
       setInterviewRecState("recording");
@@ -322,6 +327,7 @@ function AIInterview({
   }
 
   function stopInterviewRecording() {
+    if (interviewTimerRef.current) clearInterval(interviewTimerRef.current);
     setInterviewRecState("transcribing");
     interviewRecorderRef.current?.stop();
   }
@@ -329,6 +335,7 @@ function AIInterview({
   function clearInterviewRecording() {
     if (interviewAudioBlobUrl) URL.revokeObjectURL(interviewAudioBlobUrl);
     setInterviewAudioBlobUrl(null);
+    setInterviewRecordingSeconds(0);
     setInterviewRecState("idle");
   }
 
@@ -675,17 +682,20 @@ function AIInterview({
           </div>
         )}
         {interviewAudioBlobUrl && (
-          <div className="flex items-center gap-2 bg-navy/5 rounded-lg px-2 py-1.5">
-            <audio controls src={interviewAudioBlobUrl} preload="metadata" onPlay={() => { if (typeof window !== "undefined") window.speechSynthesis?.cancel(); }} className="h-8 flex-1 min-w-0" />
-            <button
-              type="button"
-              onClick={clearInterviewRecording}
-              className="text-navy/40 hover:text-navy/70 transition-colors flex-shrink-0 text-sm leading-none"
-              title="Clear recording"
-              aria-label="Clear recording"
-            >
-              ✕
-            </button>
+          <div className="flex flex-col gap-1">
+            <p className="text-xs text-navy/50 px-1">Recorded: {interviewRecordingSeconds} second{interviewRecordingSeconds !== 1 ? "s" : ""}</p>
+            <div className="flex items-center gap-2 bg-navy/5 rounded-lg px-2 py-1.5">
+              <audio controls src={interviewAudioBlobUrl} preload="metadata" onPlay={() => { if (typeof window !== "undefined") window.speechSynthesis?.cancel(); }} className="h-8 flex-1 min-w-0" />
+              <button
+                type="button"
+                onClick={clearInterviewRecording}
+                className="text-navy/40 hover:text-navy/70 transition-colors flex-shrink-0 text-sm leading-none"
+                title="Clear recording"
+                aria-label="Clear recording"
+              >
+                ✕
+              </button>
+            </div>
           </div>
         )}
         <div className="flex gap-2 items-end">
