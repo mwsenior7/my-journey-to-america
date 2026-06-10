@@ -178,13 +178,11 @@ function AIInterview({
   const lastSpokenIndexRef = useRef(-1);
   const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
   const prevLangRef = useRef(language);
-  const [interviewRecState, setInterviewRecState] = useState<"idle" | "recording">("idle");
-  const [srNotAvailable, setSrNotAvailable] = useState(false);
+  const [interviewRecState, setInterviewRecState] = useState<"idle" | "recording" | "transcribing" | "stopped">("idle");
+  const [interviewAudioBlobUrl, setInterviewAudioBlobUrl] = useState<string | null>(null);
   const interviewRecorderRef = useRef<MediaRecorder | null>(null);
   const interviewChunksRef = useRef<Blob[]>([]);
   const interviewAudioBlobsRef = useRef<Blob[]>([]);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -269,87 +267,68 @@ function AIInterview({
   useEffect(() => {
     return () => {
       interviewRecorderRef.current?.stop();
-      recognitionRef.current?.stop();
     };
   }, []);
 
   async function startInterviewRecording() {
     console.log("mic button clicked");
-
-    if (typeof window === "undefined") {
-      console.log("[SR] skipping — window not defined (SSR context)");
-      return;
+    if (interviewAudioBlobUrl) {
+      URL.revokeObjectURL(interviewAudioBlobUrl);
+      setInterviewAudioBlobUrl(null);
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const w = window as any;
-    const SR = w.SpeechRecognition || w.webkitSpeechRecognition;
-    console.log("[SR] SpeechRecognition available:", !!SR, "| webkitSpeechRecognition:", !!w.webkitSpeechRecognition);
-
-    if (!SR) {
-      setSrNotAvailable(true);
-      return;
-    }
-    setSrNotAvailable(false);
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 44100 },
+      });
       interviewChunksRef.current = [];
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
         : "audio/webm";
       const mr = new MediaRecorder(stream, { mimeType });
+
       mr.ondataavailable = (e) => {
         if (e.data.size > 0) interviewChunksRef.current.push(e.data);
       };
-      mr.onstop = () => {
+
+      mr.onstop = async () => {
         const blob = new Blob(interviewChunksRef.current, { type: mimeType });
         interviewAudioBlobsRef.current = [...interviewAudioBlobsRef.current, blob];
         onAudioBlobsChange?.(interviewAudioBlobsRef.current);
         stream.getTracks().forEach((t) => t.stop());
+
+        const url = URL.createObjectURL(blob);
+        setInterviewAudioBlobUrl(url);
+
+        try {
+          const fd = new FormData();
+          fd.append("audio", blob, "recording.webm");
+          const res = await fetch("/api/transcribe", { method: "POST", body: fd });
+          const data = await res.json();
+          if (data.text) setInput(data.text);
+        } catch {
+          // transcription failure is non-fatal — user can type manually
+        } finally {
+          setInterviewRecState("stopped");
+        }
       };
+
       mr.start(250);
       interviewRecorderRef.current = mr;
-
-      // Initialise SpeechRecognition entirely inside the click handler so it
-      // is never constructed outside a user-gesture context.
-      const recognition = new SR();
-      recognition.lang = LANG_TO_BCP47[language] ?? "en-US";
-      recognition.continuous = true;
-      recognition.interimResults = true;
-
-      recognition.onstart = () => console.log("[SR] started, lang:", recognition.lang);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recognition.onerror = (e: any) => console.log("[SR] error:", e.error, e.message);
-      recognition.onend = () => {
-        console.log("[SR] ended, recorder state:", interviewRecorderRef.current?.state);
-        // Chrome stops recognition after silence — restart while still recording
-        if (typeof window !== "undefined" && interviewRecorderRef.current?.state === "recording") {
-          try { recognition.start(); } catch { /* ignore duplicate-start error */ }
-        }
-      };
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      recognition.onresult = (event: any) => {
-        let transcript = "";
-        for (let i = 0; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
-        }
-        console.log("[SR] transcript:", transcript);
-        setInput(transcript);
-      };
-
-      recognition.start();
-      recognitionRef.current = recognition;
       setInterviewRecState("recording");
     } catch (err) {
-      console.log("[SR] getUserMedia error:", err);
+      console.log("getUserMedia error:", err);
     }
   }
 
   function stopInterviewRecording() {
+    setInterviewRecState("transcribing");
     interviewRecorderRef.current?.stop();
-    recognitionRef.current?.stop();
-    recognitionRef.current = null;
+  }
+
+  function clearInterviewRecording() {
+    if (interviewAudioBlobUrl) URL.revokeObjectURL(interviewAudioBlobUrl);
+    setInterviewAudioBlobUrl(null);
     setInterviewRecState("idle");
   }
 
@@ -373,6 +352,7 @@ function AIInterview({
     if (!trimmed || loading) return;
 
     if (interviewRecState === "recording") stopInterviewRecording();
+    if (interviewRecState === "stopped") clearInterviewRecording();
     if (typeof window !== "undefined") window.speechSynthesis?.cancel();
 
     const newMessages: Message[] = [...messages, { role: "user", content: trimmed }];
@@ -471,6 +451,7 @@ function AIInterview({
     setEditingText("");
     interviewAudioBlobsRef.current = [];
     onAudioBlobsChange?.([]);
+    clearInterviewRecording();
     onSave?.({ messages: freshMessages, phase: "interview", editedStory: "", interviewComplete: false });
   }
 
@@ -678,15 +659,33 @@ function AIInterview({
       </div>
 
       <div className="flex flex-col gap-1.5 flex-shrink-0">
-        {srNotAvailable && (
-          <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2 rounded-lg">
-            Speech recognition not available in this browser — please type your answer
-          </p>
-        )}
         {interviewRecState === "recording" && (
           <div className="flex items-center gap-2 text-xs text-red-500 font-semibold px-1">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse inline-block" />
-            Recording… speak your answer
+            Recording…
+          </div>
+        )}
+        {interviewRecState === "transcribing" && (
+          <div className="flex items-center gap-2 text-xs text-navy/50 px-1">
+            <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+            </svg>
+            Processing recording…
+          </div>
+        )}
+        {interviewAudioBlobUrl && (
+          <div className="flex items-center gap-2 bg-navy/5 rounded-lg px-2 py-1.5">
+            <audio controls src={interviewAudioBlobUrl} className="h-8 flex-1 min-w-0" />
+            <button
+              type="button"
+              onClick={clearInterviewRecording}
+              className="text-navy/40 hover:text-navy/70 transition-colors flex-shrink-0 text-sm leading-none"
+              title="Clear recording"
+              aria-label="Clear recording"
+            >
+              ✕
+            </button>
           </div>
         )}
         <div className="flex gap-2 items-end">
@@ -703,14 +702,31 @@ function AIInterview({
             rows={2}
             placeholder={
               interviewRecState === "recording"
-                ? "Listening… speak your answer"
+                ? "Recording… click ⏹ to stop"
                 : loading
                 ? "Waiting for response…"
                 : "Share your answer… (Enter to send, Shift+Enter for new line)"
             }
             className={`${INPUT} resize-none flex-1${interviewRecState === "recording" ? " border-red-300 focus:ring-red-300" : ""}`}
           />
-          {interviewRecState === "idle" ? (
+          {interviewRecState === "recording" ? (
+            <button
+              type="button"
+              onClick={stopInterviewRecording}
+              className="bg-red-500 text-white p-3 rounded-xl hover:bg-red-600 transition-colors flex-shrink-0 text-base leading-none"
+              aria-label="Stop recording"
+              title="Stop recording"
+            >
+              ⏹
+            </button>
+          ) : interviewRecState === "transcribing" ? (
+            <div className="p-3 flex-shrink-0 flex items-center justify-center">
+              <svg className="w-5 h-5 text-navy/30 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+              </svg>
+            </div>
+          ) : (
             <button
               type="button"
               onClick={startInterviewRecording}
@@ -721,21 +737,11 @@ function AIInterview({
             >
               🎤
             </button>
-          ) : (
-            <button
-              type="button"
-              onClick={stopInterviewRecording}
-              className="bg-red-500 text-white p-3 rounded-xl hover:bg-red-600 transition-colors flex-shrink-0 text-base leading-none"
-              aria-label="Stop recording"
-              title="Stop recording"
-            >
-              ⏹
-            </button>
           )}
           <button
             type="button"
             onClick={sendMessage}
-            disabled={loading || !input.trim()}
+            disabled={loading || !input.trim() || interviewRecState === "transcribing"}
             className="bg-navy text-cream p-3 rounded-xl hover:bg-navy/90 transition-colors disabled:opacity-40 flex-shrink-0"
             aria-label="Send"
           >
