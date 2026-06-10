@@ -29,11 +29,14 @@ export async function POST(
     auth: { persistSession: false },
   });
 
+  console.log(`[react route] story_id: ${params.id}, reaction: ${reaction}`);
+
   const { error: insertError } = await supabase
     .from("story_reactions")
     .insert({ story_id: params.id, reaction });
 
   if (insertError) {
+    console.error(`[react route] insert error:`, insertError);
     return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
 

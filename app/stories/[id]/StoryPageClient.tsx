@@ -269,6 +269,7 @@ export default function StoryPageClient({
 
   const handleReact = async (key: keyof ReactionCounts) => {
     if (reactingTo) return;
+    console.log(`[Reaction] Clicked: ${key}, storyId: ${storyId}, url: /api/stories/${storyId}/react`);
     setReactingTo(key);
     try {
       const res = await fetch(`/api/stories/${storyId}/react`, {
@@ -277,12 +278,13 @@ export default function StoryPageClient({
         body: JSON.stringify({ reaction: key }),
       });
       const data = await res.json();
+      console.log(`[Reaction] API response (status ${res.status}):`, data);
       if (data.counts) {
         setReactionCounts(data.counts);
         setActiveReaction(key);
       }
-    } catch {
-      // silent fail
+    } catch (err) {
+      console.error(`[Reaction] Error:`, err);
     } finally {
       setReactingTo(null);
     }
@@ -673,17 +675,15 @@ export default function StoryPageClient({
                 >
                   <span>{emoji}</span>
                   <span>{label}</span>
-                  {reactionCounts[key] > 0 && (
-                    <span
-                      className="ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold"
-                      style={{
-                        background: isActive ? "#0A1628" : "#C9A84C22",
-                        color: isActive ? "#C9A84C" : "#C9A84C",
-                      }}
-                    >
-                      {reactionCounts[key]}
-                    </span>
-                  )}
+                  <span
+                    className="ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold"
+                    style={{
+                      background: isActive ? "#0A1628" : "#C9A84C22",
+                      color: isActive ? "#C9A84C" : "#C9A84C",
+                    }}
+                  >
+                    {reactionCounts[key]}
+                  </span>
                 </button>
               );
             })}
