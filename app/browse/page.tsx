@@ -32,7 +32,6 @@ function BrowseContent() {
   const [hasMore, setHasMore] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const pageRef = useRef(0);
-  const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingMoreRef = useRef(false);
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [filters, setFilters] = useState<Filters>({
@@ -108,7 +107,7 @@ function BrowseContent() {
 
   async function handleLoadMore() {
     if (loadingMoreRef.current) return;
-    console.log("loading more stories");
+    console.log("loading more");
     loadingMoreRef.current = true;
     setLoadingMore(true);
     await fetchPage(filters, pageRef.current + 1, true);
@@ -116,23 +115,20 @@ function BrowseContent() {
     loadingMoreRef.current = false;
   }
 
-  // IntersectionObserver: trigger load when sentinel scrolls into view
+  // Scroll event: trigger load when near bottom of page
   useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
+    function onScroll() {
+      console.log("scroll triggered");
+      if (
+        !hasMore ||
+        loadingMoreRef.current ||
+        window.scrollY + window.innerHeight < document.documentElement.scrollHeight - 300
+      ) return;
+      handleLoadMore();
+    }
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !loadingMoreRef.current) {
-          console.log("sentinel visible");
-          handleLoadMore();
-        }
-      },
-      { rootMargin: "400px" }
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMore, filters]);
 
@@ -349,9 +345,6 @@ function BrowseContent() {
 
         {/* Sentinel + footer */}
         <div className="flex flex-col items-center mt-10 gap-4">
-          {hasMore && !query && (
-            <div ref={sentinelRef} className="h-1 w-full" aria-hidden />
-          )}
           {loadingMore && (
             <div className="flex items-center gap-2 text-navy/50 text-sm">
               <span className="w-5 h-5 border-2 border-navy/20 border-t-navy rounded-full animate-spin" />
