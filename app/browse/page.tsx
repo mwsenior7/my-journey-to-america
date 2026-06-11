@@ -66,6 +66,7 @@ function BrowseContent() {
   }, []);
 
   async function fetchPage(filtersArg: Filters, pageNum: number, append: boolean) {
+    console.log("fetching page", pageNum, "range", pageNum * PAGE_SIZE, "to", (pageNum + 1) * PAGE_SIZE - 1);
     let q = supabase
       .from("stories")
       .select("*")
@@ -86,6 +87,7 @@ function BrowseContent() {
       setFetchError("Failed to load stories. Please refresh and try again.");
     } else {
       const rows = data ?? [];
+      console.log("rows returned:", rows.length, "hasMore:", rows.length === PAGE_SIZE);
       if (append) setStories((prev) => [...prev, ...rows]);
       else setStories(rows);
       setHasMore(rows.length === PAGE_SIZE);
