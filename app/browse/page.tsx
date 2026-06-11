@@ -6,7 +6,7 @@ import Link from "next/link";
 import { supabase, type Story } from "@/lib/supabase";
 import { US_STATES } from "@/lib/us-states";
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 6;
 
 const DECADES = Array.from({ length: 13 }, (_, i) => ({
   label: `${1900 + i * 10}s`,
@@ -32,8 +32,8 @@ function BrowseContent() {
   const [hasMore, setHasMore] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const pageRef = useRef(0);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingMoreRef = useRef(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [filters, setFilters] = useState<Filters>({
     country:    searchParams.get("country")    ?? "",
@@ -108,7 +108,7 @@ function BrowseContent() {
 
   async function handleLoadMore() {
     if (loadingMoreRef.current) return;
-    console.log("loading more");
+    console.log("loading more stories");
     loadingMoreRef.current = true;
     setLoadingMore(true);
     await fetchPage(filters, pageRef.current + 1, true);
@@ -116,32 +116,25 @@ function BrowseContent() {
     loadingMoreRef.current = false;
   }
 
-  // Scroll event: trigger load when near bottom of the scrollable container
+  // IntersectionObserver: trigger load when sentinel scrolls into view
   useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
 
-    function onScroll() {
-      if (!el || !hasMore || loadingMoreRef.current) return;
-      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 300) {
-        handleLoadMore();
-      }
-    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !loadingMoreRef.current) {
+          console.log("sentinel visible");
+          handleLoadMore();
+        }
+      },
+      { rootMargin: "400px" }
+    );
 
-    el.addEventListener("scroll", onScroll);
-    return () => el.removeEventListener("scroll", onScroll);
+    observer.observe(sentinel);
+    return () => observer.disconnect();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMore, filters]);
-
-  // If the container doesn't overflow after loading, auto-load next batch
-  useEffect(() => {
-    const el = containerRef.current;
-    if (loading || !hasMore || loadingMoreRef.current || !el) return;
-    if (el.scrollHeight <= el.clientHeight + 300) {
-      handleLoadMore();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stories, loading]);
 
   // Client-side text search on already-fetched results
   const filtered = stories.filter((s) => {
@@ -165,7 +158,6 @@ function BrowseContent() {
   }
 
   return (
-    <div ref={containerRef} style={{ height: "100vh", overflowY: "auto" }}>
     <div className="max-w-6xl mx-auto px-4 py-16">
       <h1 className="text-4xl font-bold text-navy mb-2">Browse Stories</h1>
       <p className="text-navy/60 mb-10 text-lg">
@@ -355,21 +347,16 @@ function BrowseContent() {
           ))}
         </div>
 
-        {/* Footer */}
+        {/* Sentinel + footer */}
         <div className="flex flex-col items-center mt-10 gap-4">
+          {hasMore && !query && (
+            <div ref={sentinelRef} className="h-1 w-full" aria-hidden />
+          )}
           {loadingMore && (
             <div className="flex items-center gap-2 text-navy/50 text-sm">
               <span className="w-5 h-5 border-2 border-navy/20 border-t-navy rounded-full animate-spin" />
               Loading more stories…
             </div>
-          )}
-          {hasMore && !loadingMore && (
-            <button
-              onClick={handleLoadMore}
-              className="bg-navy text-cream font-semibold px-8 py-3 rounded-full hover:opacity-90 transition-opacity text-sm"
-            >
-              Load More
-            </button>
           )}
           {!hasMore && !loading && filtered.length > 0 && (
             <p className="text-sm text-navy/40 font-medium">No more stories</p>
@@ -377,7 +364,6 @@ function BrowseContent() {
         </div>
         </>
       )}
-    </div>
     </div>
   );
 }
