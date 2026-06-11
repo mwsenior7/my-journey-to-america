@@ -32,7 +32,7 @@ function BrowseContent() {
   const [hasMore, setHasMore] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const pageRef = useRef(0);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const loadingMoreRef = useRef(false);
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [filters, setFilters] = useState<Filters>({
@@ -116,20 +116,23 @@ function BrowseContent() {
     loadingMoreRef.current = false;
   }
 
-  // Scroll listener: trigger load when near the bottom of the container
+  // IntersectionObserver: trigger load when sentinel scrolls into view
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
 
-    function onScroll() {
-      if (!container) return;
-      if (container.scrollTop + container.clientHeight >= container.scrollHeight - 300) {
-        handleLoadMore();
-      }
-    }
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !loadingMoreRef.current) {
+          console.log("sentinel visible");
+          handleLoadMore();
+        }
+      },
+      { rootMargin: "400px" }
+    );
 
-    container.addEventListener("scroll", onScroll);
-    return () => container.removeEventListener("scroll", onScroll);
+    observer.observe(sentinel);
+    return () => observer.disconnect();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMore, filters]);
 
@@ -155,7 +158,7 @@ function BrowseContent() {
   }
 
   return (
-    <div ref={containerRef} className="max-w-6xl mx-auto px-4 py-16 overflow-y-auto h-screen">
+    <div className="max-w-6xl mx-auto px-4 py-16">
       <h1 className="text-4xl font-bold text-navy mb-2">Browse Stories</h1>
       <p className="text-navy/60 mb-10 text-lg">
         Thousands of journeys, each one unique. Search, filter, and explore.
@@ -344,16 +347,10 @@ function BrowseContent() {
           ))}
         </div>
 
-        {/* Load More + footer */}
+        {/* Sentinel + footer */}
         <div className="flex flex-col items-center mt-10 gap-4">
-          {hasMore && (
-            <button
-              onClick={handleLoadMore}
-              className="bg-navy text-white font-semibold px-8 py-3 rounded-full hover:opacity-90 transition-opacity disabled:opacity-50"
-              disabled={loadingMore}
-            >
-              Load More
-            </button>
+          {hasMore && !query && (
+            <div ref={sentinelRef} className="h-1 w-full" aria-hidden />
           )}
           {loadingMore && (
             <div className="flex items-center gap-2 text-navy/50 text-sm">
