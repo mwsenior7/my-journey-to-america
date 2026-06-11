@@ -9,6 +9,11 @@ const ACCEPTED_VIDEO = ".mp4,.mov,.avi,.webm,video/mp4,video/quicktime,video/x-m
 
 type ReactionCounts = { honored: number; inspired: number; relatable: number; moved: number };
 
+type MoreStory = { id: string; author_name: string; country_of_origin: string; preview_text: string | null; story_text: string };
+
+const SUPABASE_URL = "https://hesfbleyhuzlsqdjbciu.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_LuEFLmPs0_HQX1tP3El2SQ_uMSG_uxg";
+
 const REACTIONS: { key: keyof ReactionCounts; emoji: string; label: string }[] = [
   { key: "honored", emoji: "🕊️", label: "Honored" },
   { key: "inspired", emoji: "💪", label: "Inspired" },
@@ -115,6 +120,8 @@ export default function StoryPageClient({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
+  const [moreStories, setMoreStories] = useState<MoreStory[]>([]);
+
   useEffect(() => {
     fetch(`/api/stories/${storyId}/view`, { method: "POST" });
     fetch(`/api/stories/${storyId}/reactions`)
@@ -123,6 +130,40 @@ export default function StoryPageClient({
       .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    async function loadMoreStories() {
+      const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` };
+      const base = `${SUPABASE_URL}/rest/v1/stories`;
+
+      const sameParams = new URLSearchParams({
+        select: "id,author_name,country_of_origin,preview_text,story_text",
+        status: "eq.approved",
+        country_of_origin: `eq.${countryOfOrigin}`,
+        id: `neq.${storyId}`,
+        order: "created_at.desc",
+        limit: "3",
+      });
+      const sameRes = await fetch(`${base}?${sameParams}`, { headers }).catch(() => null);
+      const same: MoreStory[] = sameRes?.ok ? await sameRes.json() : [];
+
+      if (same.length >= 3) { setMoreStories(same); return; }
+
+      const needed = 3 - same.length;
+      const otherParams = new URLSearchParams({
+        select: "id,author_name,country_of_origin,preview_text,story_text",
+        status: "eq.approved",
+        country_of_origin: `neq.${countryOfOrigin}`,
+        order: "created_at.desc",
+        limit: String(needed),
+      });
+      const otherRes = await fetch(`${base}?${otherParams}`, { headers }).catch(() => null);
+      const others: MoreStory[] = otherRes?.ok ? await otherRes.json() : [];
+      setMoreStories([...same, ...others]);
+    }
+    loadMoreStories();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storyId, countryOfOrigin]);
 
   // Video state
   const [videoMode, setVideoMode] = useState<"url" | "upload">("url");
@@ -707,6 +748,38 @@ export default function StoryPageClient({
             Video
           </p>
           <VideoEmbed url={currentVideoUrl} />
+        </div>
+      )}
+
+      {/* More Stories */}
+      {!editMode && moreStories.length > 0 && (
+        <div className="mt-16 pt-12 border-t border-navy/10">
+          <h2 className="text-2xl font-bold text-navy mb-8">More stories you might enjoy</h2>
+          <div className="grid md:grid-cols-3 gap-6">
+            {moreStories.map((s) => (
+              <article
+                key={s.id}
+                className="bg-white rounded-2xl border border-navy/10 p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-3"
+              >
+                <div className="flex flex-col gap-0.5">
+                  <h3 className="font-bold text-navy text-lg leading-snug">{s.author_name}</h3>
+                  <p className="text-sm text-navy/50">{s.country_of_origin}</p>
+                </div>
+                <p className="text-sm text-navy/75 leading-relaxed line-clamp-4 flex-1">
+                  {s.preview_text && s.preview_text.trim()
+                    ? s.preview_text.trim()
+                    : `${s.story_text.slice(0, 150)}...`}
+                </p>
+                <Link
+                  href={`/stories/${s.id}`}
+                  className="text-sm font-semibold hover:underline"
+                  style={{ color: "#C9A84C" }}
+                >
+                  Read their story →
+                </Link>
+              </article>
+            ))}
+          </div>
         </div>
       )}
     </>

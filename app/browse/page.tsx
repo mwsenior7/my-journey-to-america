@@ -1,12 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { supabase, type Story } from "@/lib/supabase";
 import { US_STATES } from "@/lib/us-states";
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 100;
 
 const DECADES = Array.from({ length: 13 }, (_, i) => ({
   label: `${1900 + i * 10}s`,
@@ -28,12 +28,7 @@ function BrowseContent() {
 
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(false);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const pageRef = useRef(0);
-  const sentinelRef = useRef<HTMLDivElement>(null);
-  const loadingMoreRef = useRef(false);
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [filters, setFilters] = useState<Filters>({
     country:    searchParams.get("country")    ?? "",
@@ -44,7 +39,6 @@ function BrowseContent() {
   const [countries, setCountries] = useState<string[]>([]);
   const [professions, setProfessions] = useState<string[]>([]);
 
-  // Load distinct filter options once on mount
   useEffect(() => {
     async function loadMeta() {
       const [cRes, pRes] = await Promise.all([
@@ -65,14 +59,13 @@ function BrowseContent() {
     loadMeta();
   }, []);
 
-  async function fetchPage(filtersArg: Filters, pageNum: number, append: boolean) {
-    console.log("fetching page", pageNum, "range", pageNum * PAGE_SIZE, "to", (pageNum + 1) * PAGE_SIZE - 1);
+  async function fetchStories(filtersArg: Filters) {
     let q = supabase
       .from("stories")
       .select("*")
       .eq("status", "approved")
       .order("created_at", { ascending: false })
-      .range(pageNum * PAGE_SIZE, (pageNum + 1) * PAGE_SIZE - 1);
+      .limit(PAGE_SIZE);
 
     if (filtersArg.country)    q = q.eq("country_of_origin", filtersArg.country);
     if (filtersArg.us_state)   q = q.eq("us_state", filtersArg.us_state);
@@ -86,59 +79,21 @@ function BrowseContent() {
     if (error) {
       setFetchError("Failed to load stories. Please refresh and try again.");
     } else {
-      const rows = data ?? [];
-      console.log("rows returned:", rows.length, "hasMore:", rows.length === PAGE_SIZE);
-      if (append) setStories((prev) => [...prev, ...rows]);
-      else setStories(rows);
-      setHasMore(rows.length === PAGE_SIZE);
-      pageRef.current = pageNum;
+      setStories(data ?? []);
     }
   }
 
-  // Re-fetch from Supabase whenever structured filters change
   useEffect(() => {
     async function load() {
       setLoading(true);
       setFetchError(null);
-      pageRef.current = 0;
-      await fetchPage(filters, 0, false);
+      await fetchStories(filters);
       setLoading(false);
     }
     load();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
-  async function handleLoadMore() {
-    if (loadingMoreRef.current) return;
-    console.log("loading more stories");
-    loadingMoreRef.current = true;
-    setLoadingMore(true);
-    await fetchPage(filters, pageRef.current + 1, true);
-    setLoadingMore(false);
-    loadingMoreRef.current = false;
-  }
-
-  // IntersectionObserver: trigger load when sentinel scrolls into view
-  useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !loadingMoreRef.current) {
-          console.log("sentinel visible");
-          handleLoadMore();
-        }
-      },
-      { rootMargin: "0px" }
-    );
-
-    observer.observe(sentinel);
-    return () => observer.disconnect();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasMore, filters]);
-
-  // Client-side text search on already-fetched results
   const filtered = stories.filter((s) => {
     if (!query.trim()) return true;
     const q = query.toLowerCase();
@@ -217,21 +172,18 @@ function BrowseContent() {
         )}
       </div>
 
-      {/* Loading */}
       {loading && (
         <div className="flex justify-center py-32">
           <div className="w-8 h-8 border-2 border-navy/20 border-t-navy rounded-full animate-spin" />
         </div>
       )}
 
-      {/* Error */}
       {fetchError && (
         <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-5 py-4 text-sm">
           {fetchError}
         </div>
       )}
 
-      {/* Empty state */}
       {!loading && !fetchError && filtered.length === 0 && (
         <div className="text-center py-32">
           <p className="text-2xl font-bold text-navy mb-3">
@@ -256,7 +208,6 @@ function BrowseContent() {
         </div>
       )}
 
-      {/* Results count */}
       {!loading && !fetchError && filtered.length > 0 && (
         <p className="text-sm text-navy/50 mb-6">
           {filtered.length} {filtered.length === 1 ? "story" : "stories"}
@@ -264,16 +215,13 @@ function BrowseContent() {
         </p>
       )}
 
-      {/* Story grid */}
       {!loading && !fetchError && filtered.length > 0 && (
-        <>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((s) => (
             <article
               key={s.id}
               className="bg-white rounded-2xl border border-navy/10 p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-3"
             >
-              {/* Header */}
               <div className="flex flex-col gap-0.5">
                 <h2 className="font-bold text-navy text-lg leading-snug">{s.author_name}</h2>
                 <p className="text-sm text-navy/50">
@@ -284,14 +232,12 @@ function BrowseContent() {
                 </p>
               </div>
 
-              {/* Excerpt */}
               <p className="text-sm text-navy/75 leading-relaxed line-clamp-5 flex-1">
                 {s.preview_text && s.preview_text.trim()
                   ? s.preview_text.trim()
                   : `${s.story_text.slice(0, 150)}...`}
               </p>
 
-              {/* CTA */}
               <Link
                 href={`/stories/${s.id}`}
                 className="text-sm font-semibold hover:underline"
@@ -300,14 +246,12 @@ function BrowseContent() {
                 Read their story →
               </Link>
 
-              {/* Read count */}
               {(s.read_count ?? 0) > 0 && (
                 <p className="text-xs font-medium" style={{ color: "#C9A84C" }}>
                   👁 {s.read_count} {s.read_count === 1 ? "read" : "reads"}
                 </p>
               )}
 
-              {/* Tags */}
               {s.tags && s.tags.length > 0 && (
                 <div className="flex flex-wrap gap-1.5">
                   {s.tags.map((tag) => (
@@ -321,12 +265,10 @@ function BrowseContent() {
                 </div>
               )}
 
-              {/* Audio */}
               {s.audio_url && (
                 <audio controls src={s.audio_url} className="w-full h-9" preload="none" />
               )}
 
-              {/* Footer */}
               {s.video_url && (
                 <div className="flex items-center pt-1 mt-auto">
                   <a
@@ -348,23 +290,6 @@ function BrowseContent() {
             </article>
           ))}
         </div>
-
-        {/* Sentinel + footer */}
-        <div className="flex flex-col items-center mt-10 gap-4">
-          {hasMore && !query && (
-            <div ref={sentinelRef} className="h-1 w-full" aria-hidden />
-          )}
-          {loadingMore && (
-            <div className="flex items-center gap-2 text-navy/50 text-sm">
-              <span className="w-5 h-5 border-2 border-navy/20 border-t-navy rounded-full animate-spin" />
-              Loading more stories…
-            </div>
-          )}
-          {!hasMore && !loading && filtered.length > 0 && (
-            <p className="text-sm text-navy/40 font-medium">No more stories</p>
-          )}
-        </div>
-        </>
       )}
     </div>
   );
