@@ -9,7 +9,7 @@ const ACCEPTED_VIDEO = ".mp4,.mov,.avi,.webm,video/mp4,video/quicktime,video/x-m
 
 type ReactionCounts = { honored: number; inspired: number; relatable: number; moved: number };
 
-type MoreStory = { id: string; author_name: string; country_of_origin: string; preview_text: string | null; story_text: string };
+type MoreStory = { id: string; author_name: string; country_of_origin: string; us_state: string | null; year_of_arrival: number | null; profession: string | null; story_text: string };
 
 const SUPABASE_URL = "https://hesfbleyhuzlsqdjbciu.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_LuEFLmPs0_HQX1tP3El2SQ_uMSG_uxg";
@@ -121,6 +121,9 @@ export default function StoryPageClient({
   const chunksRef = useRef<Blob[]>([]);
 
   const [moreStories, setMoreStories] = useState<MoreStory[]>([]);
+  const [moreStoryReactions, setMoreStoryReactions] = useState<Record<string, ReactionCounts>>({});
+  const [moreStoryActiveReactions, setMoreStoryActiveReactions] = useState<Record<string, keyof ReactionCounts | null>>({});
+  const [moreStoryReactingTo, setMoreStoryReactingTo] = useState<Record<string, keyof ReactionCounts | null>>({});
 
   useEffect(() => {
     fetch(`/api/stories/${storyId}/view`, { method: "POST" });
@@ -137,7 +140,7 @@ export default function StoryPageClient({
       const base = `${SUPABASE_URL}/rest/v1/stories`;
 
       const sameParams = new URLSearchParams({
-        select: "id,author_name,country_of_origin,preview_text,story_text",
+        select: "id,author_name,country_of_origin,us_state,year_of_arrival,profession,story_text",
         status: "eq.approved",
         country_of_origin: `eq.${countryOfOrigin}`,
         id: `neq.${storyId}`,
@@ -147,19 +150,34 @@ export default function StoryPageClient({
       const sameRes = await fetch(`${base}?${sameParams}`, { headers }).catch(() => null);
       const same: MoreStory[] = sameRes?.ok ? await sameRes.json() : [];
 
-      if (same.length >= 3) { setMoreStories(same); return; }
+      let stories = same;
+      if (same.length < 3) {
+        const needed = 3 - same.length;
+        const otherParams = new URLSearchParams({
+          select: "id,author_name,country_of_origin,us_state,year_of_arrival,profession,story_text",
+          status: "eq.approved",
+          country_of_origin: `neq.${countryOfOrigin}`,
+          order: "created_at.desc",
+          limit: String(needed),
+        });
+        const otherRes = await fetch(`${base}?${otherParams}`, { headers }).catch(() => null);
+        const others: MoreStory[] = otherRes?.ok ? await otherRes.json() : [];
+        stories = [...same, ...others];
+      }
+      setMoreStories(stories);
 
-      const needed = 3 - same.length;
-      const otherParams = new URLSearchParams({
-        select: "id,author_name,country_of_origin,preview_text,story_text",
-        status: "eq.approved",
-        country_of_origin: `neq.${countryOfOrigin}`,
-        order: "created_at.desc",
-        limit: String(needed),
+      const rxnResults = await Promise.all(
+        stories.map((s) =>
+          fetch(`/api/stories/${s.id}/reactions`)
+            .then((r) => (r.ok ? r.json() : null))
+            .catch(() => null)
+        )
+      );
+      const rxnMap: Record<string, ReactionCounts> = {};
+      stories.forEach((s, i) => {
+        if (rxnResults[i] && "honored" in rxnResults[i]) rxnMap[s.id] = rxnResults[i];
       });
-      const otherRes = await fetch(`${base}?${otherParams}`, { headers }).catch(() => null);
-      const others: MoreStory[] = otherRes?.ok ? await otherRes.json() : [];
-      setMoreStories([...same, ...others]);
+      setMoreStoryReactions(rxnMap);
     }
     loadMoreStories();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -327,6 +345,27 @@ export default function StoryPageClient({
       console.error(`[Reaction] Error:`, err);
     } finally {
       setReactingTo(null);
+    }
+  };
+
+  const handleMoreStoryReact = async (sid: string, key: keyof ReactionCounts) => {
+    if (moreStoryReactingTo[sid]) return;
+    setMoreStoryReactingTo((prev) => ({ ...prev, [sid]: key }));
+    try {
+      const res = await fetch(`/api/stories/${sid}/react`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reaction: key }),
+      });
+      const data = await res.json();
+      if (data && "honored" in data) {
+        setMoreStoryReactions((prev) => ({ ...prev, [sid]: data }));
+        setMoreStoryActiveReactions((prev) => ({ ...prev, [sid]: key }));
+      }
+    } catch {
+      // silent
+    } finally {
+      setMoreStoryReactingTo((prev) => ({ ...prev, [sid]: null }));
     }
   };
 
@@ -754,31 +793,69 @@ export default function StoryPageClient({
       {/* More Stories */}
       {!editMode && moreStories.length > 0 && (
         <div className="mt-16 pt-12 border-t border-navy/10">
-          <h2 className="text-2xl font-bold text-navy mb-8">More stories you might enjoy</h2>
-          <div className="grid md:grid-cols-3 gap-6">
-            {moreStories.map((s) => (
-              <article
-                key={s.id}
-                className="bg-white rounded-2xl border border-navy/10 p-6 shadow-sm hover:shadow-md transition-shadow flex flex-col gap-3"
-              >
-                <div className="flex flex-col gap-0.5">
-                  <h3 className="font-bold text-navy text-lg leading-snug">{s.author_name}</h3>
-                  <p className="text-sm text-navy/50">{s.country_of_origin}</p>
+          <h2 className="text-2xl font-bold text-navy mb-10">More stories you might enjoy</h2>
+          <div className="flex flex-col">
+            {moreStories.map((s, i) => {
+              const counts = moreStoryReactions[s.id] ?? { honored: 0, inspired: 0, relatable: 0, moved: 0 };
+              const activeRxn = moreStoryActiveReactions[s.id] ?? null;
+              const reactingToKey = moreStoryReactingTo[s.id] ?? null;
+              return (
+                <div key={s.id}>
+                  {i > 0 && (
+                    <div className="flex items-center gap-4 my-12">
+                      <div className="flex-1 border-t border-navy/10" />
+                      <span className="text-xs text-navy/30 font-medium tracking-wide">Continue reading ↓</span>
+                      <div className="flex-1 border-t border-navy/10" />
+                    </div>
+                  )}
+                  <article>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-navy/50 mb-2">
+                      <span className="font-medium text-navy/70">{s.country_of_origin}</span>
+                      {s.us_state && <><span>·</span><span>{s.us_state}</span></>}
+                      {s.year_of_arrival && <><span>·</span><span>{s.year_of_arrival}</span></>}
+                      {s.profession && <><span>·</span><span>{s.profession}</span></>}
+                    </div>
+                    <h3 className="text-2xl font-bold text-navy mb-5">{s.author_name}</h3>
+                    <div className="text-[1.0625rem] leading-[1.9] text-navy/80 whitespace-pre-wrap mb-6">
+                      {s.story_text}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {REACTIONS.map(({ key, emoji, label }) => {
+                        const isActive = activeRxn === key;
+                        const isLoading = reactingToKey === key;
+                        return (
+                          <button
+                            key={key}
+                            type="button"
+                            onClick={() => handleMoreStoryReact(s.id, key)}
+                            disabled={!!reactingToKey}
+                            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all disabled:opacity-60"
+                            style={{
+                              border: "1px solid #C9A84C",
+                              background: isActive ? "#C9A84C" : "#0A1628",
+                              color: isActive ? "#0A1628" : "#F5F0E8",
+                              opacity: isLoading ? 0.7 : 1,
+                            }}
+                          >
+                            <span>{emoji}</span>
+                            <span>{label}</span>
+                            <span
+                              className="ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold"
+                              style={{
+                                background: isActive ? "#0A1628" : "#C9A84C22",
+                                color: isActive ? "#C9A84C" : "#C9A84C",
+                              }}
+                            >
+                              {counts[key]}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </article>
                 </div>
-                <p className="text-sm text-navy/75 leading-relaxed line-clamp-4 flex-1">
-                  {s.preview_text && s.preview_text.trim()
-                    ? s.preview_text.trim()
-                    : `${s.story_text.slice(0, 150)}...`}
-                </p>
-                <Link
-                  href={`/stories/${s.id}`}
-                  className="text-sm font-semibold hover:underline"
-                  style={{ color: "#C9A84C" }}
-                >
-                  Read their story →
-                </Link>
-              </article>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
