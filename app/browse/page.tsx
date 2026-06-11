@@ -6,7 +6,7 @@ import Link from "next/link";
 import { supabase, type Story } from "@/lib/supabase";
 import { US_STATES } from "@/lib/us-states";
 
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 12;
 
 const DECADES = Array.from({ length: 13 }, (_, i) => ({
   label: `${1900 + i * 10}s`,
