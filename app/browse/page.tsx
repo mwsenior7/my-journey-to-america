@@ -33,6 +33,7 @@ function BrowseContent() {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const pageRef = useRef(0);
   const loadingMoreRef = useRef(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
   const [filters, setFilters] = useState<Filters>({
     country:    searchParams.get("country")    ?? "",
@@ -115,26 +116,28 @@ function BrowseContent() {
     loadingMoreRef.current = false;
   }
 
-  // Scroll event: trigger load when near bottom of page
+  // Scroll event: trigger load when near bottom of the scrollable container
   useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
     function onScroll() {
-      console.log("scroll triggered");
-      const scrollTop = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop;
-      const scrollHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
-      if (!hasMore || loadingMoreRef.current || scrollTop + window.innerHeight < scrollHeight - 300) return;
-      handleLoadMore();
+      if (!el || !hasMore || loadingMoreRef.current) return;
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 300) {
+        handleLoadMore();
+      }
     }
 
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
+    el.addEventListener("scroll", onScroll);
+    return () => el.removeEventListener("scroll", onScroll);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMore, filters]);
 
-  // If the page doesn't overflow after loading (content fits viewport), auto-load next batch
+  // If the container doesn't overflow after loading, auto-load next batch
   useEffect(() => {
-    if (loading || !hasMore || loadingMoreRef.current) return;
-    const scrollHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
-    if (scrollHeight <= window.innerHeight + 300) {
+    const el = containerRef.current;
+    if (loading || !hasMore || loadingMoreRef.current || !el) return;
+    if (el.scrollHeight <= el.clientHeight + 300) {
       handleLoadMore();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -162,6 +165,7 @@ function BrowseContent() {
   }
 
   return (
+    <div ref={containerRef} style={{ height: "100vh", overflowY: "auto" }}>
     <div className="max-w-6xl mx-auto px-4 py-16">
       <h1 className="text-4xl font-bold text-navy mb-2">Browse Stories</h1>
       <p className="text-navy/60 mb-10 text-lg">
@@ -373,6 +377,7 @@ function BrowseContent() {
         </div>
         </>
       )}
+    </div>
     </div>
   );
 }
