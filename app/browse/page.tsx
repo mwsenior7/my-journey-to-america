@@ -130,7 +130,7 @@ function BrowseContent() {
           handleLoadMore();
         }
       },
-      { rootMargin: "400px" }
+      { rootMargin: "0px" }
     );
 
     observer.observe(sentinel);
