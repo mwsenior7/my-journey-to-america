@@ -159,6 +159,7 @@ function AIInterview({
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const lastSpokenIndexRef = useRef(-1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const speakAbortRef = useRef<AbortController | null>(null);
   const prevLangRef = useRef(language);
   const [interviewRecState, setInterviewRecState] = useState<"idle" | "recording" | "transcribing" | "stopped">("idle");
   const [interviewAudioBlobUrl, setInterviewAudioBlobUrl] = useState<string | null>(null);
@@ -183,29 +184,37 @@ function AIInterview({
 
   const speak = useCallback(async (text: string) => {
     if (typeof window === "undefined") return;
+    if (speakAbortRef.current) {
+      speakAbortRef.current.abort();
+    }
     if (audioRef.current) {
       audioRef.current.pause();
+      audioRef.current.src = "";
       audioRef.current = null;
     }
     if (window.speechSynthesis) window.speechSynthesis.cancel();
+    const controller = new AbortController();
+    speakAbortRef.current = controller;
     setTtsLoading(true);
     try {
       const res = await fetch("/api/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text, language }),
+        signal: controller.signal,
       });
       if (!res.ok) return;
       const blob = await res.blob();
+      if (controller.signal.aborted) return;
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       audioRef.current = audio;
       audio.onended = () => URL.revokeObjectURL(url);
       audio.play().catch(() => {});
-    } catch {
-      // non-fatal — silence on TTS failure
+    } catch (e) {
+      if (e instanceof Error && e.name === "AbortError") return;
     } finally {
-      setTtsLoading(false);
+      if (!controller.signal.aborted) setTtsLoading(false);
     }
   }, [language]);
 
@@ -237,15 +246,25 @@ function AIInterview({
   }, []);
 
   useEffect(() => {
-    return () => {
+    const stopAudio = () => {
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.currentTime = 0;
+        audioRef.current.src = "";
         audioRef.current = null;
       }
       if (typeof window !== "undefined" && window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") stopAudio();
+    };
+    window.addEventListener("pagehide", stopAudio);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      stopAudio();
+      window.removeEventListener("pagehide", stopAudio);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
 

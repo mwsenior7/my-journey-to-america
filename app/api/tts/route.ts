@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
       voice: "shimmer",
       input: text.slice(0, 4096),
       instructions:
-        "Speak in a warm, gentle, and welcoming tone, as if talking with someone sharing a meaningful personal story",
+        "Speak in an upbeat, encouraging, and friendly tone, like a supportive guide cheering someone on as they share their story.",
       response_format: "mp3",
     });
 
