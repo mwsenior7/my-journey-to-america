@@ -95,24 +95,6 @@ function Field({
 
 const TOTAL_QUESTIONS = 8;
 
-const LANG_TO_BCP47: Record<string, string> = {
-  en: "en-US",
-  es: "es-ES",
-  fr: "fr-FR",
-  pt: "pt-BR",
-  de: "de-DE",
-  it: "it-IT",
-  zh: "zh-CN",
-  ja: "ja-JP",
-  ko: "ko-KR",
-  ar: "ar-SA",
-  hi: "hi-IN",
-  ru: "ru-RU",
-  uk: "uk-UA",
-  el: "el-GR",
-  vi: "vi-VN",
-  tl: "fil-PH",
-};
 
 function AIInterview({
   onUseStory,
@@ -172,11 +154,11 @@ function AIInterview({
   );
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingText, setEditingText] = useState("");
-  const [debugVoices, setDebugVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [ttsLoading, setTtsLoading] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const lastSpokenIndexRef = useRef(-1);
-  const voicesRef = useRef<SpeechSynthesisVoice[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const prevLangRef = useRef(language);
   const [interviewRecState, setInterviewRecState] = useState<"idle" | "recording" | "transcribing" | "stopped">("idle");
   const [interviewAudioBlobUrl, setInterviewAudioBlobUrl] = useState<string | null>(null);
@@ -193,56 +175,37 @@ function AIInterview({
   }, [messages, loading]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
-    function load() {
-      const v = window.speechSynthesis.getVoices();
-      if (v.length > 0) {
-        voicesRef.current = v;
-        setDebugVoices(v);
-        console.log("Available voices:", v.map(x => x.lang + " " + x.name));
-      }
-    }
-    load();
-    window.speechSynthesis.onvoiceschanged = load;
-    return () => { if (window.speechSynthesis) window.speechSynthesis.onvoiceschanged = null; };
-  }, []);
-
-  useEffect(() => {
     if (phase === "done" && editedStory) {
       onSave?.({ messages, phase, editedStory, interviewComplete });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editedStory]);
 
-  const speak = useCallback((text: string) => {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
-    const bcp47 = LANG_TO_BCP47[language] ?? "en-US";
-
-    function doSpeak(voices: SpeechSynthesisVoice[]) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = bcp47; // always set regardless of voice found
-      // 1. exact lang match (e.g. v.lang === "fr-FR")
-      let match = voices.find(v => v.lang === bcp47);
-      // 2. any voice whose lang starts with the 2-letter code (e.g. "fr-CA")
-      if (!match) match = voices.find(v => v.lang.startsWith(language));
-      // 3. voice whose name contains the BCP-47 code (e.g. "Google français (fr-FR)")
-      if (!match) match = voices.find(v => v.name.includes(bcp47));
-      if (match) utterance.voice = match;
-      window.speechSynthesis.speak(utterance);
+  const speak = useCallback(async (text: string) => {
+    if (typeof window === "undefined") return;
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
     }
-
-    if (voicesRef.current.length > 0) {
-      doSpeak(voicesRef.current);
-    } else {
-      // Voices haven't loaded yet — wait for onvoiceschanged then speak
-      window.speechSynthesis.onvoiceschanged = () => {
-        const v = window.speechSynthesis.getVoices();
-        voicesRef.current = v;
-        console.log("[TTS] voices (deferred):", v.map(x => `${x.name} (${x.lang})`).join(", "));
-        window.speechSynthesis.onvoiceschanged = null;
-        doSpeak(v);
-      };
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+    setTtsLoading(true);
+    try {
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, language }),
+      });
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => URL.revokeObjectURL(url);
+      audio.play().catch(() => {});
+    } catch {
+      // non-fatal — silence on TTS failure
+    } finally {
+      setTtsLoading(false);
     }
   }, [language]);
 
@@ -270,6 +233,19 @@ function AIInterview({
     return () => {
       interviewRecorderRef.current?.stop();
       if (interviewTimerRef.current) clearInterval(interviewTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current = null;
+      }
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
     };
   }, []);
 
@@ -360,6 +336,10 @@ function AIInterview({
 
     if (interviewRecState === "recording") stopInterviewRecording();
     if (interviewRecState === "stopped") clearInterviewRecording();
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
     if (typeof window !== "undefined") window.speechSynthesis?.cancel();
 
     const newMessages: Message[] = [...messages, { role: "user", content: trimmed }];
@@ -635,10 +615,21 @@ function AIInterview({
                 <button
                   type="button"
                   onClick={() => speak(msg.content)}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-gold border border-gold/40 bg-gold/8 hover:bg-gold/15 transition-colors px-2.5 py-1 rounded-full self-start"
+                  disabled={ttsLoading}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-gold border border-gold/40 bg-gold/8 hover:bg-gold/15 transition-colors px-2.5 py-1 rounded-full self-start disabled:opacity-60"
                   aria-label="Read aloud"
                 >
-                  🔊 Replay
+                  {ttsLoading ? (
+                    <>
+                      <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                      </svg>
+                      Loading…
+                    </>
+                  ) : (
+                    <>🔊 Replay</>
+                  )}
                 </button>
               </div>
             )}
@@ -685,7 +676,7 @@ function AIInterview({
           <div className="flex flex-col gap-1">
             <p className="text-xs text-navy/50 px-1">Recorded: {interviewRecordingSeconds} second{interviewRecordingSeconds !== 1 ? "s" : ""}</p>
             <div className="flex items-center gap-2 bg-navy/5 rounded-lg px-2 py-1.5">
-              <audio controls src={interviewAudioBlobUrl} preload="metadata" onPlay={() => { if (typeof window !== "undefined") window.speechSynthesis?.cancel(); }} className="h-8 flex-1 min-w-0" />
+              <audio controls src={interviewAudioBlobUrl} preload="metadata" onPlay={() => { if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; } if (typeof window !== "undefined") window.speechSynthesis?.cancel(); }} className="h-8 flex-1 min-w-0" />
               <button
                 type="button"
                 onClick={clearInterviewRecording}
@@ -781,16 +772,6 @@ function AIInterview({
         ) : null}
       </div>
 
-      {process.env.NODE_ENV === "development" && debugVoices.length > 0 && (
-        <details className="mt-2 text-[10px] text-navy/40 border border-navy/10 rounded-lg p-2">
-          <summary className="cursor-pointer font-mono">🔊 TTS debug — {debugVoices.length} voices</summary>
-          <ul className="mt-1 max-h-32 overflow-y-auto font-mono space-y-0.5">
-            {debugVoices.map(v => (
-              <li key={v.name}>{v.lang} — {v.name}</li>
-            ))}
-          </ul>
-        </details>
-      )}
     </div>
   );
 }
