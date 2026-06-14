@@ -95,6 +95,317 @@ function Field({
 
 const TOTAL_QUESTIONS = 8;
 
+type UIStrings = {
+  placeholder: string;
+  placeholderRecording: string;
+  placeholderWaiting: string;
+  clickToTalk: string;
+  recordingLabel: string;
+  clickToStop: string;
+  continueBtn: string;
+  replay: string;
+  startOver: string;
+  countdownText: (n: number) => string;
+  cancelType: string;
+  progressText: (n: number) => string;
+  progressLost: string;
+  yesReset: string;
+  cancelConfirm: string;
+  recordingStatus: string;
+  processingRecording: string;
+};
+
+const UI_STRINGS: Record<string, UIStrings> = {
+  en: {
+    placeholder: "Share your answer… (Enter to send, Shift+Enter for new line)",
+    placeholderRecording: "Recording… click ⏹ to stop",
+    placeholderWaiting: "Waiting for response…",
+    clickToTalk: "Click to Talk",
+    recordingLabel: "Recording…",
+    clickToStop: "Click to Stop",
+    continueBtn: "Continue",
+    replay: "Replay",
+    startOver: "Start Over",
+    countdownText: (n) => `Starting to record in ${n}…`,
+    cancelType: "Cancel — I'll type instead",
+    progressText: (n) => `${n}/${TOTAL_QUESTIONS} questions`,
+    progressLost: "Progress will be lost.",
+    yesReset: "Yes, reset",
+    cancelConfirm: "Cancel",
+    recordingStatus: "Recording…",
+    processingRecording: "Processing recording…",
+  },
+  es: {
+    placeholder: "Comparte tu respuesta… (Intro para enviar, Shift+Intro para nueva línea)",
+    placeholderRecording: "Grabando… haz clic en ⏹ para parar",
+    placeholderWaiting: "Esperando respuesta…",
+    clickToTalk: "Clic para hablar",
+    recordingLabel: "Grabando…",
+    clickToStop: "Clic para parar",
+    continueBtn: "Continuar",
+    replay: "Reproducir",
+    startOver: "Empezar de nuevo",
+    countdownText: (n) => `Grabación en ${n}…`,
+    cancelType: "Cancelar — escribiré",
+    progressText: (n) => `${n}/${TOTAL_QUESTIONS} preguntas`,
+    progressLost: "Se perderá el progreso.",
+    yesReset: "Sí, reiniciar",
+    cancelConfirm: "Cancelar",
+    recordingStatus: "Grabando…",
+    processingRecording: "Procesando grabación…",
+  },
+  fr: {
+    placeholder: "Partagez votre réponse… (Entrée pour envoyer, Maj+Entrée pour nouvelle ligne)",
+    placeholderRecording: "Enregistrement… cliquez sur ⏹ pour arrêter",
+    placeholderWaiting: "En attente de réponse…",
+    clickToTalk: "Cliquez pour parler",
+    recordingLabel: "Enregistrement…",
+    clickToStop: "Clic pour arrêter",
+    continueBtn: "Continuer",
+    replay: "Rejouer",
+    startOver: "Recommencer",
+    countdownText: (n) => `Enregistrement dans ${n}…`,
+    cancelType: "Annuler — je vais taper",
+    progressText: (n) => `${n}/${TOTAL_QUESTIONS} questions`,
+    progressLost: "La progression sera perdue.",
+    yesReset: "Oui, réinitialiser",
+    cancelConfirm: "Annuler",
+    recordingStatus: "Enregistrement…",
+    processingRecording: "Traitement de l'enregistrement…",
+  },
+  pt: {
+    placeholder: "Compartilhe sua resposta… (Enter para enviar, Shift+Enter para nova linha)",
+    placeholderRecording: "Gravando… clique em ⏹ para parar",
+    placeholderWaiting: "Aguardando resposta…",
+    clickToTalk: "Clique para falar",
+    recordingLabel: "Gravando…",
+    clickToStop: "Clique para parar",
+    continueBtn: "Continuar",
+    replay: "Reproduzir",
+    startOver: "Recomeçar",
+    countdownText: (n) => `Gravação em ${n}…`,
+    cancelType: "Cancelar — vou digitar",
+    progressText: (n) => `${n}/${TOTAL_QUESTIONS} perguntas`,
+    progressLost: "O progresso será perdido.",
+    yesReset: "Sim, reiniciar",
+    cancelConfirm: "Cancelar",
+    recordingStatus: "Gravando…",
+    processingRecording: "Processando gravação…",
+  },
+  de: {
+    placeholder: "Teile deine Antwort… (Eingabe zum Senden, Umschalt+Eingabe für neue Zeile)",
+    placeholderRecording: "Aufnahme… klicke ⏹ zum Stoppen",
+    placeholderWaiting: "Warte auf Antwort…",
+    clickToTalk: "Klicken zum Reden",
+    recordingLabel: "Aufnahme…",
+    clickToStop: "Klicken stoppen",
+    continueBtn: "Weiter",
+    replay: "Wiederholen",
+    startOver: "Neu starten",
+    countdownText: (n) => `Aufnahme in ${n}…`,
+    cancelType: "Abbrechen — ich tippe",
+    progressText: (n) => `${n}/${TOTAL_QUESTIONS} Fragen`,
+    progressLost: "Fortschritt geht verloren.",
+    yesReset: "Ja, zurücksetzen",
+    cancelConfirm: "Abbrechen",
+    recordingStatus: "Aufnahme…",
+    processingRecording: "Aufnahme wird verarbeitet…",
+  },
+  it: {
+    placeholder: "Condividi la tua risposta… (Invio per inviare, Maiusc+Invio per nuova riga)",
+    placeholderRecording: "Registrazione… clicca ⏹ per fermare",
+    placeholderWaiting: "In attesa di risposta…",
+    clickToTalk: "Clicca per parlare",
+    recordingLabel: "Registrazione…",
+    clickToStop: "Clicca per fermare",
+    continueBtn: "Continua",
+    replay: "Riproduci",
+    startOver: "Ricomincia",
+    countdownText: (n) => `Registrazione in ${n}…`,
+    cancelType: "Annulla — scrivo io",
+    progressText: (n) => `${n}/${TOTAL_QUESTIONS} domande`,
+    progressLost: "Il progresso verrà perso.",
+    yesReset: "Sì, ripristina",
+    cancelConfirm: "Annulla",
+    recordingStatus: "Registrazione…",
+    processingRecording: "Elaborazione registrazione…",
+  },
+  zh: {
+    placeholder: "分享您的回答…（Enter 发送，Shift+Enter 换行）",
+    placeholderRecording: "录音中… 点击 ⏹ 停止",
+    placeholderWaiting: "等待回应中…",
+    clickToTalk: "点击说话",
+    recordingLabel: "录音中…",
+    clickToStop: "点击停止",
+    continueBtn: "继续",
+    replay: "重放",
+    startOver: "重新开始",
+    countdownText: (n) => `${n} 秒后开始录音…`,
+    cancelType: "取消 — 我来打字",
+    progressText: (n) => `第 ${n}/${TOTAL_QUESTIONS} 题`,
+    progressLost: "进度将会丢失。",
+    yesReset: "是，重置",
+    cancelConfirm: "取消",
+    recordingStatus: "录音中…",
+    processingRecording: "处理录音中…",
+  },
+  ja: {
+    placeholder: "回答を入力してください…（Enterで送信、Shift+Enterで改行）",
+    placeholderRecording: "録音中… ⏹ をクリックして停止",
+    placeholderWaiting: "応答を待っています…",
+    clickToTalk: "クリックして話す",
+    recordingLabel: "録音中…",
+    clickToStop: "クリックして停止",
+    continueBtn: "続ける",
+    replay: "再生",
+    startOver: "最初からやり直す",
+    countdownText: (n) => `${n} 秒後に録音開始…`,
+    cancelType: "キャンセル — 文字で入力",
+    progressText: (n) => `${n}/${TOTAL_QUESTIONS} 問`,
+    progressLost: "進捗が失われます。",
+    yesReset: "はい、リセット",
+    cancelConfirm: "キャンセル",
+    recordingStatus: "録音中…",
+    processingRecording: "録音を処理中…",
+  },
+  ko: {
+    placeholder: "답변을 입력하세요…（Enter로 전송, Shift+Enter로 줄바꿈）",
+    placeholderRecording: "녹음 중… ⏹ 클릭하여 중지",
+    placeholderWaiting: "응답 기다리는 중…",
+    clickToTalk: "클릭하여 말하기",
+    recordingLabel: "녹음 중…",
+    clickToStop: "클릭하여 중지",
+    continueBtn: "계속",
+    replay: "다시 듣기",
+    startOver: "처음부터 다시",
+    countdownText: (n) => `${n}초 후 녹음 시작…`,
+    cancelType: "취소 — 직접 입력할게요",
+    progressText: (n) => `${n}/${TOTAL_QUESTIONS} 질문`,
+    progressLost: "진행 상황이 사라집니다.",
+    yesReset: "예, 초기화",
+    cancelConfirm: "취소",
+    recordingStatus: "녹음 중…",
+    processingRecording: "녹음 처리 중…",
+  },
+  ar: {
+    placeholder: "شارك إجابتك… (Enter للإرسال، Shift+Enter لسطر جديد)",
+    placeholderRecording: "جارٍ التسجيل… انقر على ⏹ للتوقف",
+    placeholderWaiting: "في انتظار الرد…",
+    clickToTalk: "انقر للتحدث",
+    recordingLabel: "تسجيل…",
+    clickToStop: "انقر للإيقاف",
+    continueBtn: "متابعة",
+    replay: "إعادة",
+    startOver: "البدء من جديد",
+    countdownText: (n) => `يبدأ التسجيل خلال ${n}…`,
+    cancelType: "إلغاء — سأكتب بدلاً من ذلك",
+    progressText: (n) => `${n}/${TOTAL_QUESTIONS} أسئلة`,
+    progressLost: "سيُفقد التقدم.",
+    yesReset: "نعم، إعادة ضبط",
+    cancelConfirm: "إلغاء",
+    recordingStatus: "تسجيل…",
+    processingRecording: "معالجة التسجيل…",
+  },
+  hi: {
+    placeholder: "अपना उत्तर साझा करें… (भेजने के लिए Enter, नई पंक्ति के लिए Shift+Enter)",
+    placeholderRecording: "रिकॉर्डिंग… रोकने के लिए ⏹ क्लिक करें",
+    placeholderWaiting: "प्रतिक्रिया की प्रतीक्षा…",
+    clickToTalk: "बात करने के लिए क्लिक करें",
+    recordingLabel: "रिकॉर्डिंग…",
+    clickToStop: "रोकने के लिए क्लिक करें",
+    continueBtn: "जारी रखें",
+    replay: "दोबारा सुनें",
+    startOver: "फिर से शुरू करें",
+    countdownText: (n) => `${n} में रिकॉर्डिंग शुरू…`,
+    cancelType: "रद्द करें — मैं टाइप करूंगा",
+    progressText: (n) => `${n}/${TOTAL_QUESTIONS} प्रश्न`,
+    progressLost: "प्रगति खो जाएगी।",
+    yesReset: "हाँ, रीसेट करें",
+    cancelConfirm: "रद्द करें",
+    recordingStatus: "रिकॉर्डिंग…",
+    processingRecording: "रिकॉर्डिंग प्रोसेस हो रही है…",
+  },
+  ru: {
+    placeholder: "Поделитесь своим ответом… (Enter — отправить, Shift+Enter — новая строка)",
+    placeholderRecording: "Запись… нажмите ⏹ для остановки",
+    placeholderWaiting: "Ожидание ответа…",
+    clickToTalk: "Нажмите говорить",
+    recordingLabel: "Запись…",
+    clickToStop: "Нажмите стоп",
+    continueBtn: "Продолжить",
+    replay: "Повтор",
+    startOver: "Начать заново",
+    countdownText: (n) => `Запись начнётся через ${n}…`,
+    cancelType: "Отмена — лучше напечатаю",
+    progressText: (n) => `${n}/${TOTAL_QUESTIONS} вопросов`,
+    progressLost: "Прогресс будет потерян.",
+    yesReset: "Да, сбросить",
+    cancelConfirm: "Отмена",
+    recordingStatus: "Запись…",
+    processingRecording: "Обработка записи…",
+  },
+  uk: {
+    placeholder: "Поділіться своєю відповіддю… (Enter — надіслати, Shift+Enter — новий рядок)",
+    placeholderRecording: "Запис… натисніть ⏹ для зупинки",
+    placeholderWaiting: "Очікування відповіді…",
+    clickToTalk: "Натисніть говорити",
+    recordingLabel: "Запис…",
+    clickToStop: "Натисніть зупинити",
+    continueBtn: "Продовжити",
+    replay: "Повтор",
+    startOver: "Почати знову",
+    countdownText: (n) => `Запис почнеться за ${n}…`,
+    cancelType: "Скасувати — краще надрукую",
+    progressText: (n) => `${n}/${TOTAL_QUESTIONS} питань`,
+    progressLost: "Прогрес буде втрачено.",
+    yesReset: "Так, скинути",
+    cancelConfirm: "Скасувати",
+    recordingStatus: "Запис…",
+    processingRecording: "Обробка запису…",
+  },
+  el: {
+    placeholder: "Μοιραστείτε την απάντησή σας… (Enter για αποστολή, Shift+Enter για νέα γραμμή)",
+    placeholderRecording: "Ηχογράφηση… κάντε κλικ στο ⏹ για διακοπή",
+    placeholderWaiting: "Αναμονή για απάντηση…",
+    clickToTalk: "Κάντε κλικ να μιλήσετε",
+    recordingLabel: "Ηχογράφηση…",
+    clickToStop: "Κλικ για διακοπή",
+    continueBtn: "Συνέχεια",
+    replay: "Επανάληψη",
+    startOver: "Ξεκινήστε από την αρχή",
+    countdownText: (n) => `Έναρξη εγγραφής σε ${n}…`,
+    cancelType: "Ακύρωση — θα πληκτρολογήσω",
+    progressText: (n) => `${n}/${TOTAL_QUESTIONS} ερωτήσεις`,
+    progressLost: "Η πρόοδος θα χαθεί.",
+    yesReset: "Ναι, επαναφορά",
+    cancelConfirm: "Ακύρωση",
+    recordingStatus: "Ηχογράφηση…",
+    processingRecording: "Επεξεργασία ηχογράφησης…",
+  },
+  vi: {
+    placeholder: "Chia sẻ câu trả lời của bạn… (Enter để gửi, Shift+Enter để xuống dòng)",
+    placeholderRecording: "Đang ghi âm… nhấn ⏹ để dừng",
+    placeholderWaiting: "Đang chờ phản hồi…",
+    clickToTalk: "Nhấn để nói",
+    recordingLabel: "Đang ghi…",
+    clickToStop: "Nhấn để dừng",
+    continueBtn: "Tiếp tục",
+    replay: "Phát lại",
+    startOver: "Bắt đầu lại",
+    countdownText: (n) => `Bắt đầu ghi âm sau ${n}…`,
+    cancelType: "Hủy — tôi sẽ gõ phím",
+    progressText: (n) => `${n}/${TOTAL_QUESTIONS} câu hỏi`,
+    progressLost: "Tiến trình sẽ bị mất.",
+    yesReset: "Có, đặt lại",
+    cancelConfirm: "Hủy",
+    recordingStatus: "Đang ghi…",
+    processingRecording: "Đang xử lý ghi âm…",
+  },
+};
+
+function getUIStrings(lang: string): UIStrings {
+  return UI_STRINGS[lang] ?? UI_STRINGS["en"];
+}
 
 function AIInterview({
   onUseStory,
@@ -111,6 +422,8 @@ function AIInterview({
   onSave?: (state: AIInterviewState) => void;
   onAudioBlobsChange?: (blobs: Blob[]) => void;
 }) {
+  const ui = getUIStrings(language);
+
   const [messages, setMessages] = useState<Message[]>(
     initialState?.messages ?? [{ role: "assistant", content: OPENING_MESSAGE }]
   );
@@ -627,28 +940,28 @@ function AIInterview({
           />
         </div>
         <span className="text-xs text-navy/40 flex-shrink-0 tabular-nums">
-          {progress}/{TOTAL_QUESTIONS} questions
+          {ui.progressText(progress)}
         </span>
-        {userMessageCount > 0 && !showStartOverConfirm && (
+        {!showStartOverConfirm && (
           <button
             type="button"
             onClick={() => setShowStartOverConfirm(true)}
             className="text-xs text-navy/35 hover:text-navy/60 transition-colors underline underline-offset-2 flex-shrink-0"
             aria-label="Start over — reset interview to question 1"
           >
-            Start Over
+            {ui.startOver}
           </button>
         )}
         {showStartOverConfirm && (
           <div className="flex items-center gap-2 flex-shrink-0" role="group" aria-label="Confirm start over">
-            <span className="text-xs text-navy/60 whitespace-nowrap">Progress will be lost.</span>
+            <span className="text-xs text-navy/60 whitespace-nowrap">{ui.progressLost}</span>
             <button
               type="button"
               onClick={startOver}
               className="text-xs text-red-500 font-semibold hover:text-red-600 transition-colors whitespace-nowrap"
               aria-label="Yes, start over and lose my progress"
             >
-              Yes, reset
+              {ui.yesReset}
             </button>
             <button
               type="button"
@@ -656,7 +969,7 @@ function AIInterview({
               className="text-xs text-navy/40 hover:text-navy/60 transition-colors whitespace-nowrap"
               aria-label="Cancel — keep my progress"
             >
-              Cancel
+              {ui.cancelConfirm}
             </button>
           </div>
         )}
@@ -740,7 +1053,7 @@ function AIInterview({
                       Loading…
                     </>
                   ) : (
-                    <>🔊 Replay</>
+                    <>🔊 {ui.replay}</>
                   )}
                 </button>
               </div>
@@ -772,7 +1085,7 @@ function AIInterview({
         {interviewRecState === "recording" && (
           <div className="flex items-center gap-2 text-xs text-red-500 font-semibold px-1">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse inline-block" />
-            Recording…
+            {ui.recordingStatus}
           </div>
         )}
         {interviewRecState === "transcribing" && (
@@ -781,7 +1094,7 @@ function AIInterview({
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
             </svg>
-            Processing recording…
+            {ui.processingRecording}
           </div>
         )}
         {interviewAudioBlobUrl && (
@@ -806,7 +1119,7 @@ function AIInterview({
             <div className="flex items-center gap-2">
               <span className="w-3 h-3 rounded-full bg-gold animate-pulse inline-block flex-shrink-0" aria-hidden="true" />
               <span className="text-sm font-semibold text-navy">
-                Starting to record in {autoRecordCountdown}…
+                {ui.countdownText(autoRecordCountdown!)}
               </span>
             </div>
             <button
@@ -814,7 +1127,7 @@ function AIInterview({
               onClick={cancelAutoRecord}
               className="text-xs text-navy/60 hover:text-navy transition-colors font-semibold whitespace-nowrap border border-navy/20 rounded-lg px-3 py-1.5"
             >
-              Cancel — I&rsquo;ll type instead
+              {ui.cancelType}
             </button>
           </div>
         )}
@@ -835,10 +1148,10 @@ function AIInterview({
             rows={2}
             placeholder={
               interviewRecState === "recording"
-                ? "Recording… click ⏹ to stop"
+                ? ui.placeholderRecording
                 : loading
-                ? "Waiting for response…"
-                : "Share your answer… (Enter to send, Shift+Enter for new line)"
+                ? ui.placeholderWaiting
+                : ui.placeholder
             }
             className={`${INPUT} resize-none flex-1${interviewRecState === "recording" ? " border-red-300 focus:ring-red-300" : ""}`}
           />
@@ -853,9 +1166,9 @@ function AIInterview({
               <span className="flex flex-col items-center gap-0.5">
                 <span className="flex items-center gap-1.5 text-sm font-semibold whitespace-nowrap">
                   <span className="w-2 h-2 rounded-full bg-white animate-pulse inline-block flex-shrink-0" aria-hidden="true" />
-                  Recording…
+                  {ui.recordingLabel}
                 </span>
-                <span className="text-[10px] font-semibold animate-pulse">Click to Stop</span>
+                <span className="text-[10px] font-semibold animate-pulse">{ui.clickToStop}</span>
               </span>
             </button>
           ) : interviewRecState === "transcribing" ? (
@@ -879,7 +1192,7 @@ function AIInterview({
                 title="Click to talk"
               >
                 <span className="text-base leading-none">🎤</span>
-                <span className="text-[10px] font-semibold whitespace-nowrap">Click to Talk</span>
+                <span className="text-[10px] font-semibold whitespace-nowrap">{ui.clickToTalk}</span>
               </button>
             </div>
           )}
@@ -894,7 +1207,7 @@ function AIInterview({
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
-            Continue
+            {ui.continueBtn}
           </button>
         </div>
       </div>
