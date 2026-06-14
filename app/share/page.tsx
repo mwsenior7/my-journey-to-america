@@ -169,6 +169,22 @@ function AIInterview({
   const interviewChunksRef = useRef<Blob[]>([]);
   const interviewAudioBlobsRef = useRef<Blob[]>([]);
   const interviewTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const ttsHasPlayedRef = useRef(false);
+  const [autoRecordCountdown, setAutoRecordCountdown] = useState<number | null>(null);
+  const autoRecordIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoRecordDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function cancelAutoRecord() {
+    if (autoRecordIntervalRef.current != null) {
+      clearInterval(autoRecordIntervalRef.current);
+      autoRecordIntervalRef.current = null;
+    }
+    if (autoRecordDelayRef.current != null) {
+      clearTimeout(autoRecordDelayRef.current);
+      autoRecordDelayRef.current = null;
+    }
+    setAutoRecordCountdown(null);
+  }
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -185,6 +201,8 @@ function AIInterview({
 
   const speak = useCallback(async (text: string) => {
     if (typeof window === "undefined") return;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    cancelAutoRecord();
     if (speakAbortRef.current) {
       speakAbortRef.current.abort();
     }
@@ -210,13 +228,45 @@ function AIInterview({
       const url = URL.createObjectURL(blob);
       const audio = new Audio(url);
       audioRef.current = audio;
-      audio.onended = () => URL.revokeObjectURL(url);
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        if (ttsHasPlayedRef.current) {
+          // Cancel any existing countdown then schedule a new one
+          if (autoRecordIntervalRef.current != null) {
+            clearInterval(autoRecordIntervalRef.current);
+            autoRecordIntervalRef.current = null;
+          }
+          if (autoRecordDelayRef.current != null) {
+            clearTimeout(autoRecordDelayRef.current);
+            autoRecordDelayRef.current = null;
+          }
+          autoRecordDelayRef.current = setTimeout(() => {
+            let count = 5;
+            setAutoRecordCountdown(count);
+            autoRecordIntervalRef.current = setInterval(() => {
+              count--;
+              if (count <= 0) {
+                if (autoRecordIntervalRef.current != null) {
+                  clearInterval(autoRecordIntervalRef.current);
+                  autoRecordIntervalRef.current = null;
+                }
+                setAutoRecordCountdown(null);
+                startInterviewRecording();
+              } else {
+                setAutoRecordCountdown(count);
+              }
+            }, 1000);
+          }, 1000);
+        }
+        ttsHasPlayedRef.current = true;
+      };
       audio.play().catch(() => {});
     } catch (e) {
       if (e instanceof Error && e.name === "AbortError") return;
     } finally {
       if (!controller.signal.aborted) setTtsLoading(false);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language]);
 
   useEffect(() => {
@@ -243,6 +293,8 @@ function AIInterview({
     return () => {
       interviewRecorderRef.current?.stop();
       if (interviewTimerRef.current) clearInterval(interviewTimerRef.current);
+      if (autoRecordIntervalRef.current) clearInterval(autoRecordIntervalRef.current);
+      if (autoRecordDelayRef.current) clearTimeout(autoRecordDelayRef.current);
     };
   }, []);
 
@@ -355,6 +407,7 @@ function AIInterview({
     const trimmed = input.trim();
     if (!trimmed || loading) return;
 
+    cancelAutoRecord();
     if (interviewRecState === "recording") stopInterviewRecording();
     if (interviewRecState === "stopped") clearInterviewRecording();
     if (audioRef.current) {
@@ -448,6 +501,21 @@ function AIInterview({
   }
 
   function startOver() {
+    // Stop any in-flight TTS audio and cancel countdown
+    if (speakAbortRef.current) {
+      speakAbortRef.current.abort();
+      speakAbortRef.current = null;
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+    cancelAutoRecord();
+    ttsHasPlayedRef.current = false;
     const freshMessages: Message[] = [{ role: "assistant", content: OPENING_MESSAGE }];
     setMessages(freshMessages);
     setInput("");
@@ -733,11 +801,31 @@ function AIInterview({
             </div>
           </div>
         )}
+        {autoRecordCountdown !== null && (
+          <div className="flex items-center justify-between gap-3 bg-gold/10 border border-gold/30 rounded-xl px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-gold animate-pulse inline-block flex-shrink-0" aria-hidden="true" />
+              <span className="text-sm font-semibold text-navy">
+                Starting to record in {autoRecordCountdown}…
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={cancelAutoRecord}
+              className="text-xs text-navy/60 hover:text-navy transition-colors font-semibold whitespace-nowrap border border-navy/20 rounded-lg px-3 py-1.5"
+            >
+              Cancel — I&rsquo;ll type instead
+            </button>
+          </div>
+        )}
         <div className="flex gap-2 items-end">
           <textarea
             ref={inputRef}
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={e => {
+              if (autoRecordCountdown !== null) cancelAutoRecord();
+              setInput(e.target.value);
+            }}
             onKeyDown={e => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -758,13 +846,16 @@ function AIInterview({
             <button
               type="button"
               onClick={stopInterviewRecording}
-              className="bg-red-500 text-white p-3 rounded-xl hover:bg-red-600 transition-colors flex-shrink-0 text-base leading-none"
-              aria-label="Stop recording"
-              title="Stop recording"
+              className="bg-red-500 text-white px-3 py-2 rounded-xl hover:bg-red-600 transition-colors flex-shrink-0"
+              aria-label="Recording — click to stop"
+              title="Recording — click to stop"
             >
-              <span className="flex items-center gap-1.5 text-sm font-semibold">
-                <span className="w-2 h-2 rounded-full bg-white animate-pulse inline-block flex-shrink-0" aria-hidden="true" />
-                Stop
+              <span className="flex flex-col items-center gap-0.5">
+                <span className="flex items-center gap-1.5 text-sm font-semibold whitespace-nowrap">
+                  <span className="w-2 h-2 rounded-full bg-white animate-pulse inline-block flex-shrink-0" aria-hidden="true" />
+                  Recording…
+                </span>
+                <span className="text-[10px] font-semibold animate-pulse">Click to Stop</span>
               </span>
             </button>
           ) : interviewRecState === "transcribing" ? (
@@ -775,29 +866,35 @@ function AIInterview({
               </svg>
             </div>
           ) : (
-            <button
-              type="button"
-              onClick={startInterviewRecording}
-              disabled={loading}
-              className="bg-navy/10 text-navy p-3 rounded-xl hover:bg-navy/20 transition-colors disabled:opacity-40 flex-shrink-0 text-base leading-none"
-              aria-label="Click to answer verbally"
-              title="Click to answer verbally"
-            >
-              🎤
-            </button>
+            <div className="relative flex-shrink-0">
+              {autoRecordCountdown !== null && (
+                <span className="absolute inset-[-3px] rounded-xl ring-2 ring-gold animate-ping opacity-60" aria-hidden="true" />
+              )}
+              <button
+                type="button"
+                onClick={startInterviewRecording}
+                disabled={loading}
+                className="bg-navy/10 text-navy px-3 py-2 rounded-xl hover:bg-navy/20 transition-colors disabled:opacity-40 flex flex-col items-center gap-0.5"
+                aria-label="Click to talk"
+                title="Click to talk"
+              >
+                <span className="text-base leading-none">🎤</span>
+                <span className="text-[10px] font-semibold whitespace-nowrap">Click to Talk</span>
+              </button>
+            </div>
           )}
           <button
             type="button"
             onClick={sendMessage}
             disabled={loading || !input.trim() || interviewRecState === "transcribing"}
             className="bg-navy text-cream px-4 py-3 rounded-xl hover:bg-navy/90 transition-colors disabled:opacity-40 flex-shrink-0 flex items-center gap-1.5 text-sm font-semibold"
-            aria-label="Send answer"
-            title="Send answer"
+            aria-label="Continue"
+            title="Continue"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
-            Send
+            Continue
           </button>
         </div>
       </div>
