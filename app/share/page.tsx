@@ -1519,6 +1519,27 @@ export default function SharePage() {
       ? form.tags.split(",").map((t) => t.trim()).filter(Boolean)
       : [];
 
+    // Upload interview audio blobs before submission so URLs can be stored on the story row
+    let interview_audio_urls: string[] = [];
+    if (interviewAudioBlobs.length > 0) {
+      const prefix = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
+      const uploadResults = await Promise.all(
+        interviewAudioBlobs.map((blob, idx) =>
+          supabase.storage
+            .from("story-audio")
+            .upload(`interview/${prefix}_${idx}.webm`, blob, { contentType: "audio/webm" })
+        )
+      );
+      interview_audio_urls = uploadResults
+        .filter(({ error }) => !error)
+        .map(({ data }) => {
+          const { data: urlData } = supabase.storage
+            .from("story-audio")
+            .getPublicUrl(data!.path);
+          return urlData.publicUrl;
+        });
+    }
+
     const res = await fetch("/api/submit-story", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -1531,6 +1552,7 @@ export default function SharePage() {
         story_text: form.story_text,
         video_url,
         audio_url,
+        interview_audio_urls,
         tags: tags.length > 0 ? tags : null,
         original_language: form.original_language || "en",
         clerk_user_id: userId ?? null,
@@ -1548,17 +1570,6 @@ export default function SharePage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ storyId: id }),
         }).catch(() => {/* non-critical */});
-      }
-      // Upload interview audio recordings (fire and forget)
-      if (interviewAudioBlobs.length > 0) {
-        const storyIdForPath = id ?? `${Date.now()}`;
-        Promise.all(
-          interviewAudioBlobs.map((blob, idx) =>
-            supabase.storage
-              .from("story-audio")
-              .upload(`interview/${storyIdForPath}_${idx}.webm`, blob, { contentType: "audio/webm" })
-          )
-        ).catch(() => {/* non-critical */});
       }
       localStorage.removeItem(DRAFT_KEY);
       setIsUsingDraft(false);

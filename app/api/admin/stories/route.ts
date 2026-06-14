@@ -22,7 +22,7 @@ export async function GET() {
 
     const { data, error } = await supabase
       .from("stories")
-      .select("id, author_name, country_of_origin, us_state, year_of_arrival, profession, story_text, audio_url, is_featured, created_at, original_language, status, tags, moderation_reason")
+      .select("id, author_name, country_of_origin, us_state, year_of_arrival, profession, story_text, audio_url, video_url, interview_audio_urls, is_featured, created_at, original_language, status, tags, moderation_reason")
       .order("created_at", { ascending: false });
 
     if (error) {

@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -10,6 +11,14 @@ const LANG_MAP: Record<string, string> = {
   ar: "ar",
   hi: "hi",
 };
+
+function extFromFile(file: File): string {
+  const nameParts = file.name.split(".");
+  if (nameParts.length > 1) return nameParts.pop()!;
+  const typeParts = file.type.split("/");
+  if (typeParts.length > 1 && typeParts[1]) return typeParts[1].split(";")[0];
+  return "audio";
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,7 +40,34 @@ export async function POST(req: NextRequest) {
 
     const transcription = await client.audio.transcriptions.create(params);
 
-    return NextResponse.json({ text: transcription.text });
+    let audio_url: string | null = null;
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+      if (supabaseUrl && serviceRoleKey) {
+        const supabase = createClient(supabaseUrl, serviceRoleKey, {
+          auth: { persistSession: false },
+        });
+        const ext = extFromFile(audio);
+        const path = `interview/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+        const arrayBuffer = await audio.arrayBuffer();
+        const { data: upload, error: uploadErr } = await supabase.storage
+          .from("story-audio")
+          .upload(path, Buffer.from(arrayBuffer), { contentType: audio.type || "audio/webm" });
+        if (uploadErr) {
+          console.error("[transcribe] storage upload failed:", uploadErr.message);
+        } else {
+          const { data: urlData } = supabase.storage
+            .from("story-audio")
+            .getPublicUrl(upload.path);
+          audio_url = urlData.publicUrl;
+        }
+      }
+    } catch (storageErr) {
+      console.error("[transcribe] storage error:", storageErr);
+    }
+
+    return NextResponse.json({ text: transcription.text, audio_url });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Transcription failed";
     return NextResponse.json({ error: message }, { status: 500 });

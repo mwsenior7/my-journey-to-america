@@ -16,6 +16,9 @@ type AdminStory = {
   created_at: string;
   tags: string[] | null;
   moderation_reason: string | null;
+  audio_url: string | null;
+  video_url: string | null;
+  interview_audio_urls: string[];
 };
 
 type StatusFilter = "all" | "pending" | "approved" | "rejected";
@@ -302,6 +305,37 @@ export default function AdminPanel() {
                 <div className="mt-3 flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
                   <span className="text-blue-500 text-xs font-bold uppercase tracking-wide shrink-0 mt-0.5">AI</span>
                   <p className="text-xs text-blue-700 leading-relaxed">{story.moderation_reason}</p>
+                </div>
+              )}
+
+              {(story.audio_url || story.video_url || (story.interview_audio_urls && story.interview_audio_urls.length > 0)) && (
+                <div className="mt-3 border border-navy/10 rounded-lg px-3 py-2.5 flex flex-col gap-2">
+                  <p className="text-xs font-bold text-navy/50 uppercase tracking-wide">Recordings</p>
+                  {story.audio_url && (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs text-navy/50">Story audio</span>
+                      <audio controls src={story.audio_url} preload="none" className="w-full h-8" />
+                    </div>
+                  )}
+                  {story.video_url && (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-xs text-navy/50">Video</span>
+                      <a
+                        href={story.video_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-gold underline underline-offset-2 hover:text-gold/80 break-all"
+                      >
+                        {story.video_url}
+                      </a>
+                    </div>
+                  )}
+                  {story.interview_audio_urls && story.interview_audio_urls.map((url, i) => (
+                    <div key={url} className="flex flex-col gap-1">
+                      <span className="text-xs text-navy/50">Interview Q{i + 1}</span>
+                      <audio controls src={url} preload="none" className="w-full h-8" />
+                    </div>
+                  ))}
                 </div>
               )}
 

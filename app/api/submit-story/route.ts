@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { name, country, year_arrived, us_state, profession, story_text, original_language, clerk_user_id } = body;
+  const { name, country, year_arrived, us_state, profession, story_text, original_language, clerk_user_id, audio_url, video_url, interview_audio_urls } = body;
 
   if (!name || !country || !story_text) {
     return NextResponse.json({ error: "Missing required fields: name, country, story_text" }, { status: 400 });
@@ -69,6 +69,9 @@ export async function POST(req: NextRequest) {
     status: moderation.decision,
     moderation_reason: moderation.reason,
     clerk_user_id: clerk_user_id ?? null,
+    audio_url: audio_url ?? null,
+    video_url: video_url ?? null,
+    interview_audio_urls: interview_audio_urls ?? [],
   }).select("id").single();
 
   if (error) {
