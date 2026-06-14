@@ -301,6 +301,7 @@ function AIInterview({
         try {
           const fd = new FormData();
           fd.append("audio", blob, "recording.webm");
+          if (language) fd.append("language", language);
           const res = await fetch("/api/transcribe", { method: "POST", body: fd });
           const data = await res.json();
           if (data.text) setInput(data.text);
