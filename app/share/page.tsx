@@ -154,6 +154,7 @@ function AIInterview({
   );
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingText, setEditingText] = useState("");
+  const [showStartOverConfirm, setShowStartOverConfirm] = useState(false);
   const [ttsLoading, setTtsLoading] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -456,6 +457,7 @@ function AIInterview({
     setEditedStory("");
     setEditingIndex(null);
     setEditingText("");
+    setShowStartOverConfirm(false);
     interviewAudioBlobsRef.current = [];
     onAudioBlobsChange?.([]);
     clearInterviewRecording();
@@ -559,14 +561,36 @@ function AIInterview({
         <span className="text-xs text-navy/40 flex-shrink-0 tabular-nums">
           {progress}/{TOTAL_QUESTIONS} questions
         </span>
-        {userMessageCount > 0 && (
+        {userMessageCount > 0 && !showStartOverConfirm && (
           <button
             type="button"
-            onClick={startOver}
+            onClick={() => setShowStartOverConfirm(true)}
             className="text-xs text-navy/35 hover:text-navy/60 transition-colors underline underline-offset-2 flex-shrink-0"
+            aria-label="Start over — reset interview to question 1"
           >
             Start Over
           </button>
+        )}
+        {showStartOverConfirm && (
+          <div className="flex items-center gap-2 flex-shrink-0" role="group" aria-label="Confirm start over">
+            <span className="text-xs text-navy/60 whitespace-nowrap">Progress will be lost.</span>
+            <button
+              type="button"
+              onClick={startOver}
+              className="text-xs text-red-500 font-semibold hover:text-red-600 transition-colors whitespace-nowrap"
+              aria-label="Yes, start over and lose my progress"
+            >
+              Yes, reset
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowStartOverConfirm(false)}
+              className="text-xs text-navy/40 hover:text-navy/60 transition-colors whitespace-nowrap"
+              aria-label="Cancel — keep my progress"
+            >
+              Cancel
+            </button>
+          </div>
         )}
       </div>
 
@@ -738,7 +762,10 @@ function AIInterview({
               aria-label="Stop recording"
               title="Stop recording"
             >
-              ⏹
+              <span className="flex items-center gap-1.5 text-sm font-semibold">
+                <span className="w-2 h-2 rounded-full bg-white animate-pulse inline-block flex-shrink-0" aria-hidden="true" />
+                Stop
+              </span>
             </button>
           ) : interviewRecState === "transcribing" ? (
             <div className="p-3 flex-shrink-0 flex items-center justify-center">
@@ -753,8 +780,8 @@ function AIInterview({
               onClick={startInterviewRecording}
               disabled={loading}
               className="bg-navy/10 text-navy p-3 rounded-xl hover:bg-navy/20 transition-colors disabled:opacity-40 flex-shrink-0 text-base leading-none"
-              aria-label="Record answer"
-              title="Record your answer"
+              aria-label="Click to answer verbally"
+              title="Click to answer verbally"
             >
               🎤
             </button>
@@ -763,12 +790,14 @@ function AIInterview({
             type="button"
             onClick={sendMessage}
             disabled={loading || !input.trim() || interviewRecState === "transcribing"}
-            className="bg-navy text-cream p-3 rounded-xl hover:bg-navy/90 transition-colors disabled:opacity-40 flex-shrink-0"
-            aria-label="Send"
+            className="bg-navy text-cream px-4 py-3 rounded-xl hover:bg-navy/90 transition-colors disabled:opacity-40 flex-shrink-0 flex items-center gap-1.5 text-sm font-semibold"
+            aria-label="Send answer"
+            title="Send answer"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
             </svg>
+            Send
           </button>
         </div>
       </div>
