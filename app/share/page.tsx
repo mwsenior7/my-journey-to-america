@@ -747,6 +747,7 @@ function AIInterview({
         // Genuine silence keeps all samples near 128, giving RMS ~0–1. Quiet
         // background noise might reach ~2. Threshold 3 catches truly silent
         // recordings while letting even soft speech (typically RMS 10+) through.
+        console.log("[silence-debug] maxVolume:", maxVolumeRef.current);
         if (maxVolumeRef.current < 3) {
           setNoSpeechMsg(ui.noSpeechDetected);
           setInterviewRecState("stopped");
