@@ -114,6 +114,7 @@ type UIStrings = {
   recordingStatus: string;
   processingRecording: string;
   noSpeechDetected: string;
+  noSoundLive: string;
 };
 
 const UI_STRINGS: Record<string, UIStrings> = {
@@ -136,6 +137,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     recordingStatus: "Recording…",
     processingRecording: "Processing recording…",
     noSpeechDetected: "We couldn't hear that clearly. Try recording again, or type your answer.",
+    noSoundLive: "We're not hearing any sound. Check your microphone, or stop and type your answer instead.",
   },
   es: {
     placeholder: "Comparte tu respuesta… (Intro para enviar, Shift+Intro para nueva línea)",
@@ -156,6 +158,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     recordingStatus: "Grabando…",
     processingRecording: "Procesando grabación…",
     noSpeechDetected: "No pudimos escucharte bien. Intenta grabar de nuevo o escribe tu respuesta.",
+    noSoundLive: "No estamos escuchando ningún sonido. Comprueba tu micrófono o para y escribe tu respuesta.",
   },
   fr: {
     placeholder: "Partagez votre réponse… (Entrée pour envoyer, Maj+Entrée pour nouvelle ligne)",
@@ -176,6 +179,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     recordingStatus: "Enregistrement…",
     processingRecording: "Traitement de l'enregistrement…",
     noSpeechDetected: "Nous n'avons pas pu vous entendre clairement. Réessayez d'enregistrer ou tapez votre réponse.",
+    noSoundLive: "Nous n'entendons aucun son. Vérifiez votre microphone, ou arrêtez et tapez votre réponse.",
   },
   pt: {
     placeholder: "Compartilhe sua resposta… (Enter para enviar, Shift+Enter para nova linha)",
@@ -196,6 +200,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     recordingStatus: "Gravando…",
     processingRecording: "Processando gravação…",
     noSpeechDetected: "Não conseguimos ouvi-lo bem. Tente gravar novamente ou escreva sua resposta.",
+    noSoundLive: "Não estamos ouvindo nenhum som. Verifique seu microfone ou pare e escreva sua resposta.",
   },
   de: {
     placeholder: "Teile deine Antwort… (Eingabe zum Senden, Umschalt+Eingabe für neue Zeile)",
@@ -216,6 +221,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     recordingStatus: "Aufnahme…",
     processingRecording: "Aufnahme wird verarbeitet…",
     noSpeechDetected: "Wir konnten das nicht klar hören. Versuche es erneut aufzunehmen oder tippe deine Antwort.",
+    noSoundLive: "Wir hören keinen Ton. Überprüfe dein Mikrofon, oder stoppe die Aufnahme und tippe deine Antwort.",
   },
   it: {
     placeholder: "Condividi la tua risposta… (Invio per inviare, Maiusc+Invio per nuova riga)",
@@ -236,6 +242,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     recordingStatus: "Registrazione…",
     processingRecording: "Elaborazione registrazione…",
     noSpeechDetected: "Non siamo riusciti a sentirti bene. Riprova a registrare o digita la tua risposta.",
+    noSoundLive: "Non stiamo sentendo nessun suono. Controlla il microfono, oppure fermati e digita la tua risposta.",
   },
   zh: {
     placeholder: "分享您的回答…（Enter 发送，Shift+Enter 换行）",
@@ -256,6 +263,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     recordingStatus: "录音中…",
     processingRecording: "处理录音中…",
     noSpeechDetected: "我们听不清楚。请重新录音，或直接输入您的回答。",
+    noSoundLive: "我们没有听到任何声音。请检查您的麦克风，或停止录音并输入您的回答。",
   },
   ja: {
     placeholder: "回答を入力してください…（Enterで送信、Shift+Enterで改行）",
@@ -276,6 +284,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     recordingStatus: "録音中…",
     processingRecording: "録音を処理中…",
     noSpeechDetected: "はっきりと聞き取れませんでした。もう一度録音するか、回答を入力してください。",
+    noSoundLive: "音が聞こえません。マイクを確認するか、停止して回答を入力してください。",
   },
   ko: {
     placeholder: "답변을 입력하세요…（Enter로 전송, Shift+Enter로 줄바꿈）",
@@ -296,6 +305,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     recordingStatus: "녹음 중…",
     processingRecording: "녹음 처리 중…",
     noSpeechDetected: "명확하게 들리지 않았습니다. 다시 녹음하거나 답변을 입력해 주세요.",
+    noSoundLive: "소리가 들리지 않아요. 마이크를 확인하거나, 중지하고 답변을 입력해 주세요.",
   },
   ar: {
     placeholder: "شارك إجابتك… (Enter للإرسال، Shift+Enter لسطر جديد)",
@@ -316,6 +326,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     recordingStatus: "تسجيل…",
     processingRecording: "معالجة التسجيل…",
     noSpeechDetected: "لم نتمكن من سماعك بوضوح. حاول التسجيل مرة أخرى أو اكتب إجابتك.",
+    noSoundLive: "لا نسمع أي صوت. تحقق من الميكروفون، أو أوقف التسجيل واكتب إجابتك.",
   },
   hi: {
     placeholder: "अपना उत्तर साझा करें… (भेजने के लिए Enter, नई पंक्ति के लिए Shift+Enter)",
@@ -336,6 +347,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     recordingStatus: "रिकॉर्डिंग…",
     processingRecording: "रिकॉर्डिंग प्रोसेस हो रही है…",
     noSpeechDetected: "हम आपको स्पष्ट रूप से नहीं सुन सके। दोबारा रिकॉर्ड करें या अपना उत्तर टाइप करें।",
+    noSoundLive: "हमें कोई आवाज़ नहीं सुनाई दे रही। अपना माइक्रोफ़ोन जाँचें, या रोकें और अपना उत्तर टाइप करें।",
   },
   ru: {
     placeholder: "Поделитесь своим ответом… (Enter — отправить, Shift+Enter — новая строка)",
@@ -356,6 +368,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     recordingStatus: "Запись…",
     processingRecording: "Обработка записи…",
     noSpeechDetected: "Нам не удалось чётко расслышать. Попробуйте записать снова или напечатайте ответ.",
+    noSoundLive: "Мы не слышим звука. Проверьте микрофон или остановите запись и напечатайте ответ.",
   },
   uk: {
     placeholder: "Поділіться своєю відповіддю… (Enter — надіслати, Shift+Enter — новий рядок)",
@@ -376,6 +389,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     recordingStatus: "Запис…",
     processingRecording: "Обробка запису…",
     noSpeechDetected: "Нам не вдалося чітко почути. Спробуйте записати знову або надрукуйте відповідь.",
+    noSoundLive: "Ми не чуємо жодного звуку. Перевірте мікрофон або зупиніть запис і надрукуйте відповідь.",
   },
   el: {
     placeholder: "Μοιραστείτε την απάντησή σας… (Enter για αποστολή, Shift+Enter για νέα γραμμή)",
@@ -396,6 +410,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     recordingStatus: "Ηχογράφηση…",
     processingRecording: "Επεξεργασία ηχογράφησης…",
     noSpeechDetected: "Δεν μπορέσαμε να σας ακούσουμε καθαρά. Δοκιμάστε να ηχογραφήσετε ξανά ή πληκτρολογήστε την απάντησή σας.",
+    noSoundLive: "Δεν ακούμε κανέναν ήχο. Ελέγξτε το μικρόφωνό σας ή σταματήστε και πληκτρολογήστε την απάντησή σας.",
   },
   vi: {
     placeholder: "Chia sẻ câu trả lời của bạn… (Enter để gửi, Shift+Enter để xuống dòng)",
@@ -416,6 +431,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     recordingStatus: "Đang ghi…",
     processingRecording: "Đang xử lý ghi âm…",
     noSpeechDetected: "Chúng tôi không nghe rõ. Hãy thử ghi âm lại hoặc nhập câu trả lời của bạn.",
+    noSoundLive: "Chúng tôi không nghe thấy âm thanh. Kiểm tra micrô của bạn, hoặc dừng lại và nhập câu trả lời.",
   },
 };
 
@@ -503,6 +519,8 @@ function AIInterview({
   const autoRecordIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoRecordDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxVolumeRef = useRef<number>(0);
+  const hasDetectedSoundRef = useRef(false);
+  const recordingElapsedRef = useRef(0);
   const audioContextRef = useRef<AudioContext | null>(null);
   const volumeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [noSpeechMsg, setNoSpeechMsg] = useState("");
@@ -688,6 +706,8 @@ function AIInterview({
     console.log("mic button clicked");
     setNoSpeechMsg("");
     maxVolumeRef.current = 0;
+    hasDetectedSoundRef.current = false;
+    recordingElapsedRef.current = 0;
     if (interviewAudioBlobUrl) {
       URL.revokeObjectURL(interviewAudioBlobUrl);
       setInterviewAudioBlobUrl(null);
@@ -713,6 +733,14 @@ function AIInterview({
         }
         const rms = Math.sqrt(sumSq / dataArray.length);
         if (rms > maxVolumeRef.current) maxVolumeRef.current = rms;
+        recordingElapsedRef.current += 100;
+        if (rms >= 3 && !hasDetectedSoundRef.current) {
+          hasDetectedSoundRef.current = true;
+          setNoSpeechMsg(prev => (prev === ui.noSoundLive ? "" : prev));
+        }
+        if (recordingElapsedRef.current >= 2500 && !hasDetectedSoundRef.current) {
+          setNoSpeechMsg(prev => (prev === ui.noSoundLive ? prev : ui.noSoundLive));
+        }
       }, 100);
 
       interviewChunksRef.current = [];
@@ -747,9 +775,8 @@ function AIInterview({
         // Genuine silence keeps all samples near 128, giving RMS ~0–1. Quiet
         // background noise might reach ~2. Threshold 3 catches truly silent
         // recordings while letting even soft speech (typically RMS 10+) through.
-        console.log("[silence-debug] maxVolume:", maxVolumeRef.current);
         if (maxVolumeRef.current < 3) {
-          setNoSpeechMsg(ui.noSpeechDetected);
+          setNoSpeechMsg(prev => (prev === ui.noSoundLive ? prev : ui.noSpeechDetected));
           setInterviewRecState("stopped");
           return;
         }
