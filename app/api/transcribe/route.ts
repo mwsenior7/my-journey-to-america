@@ -68,6 +68,14 @@ export async function POST(req: NextRequest) {
     const no_speech_detected = avgNoSpeechProb > 0.5 || isDenylist;
     const text = no_speech_detected ? "" : transcription.text;
 
+    console.log("[transcribe-debug]", {
+      rawText: transcription.text,
+      segmentCount: segments.length,
+      avgNoSpeechProb,
+      no_speech_detected,
+      finalText: text,
+    });
+
     let audio_url: string | null = null;
     try {
       const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
