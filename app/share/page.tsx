@@ -502,6 +502,9 @@ function AIInterview({
   const [autoRecordCountdown, setAutoRecordCountdown] = useState<number | null>(null);
   const autoRecordIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoRecordDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const maxVolumeRef = useRef<number>(0);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const volumeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [noSpeechMsg, setNoSpeechMsg] = useState("");
 
   function cancelAutoRecord() {
@@ -625,6 +628,11 @@ function AIInterview({
       if (interviewTimerRef.current) clearInterval(interviewTimerRef.current);
       if (autoRecordIntervalRef.current) clearInterval(autoRecordIntervalRef.current);
       if (autoRecordDelayRef.current) clearTimeout(autoRecordDelayRef.current);
+      if (volumeIntervalRef.current) {
+        clearInterval(volumeIntervalRef.current);
+        volumeIntervalRef.current = null;
+      }
+      audioContextRef.current?.close();
     };
   }, []);
 
@@ -679,6 +687,7 @@ function AIInterview({
   async function startInterviewRecording() {
     console.log("mic button clicked");
     setNoSpeechMsg("");
+    maxVolumeRef.current = 0;
     if (interviewAudioBlobUrl) {
       URL.revokeObjectURL(interviewAudioBlobUrl);
       setInterviewAudioBlobUrl(null);
@@ -688,6 +697,24 @@ function AIInterview({
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 44100 },
       });
+
+      const audioCtx = new AudioContext();
+      audioContextRef.current = audioCtx;
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 2048;
+      audioCtx.createMediaStreamSource(stream).connect(analyser);
+      const dataArray = new Uint8Array(analyser.fftSize);
+      volumeIntervalRef.current = setInterval(() => {
+        analyser.getByteTimeDomainData(dataArray);
+        let sumSq = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          const dev = dataArray[i] - 128;
+          sumSq += dev * dev;
+        }
+        const rms = Math.sqrt(sumSq / dataArray.length);
+        if (rms > maxVolumeRef.current) maxVolumeRef.current = rms;
+      }, 100);
+
       interviewChunksRef.current = [];
       const mimeType = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
@@ -699,6 +726,15 @@ function AIInterview({
       };
 
       mr.onstop = async () => {
+        if (volumeIntervalRef.current) {
+          clearInterval(volumeIntervalRef.current);
+          volumeIntervalRef.current = null;
+        }
+        if (audioContextRef.current) {
+          audioContextRef.current.close();
+          audioContextRef.current = null;
+        }
+
         const blob = new Blob(interviewChunksRef.current, { type: mimeType });
         interviewAudioBlobsRef.current = [...interviewAudioBlobsRef.current, blob];
         onAudioBlobsChange?.(interviewAudioBlobsRef.current);
@@ -706,6 +742,16 @@ function AIInterview({
 
         const url = URL.createObjectURL(blob);
         setInterviewAudioBlobUrl(url);
+
+        // Client-side silence pre-check: RMS threshold of 3 (on a 0–128 scale).
+        // Genuine silence keeps all samples near 128, giving RMS ~0–1. Quiet
+        // background noise might reach ~2. Threshold 3 catches truly silent
+        // recordings while letting even soft speech (typically RMS 10+) through.
+        if (maxVolumeRef.current < 3) {
+          setNoSpeechMsg(ui.noSpeechDetected);
+          setInterviewRecState("stopped");
+          return;
+        }
 
         try {
           const fd = new FormData();
