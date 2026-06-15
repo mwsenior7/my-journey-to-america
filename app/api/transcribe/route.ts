@@ -12,6 +12,20 @@ const LANG_MAP: Record<string, string> = {
   hi: "hi",
 };
 
+const SILENCE_DENYLIST = new Set([
+  "you",
+  "you.",
+  "thank you",
+  "thank you.",
+  "thanks for watching",
+  "thanks for watching.",
+  "thanks for watching!",
+  "thank you for watching.",
+  "thank you for watching!",
+  "bye",
+  "bye.",
+]);
+
 function extFromFile(file: File): string {
   const nameParts = file.name.split(".");
   if (nameParts.length > 1) return nameParts.pop()!;
@@ -30,15 +44,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "audio is required" }, { status: 400 });
     }
 
-    const params: OpenAI.Audio.TranscriptionCreateParamsNonStreaming = {
+    const params: OpenAI.Audio.TranscriptionCreateParamsNonStreaming<"verbose_json"> = {
       file: audio,
       model: "whisper-1",
+      response_format: "verbose_json",
     };
 
     const lang = langCode ? LANG_MAP[langCode] : undefined;
     if (lang) params.language = lang;
 
     const transcription = await client.audio.transcriptions.create(params);
+
+    const segments = transcription.segments ?? [];
+    const avgNoSpeechProb =
+      segments.length === 0
+        ? 1
+        : segments.reduce((sum, s) => sum + s.no_speech_prob, 0) / segments.length;
+
+    const trimmedLower = transcription.text.trim().toLowerCase();
+    const isDenylist =
+      SILENCE_DENYLIST.has(trimmedLower) && trimmedLower.length < 20;
+
+    const no_speech_detected = avgNoSpeechProb > 0.5 || isDenylist;
+    const text = no_speech_detected ? "" : transcription.text;
 
     let audio_url: string | null = null;
     try {
@@ -67,7 +95,7 @@ export async function POST(req: NextRequest) {
       console.error("[transcribe] storage error:", storageErr);
     }
 
-    return NextResponse.json({ text: transcription.text, audio_url });
+    return NextResponse.json({ text, no_speech: no_speech_detected, audio_url });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Transcription failed";
     return NextResponse.json({ error: message }, { status: 500 });

@@ -113,6 +113,7 @@ type UIStrings = {
   cancelConfirm: string;
   recordingStatus: string;
   processingRecording: string;
+  noSpeechDetected: string;
 };
 
 const UI_STRINGS: Record<string, UIStrings> = {
@@ -134,6 +135,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     cancelConfirm: "Cancel",
     recordingStatus: "Recording…",
     processingRecording: "Processing recording…",
+    noSpeechDetected: "We couldn't hear that clearly. Try recording again, or type your answer.",
   },
   es: {
     placeholder: "Comparte tu respuesta… (Intro para enviar, Shift+Intro para nueva línea)",
@@ -153,6 +155,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     cancelConfirm: "Cancelar",
     recordingStatus: "Grabando…",
     processingRecording: "Procesando grabación…",
+    noSpeechDetected: "No pudimos escucharte bien. Intenta grabar de nuevo o escribe tu respuesta.",
   },
   fr: {
     placeholder: "Partagez votre réponse… (Entrée pour envoyer, Maj+Entrée pour nouvelle ligne)",
@@ -172,6 +175,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     cancelConfirm: "Annuler",
     recordingStatus: "Enregistrement…",
     processingRecording: "Traitement de l'enregistrement…",
+    noSpeechDetected: "Nous n'avons pas pu vous entendre clairement. Réessayez d'enregistrer ou tapez votre réponse.",
   },
   pt: {
     placeholder: "Compartilhe sua resposta… (Enter para enviar, Shift+Enter para nova linha)",
@@ -191,6 +195,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     cancelConfirm: "Cancelar",
     recordingStatus: "Gravando…",
     processingRecording: "Processando gravação…",
+    noSpeechDetected: "Não conseguimos ouvi-lo bem. Tente gravar novamente ou escreva sua resposta.",
   },
   de: {
     placeholder: "Teile deine Antwort… (Eingabe zum Senden, Umschalt+Eingabe für neue Zeile)",
@@ -210,6 +215,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     cancelConfirm: "Abbrechen",
     recordingStatus: "Aufnahme…",
     processingRecording: "Aufnahme wird verarbeitet…",
+    noSpeechDetected: "Wir konnten das nicht klar hören. Versuche es erneut aufzunehmen oder tippe deine Antwort.",
   },
   it: {
     placeholder: "Condividi la tua risposta… (Invio per inviare, Maiusc+Invio per nuova riga)",
@@ -229,6 +235,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     cancelConfirm: "Annulla",
     recordingStatus: "Registrazione…",
     processingRecording: "Elaborazione registrazione…",
+    noSpeechDetected: "Non siamo riusciti a sentirti bene. Riprova a registrare o digita la tua risposta.",
   },
   zh: {
     placeholder: "分享您的回答…（Enter 发送，Shift+Enter 换行）",
@@ -248,6 +255,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     cancelConfirm: "取消",
     recordingStatus: "录音中…",
     processingRecording: "处理录音中…",
+    noSpeechDetected: "我们听不清楚。请重新录音，或直接输入您的回答。",
   },
   ja: {
     placeholder: "回答を入力してください…（Enterで送信、Shift+Enterで改行）",
@@ -267,6 +275,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     cancelConfirm: "キャンセル",
     recordingStatus: "録音中…",
     processingRecording: "録音を処理中…",
+    noSpeechDetected: "はっきりと聞き取れませんでした。もう一度録音するか、回答を入力してください。",
   },
   ko: {
     placeholder: "답변을 입력하세요…（Enter로 전송, Shift+Enter로 줄바꿈）",
@@ -286,6 +295,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     cancelConfirm: "취소",
     recordingStatus: "녹음 중…",
     processingRecording: "녹음 처리 중…",
+    noSpeechDetected: "명확하게 들리지 않았습니다. 다시 녹음하거나 답변을 입력해 주세요.",
   },
   ar: {
     placeholder: "شارك إجابتك… (Enter للإرسال، Shift+Enter لسطر جديد)",
@@ -305,6 +315,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     cancelConfirm: "إلغاء",
     recordingStatus: "تسجيل…",
     processingRecording: "معالجة التسجيل…",
+    noSpeechDetected: "لم نتمكن من سماعك بوضوح. حاول التسجيل مرة أخرى أو اكتب إجابتك.",
   },
   hi: {
     placeholder: "अपना उत्तर साझा करें… (भेजने के लिए Enter, नई पंक्ति के लिए Shift+Enter)",
@@ -324,6 +335,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     cancelConfirm: "रद्द करें",
     recordingStatus: "रिकॉर्डिंग…",
     processingRecording: "रिकॉर्डिंग प्रोसेस हो रही है…",
+    noSpeechDetected: "हम आपको स्पष्ट रूप से नहीं सुन सके। दोबारा रिकॉर्ड करें या अपना उत्तर टाइप करें।",
   },
   ru: {
     placeholder: "Поделитесь своим ответом… (Enter — отправить, Shift+Enter — новая строка)",
@@ -343,6 +355,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     cancelConfirm: "Отмена",
     recordingStatus: "Запись…",
     processingRecording: "Обработка записи…",
+    noSpeechDetected: "Нам не удалось чётко расслышать. Попробуйте записать снова или напечатайте ответ.",
   },
   uk: {
     placeholder: "Поділіться своєю відповіддю… (Enter — надіслати, Shift+Enter — новий рядок)",
@@ -362,6 +375,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     cancelConfirm: "Скасувати",
     recordingStatus: "Запис…",
     processingRecording: "Обробка запису…",
+    noSpeechDetected: "Нам не вдалося чітко почути. Спробуйте записати знову або надрукуйте відповідь.",
   },
   el: {
     placeholder: "Μοιραστείτε την απάντησή σας… (Enter για αποστολή, Shift+Enter για νέα γραμμή)",
@@ -381,6 +395,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     cancelConfirm: "Ακύρωση",
     recordingStatus: "Ηχογράφηση…",
     processingRecording: "Επεξεργασία ηχογράφησης…",
+    noSpeechDetected: "Δεν μπορέσαμε να σας ακούσουμε καθαρά. Δοκιμάστε να ηχογραφήσετε ξανά ή πληκτρολογήστε την απάντησή σας.",
   },
   vi: {
     placeholder: "Chia sẻ câu trả lời của bạn… (Enter để gửi, Shift+Enter để xuống dòng)",
@@ -400,6 +415,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     cancelConfirm: "Hủy",
     recordingStatus: "Đang ghi…",
     processingRecording: "Đang xử lý ghi âm…",
+    noSpeechDetected: "Chúng tôi không nghe rõ. Hãy thử ghi âm lại hoặc nhập câu trả lời của bạn.",
   },
 };
 
@@ -486,6 +502,7 @@ function AIInterview({
   const [autoRecordCountdown, setAutoRecordCountdown] = useState<number | null>(null);
   const autoRecordIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoRecordDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [noSpeechMsg, setNoSpeechMsg] = useState("");
 
   function cancelAutoRecord() {
     if (autoRecordIntervalRef.current != null) {
@@ -611,6 +628,31 @@ function AIInterview({
     };
   }, []);
 
+  // Abort in-flight TTS and kill audio/countdowns when the component unmounts
+  // so a navigating-away-and-back cycle doesn't layer two overlapping spoken questions.
+  useEffect(() => {
+    return () => {
+      speakAbortRef.current?.abort();
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = "";
+        audioRef.current = null;
+      }
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      if (autoRecordIntervalRef.current) {
+        clearInterval(autoRecordIntervalRef.current);
+        autoRecordIntervalRef.current = null;
+      }
+      if (autoRecordDelayRef.current) {
+        clearTimeout(autoRecordDelayRef.current);
+        autoRecordDelayRef.current = null;
+      }
+      setAutoRecordCountdown(null);
+    };
+  }, []);
+
   useEffect(() => {
     const stopAudio = () => {
       if (audioRef.current) {
@@ -636,6 +678,7 @@ function AIInterview({
 
   async function startInterviewRecording() {
     console.log("mic button clicked");
+    setNoSpeechMsg("");
     if (interviewAudioBlobUrl) {
       URL.revokeObjectURL(interviewAudioBlobUrl);
       setInterviewAudioBlobUrl(null);
@@ -670,7 +713,12 @@ function AIInterview({
           if (language) fd.append("language", language);
           const res = await fetch("/api/transcribe", { method: "POST", body: fd });
           const data = await res.json();
-          if (data.text) setInput(data.text);
+          if (data.no_speech || !data.text) {
+            setNoSpeechMsg(ui.noSpeechDetected);
+          } else {
+            setNoSpeechMsg("");
+            setInput(data.text);
+          }
         } catch {
           // transcription failure is non-fatal — user can type manually
         } finally {
@@ -1097,6 +1145,14 @@ function AIInterview({
             {ui.processingRecording}
           </div>
         )}
+        {noSpeechMsg && (
+          <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-2 rounded-lg">
+            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            {noSpeechMsg}
+          </div>
+        )}
         {interviewAudioBlobUrl && (
           <div className="flex flex-col gap-1">
             <p className="text-xs text-navy/50 px-1">Recorded: {interviewRecordingSeconds} second{interviewRecordingSeconds !== 1 ? "s" : ""}</p>
@@ -1137,6 +1193,7 @@ function AIInterview({
             value={input}
             onChange={e => {
               if (autoRecordCountdown !== null) cancelAutoRecord();
+              if (noSpeechMsg) setNoSpeechMsg("");
               setInput(e.target.value);
             }}
             onKeyDown={e => {
