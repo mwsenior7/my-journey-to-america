@@ -66,6 +66,25 @@ export async function POST(req: NextRequest) {
       SILENCE_DENYLIST.has(trimmedLower) && trimmedLower.length < 20;
 
     const no_speech_detected = avgNoSpeechProb > 0.5 || isDenylist;
+
+    // Diagnostic-only logging — does not affect no_speech_detected or the response.
+    const avgLogprob =
+      segments.length === 0
+        ? null
+        : segments.reduce((sum, s) => sum + s.avg_logprob, 0) / segments.length;
+    const avgCompressionRatio =
+      segments.length === 0
+        ? null
+        : segments.reduce((sum, s) => sum + s.compression_ratio, 0) / segments.length;
+    console.log("[transcribe diagnostic]", {
+      no_speech_detected,
+      avgNoSpeechProb,
+      avgLogprob,
+      avgCompressionRatio,
+      isDenylist,
+      textPreview: transcription.text.slice(0, 60),
+    });
+
     const text = no_speech_detected ? "" : transcription.text;
 
     let audio_url: string | null = null;
