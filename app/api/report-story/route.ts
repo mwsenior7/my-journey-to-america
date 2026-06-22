@@ -4,8 +4,6 @@ import Anthropic from "@anthropic-ai/sdk";
 import { Resend } from "resend";
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 async function categorizeReport(reason: string, comment: string, storyExcerpt: string): Promise<{ category: string; summary: string }> {
   try {
     const res = await anthropic.messages.create({
@@ -44,6 +42,7 @@ export async function POST(req: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const adminEmail = process.env.ADMIN_EMAIL ?? "michaelwsenior@gmail.com";
+  const resend = new Resend(process.env.RESEND_API_KEY);
   const fromEmail = process.env.RESEND_FROM_EMAIL ?? "noreply@myjourneytoamerica.com";
 
   if (!supabaseUrl || !serviceRoleKey) {
