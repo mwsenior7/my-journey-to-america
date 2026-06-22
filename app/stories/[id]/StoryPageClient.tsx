@@ -129,6 +129,7 @@ export default function StoryPageClient({
   const [reportReason, setReportReason] = useState("");
   const [reportComment, setReportComment] = useState("");
   const [reportEmail, setReportEmail] = useState("");
+  const [moreStoryReportId, setMoreStoryReportId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/stories/${storyId}/view`, { method: "POST" });
@@ -948,12 +949,87 @@ export default function StoryPageClient({
                       })}
                     </div>
                     <div className="mt-4">
-                      <a
-                        href={`/stories/${s.id}`}
-                        className="text-xs text-navy/30 hover:text-navy/50 transition-colors"
-                      >
-                        Report this story →
-                      </a>
+                      {moreStoryReportId !== s.id ? (
+                        <button
+                          type="button"
+                          onClick={() => setMoreStoryReportId(s.id)}
+                          className="text-xs text-navy/30 hover:text-navy/50 transition-colors"
+                        >
+                          Report this story
+                        </button>
+                      ) : (
+                        <div className="max-w-md mt-4">
+                          <p className="text-sm font-semibold text-navy mb-3">Report a concern</p>
+                          <select
+                            value={reportReason}
+                            onChange={e => setReportReason(e.target.value)}
+                            className="w-full border border-navy/20 rounded-lg px-3 py-2 text-sm text-navy mb-3"
+                          >
+                            <option value="">Select a reason...</option>
+                            <option value="Offensive or hateful content">Offensive or hateful content</option>
+                            <option value="Privacy concern">Privacy concern</option>
+                            <option value="Inaccurate information">Inaccurate information</option>
+                            <option value="Spam or fake story">Spam or fake story</option>
+                            <option value="Inappropriate content">Inappropriate content</option>
+                            <option value="Other">Other</option>
+                          </select>
+                          <textarea
+                            value={reportComment}
+                            onChange={e => setReportComment(e.target.value)}
+                            placeholder="Additional details (optional)"
+                            className="w-full border border-navy/20 rounded-lg px-3 py-2 text-sm text-navy mb-3 h-20 resize-none"
+                          />
+                          <input
+                            type="email"
+                            value={reportEmail}
+                            onChange={e => setReportEmail(e.target.value)}
+                            placeholder="Your email (optional — for updates)"
+                            className="w-full border border-navy/20 rounded-lg px-3 py-2 text-sm text-navy mb-3"
+                          />
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                if (!reportReason) return;
+                                setMoreStoryReportId(s.id + "_submitting");
+                                try {
+                                  await fetch("/api/report-story", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({
+                                      story_id: s.id,
+                                      reporter_email: reportEmail.trim() || undefined,
+                                      reason: reportReason,
+                                      comment: reportComment.trim() || undefined,
+                                      story_excerpt: s.story_text.slice(0, 300),
+                                    }),
+                                  });
+                                  setMoreStoryReportId(s.id + "_done");
+                                } catch {
+                                  setMoreStoryReportId(null);
+                                }
+                              }}
+                              disabled={!reportReason}
+                              className="px-4 py-2 bg-navy text-cream text-sm font-semibold rounded-lg disabled:opacity-40"
+                            >
+                              Submit report
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => { setMoreStoryReportId(null); setReportReason(""); setReportComment(""); setReportEmail(""); }}
+                              className="px-4 py-2 text-sm text-navy/50 hover:text-navy"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      {moreStoryReportId === s.id + "_submitting" && (
+                        <p className="text-xs text-navy/40">Submitting report...</p>
+                      )}
+                      {moreStoryReportId === s.id + "_done" && (
+                        <p className="text-xs text-navy/50">Thank you — your report has been received.</p>
+                      )}
                     </div>
                   </article>
                 </div>
