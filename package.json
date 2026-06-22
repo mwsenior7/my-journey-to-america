@@ -17,6 +17,7 @@
     "react": "^18",
     "react-dom": "^18",
     "react-simple-maps": "^3.0.0",
+    "resend": "^6.4.2",
     "world-atlas": "^2.0.2"
   },
   "devDependencies": {
