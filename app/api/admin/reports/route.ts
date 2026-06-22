@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
 export async function GET() {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   if (cookieStore.get("admin_auth")?.value !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
