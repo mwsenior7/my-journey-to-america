@@ -947,6 +947,14 @@ export default function StoryPageClient({
                         );
                       })}
                     </div>
+                    <div className="mt-4">
+                      <a
+                        href={`/stories/${s.id}`}
+                        className="text-xs text-navy/30 hover:text-navy/50 transition-colors"
+                      >
+                        Report this story →
+                      </a>
+                    </div>
                   </article>
                 </div>
               );
