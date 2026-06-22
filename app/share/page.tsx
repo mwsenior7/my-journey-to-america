@@ -1329,6 +1329,20 @@ function AIInterview({
           )}
           <button
             type="button"
+            onClick={() => {
+              if (input.trim() && !window.confirm('Skip this question? Your current answer will be lost.')) return;
+              setInput('(skipped)');
+              setTimeout(() => sendMessage(), 0);
+            }}
+            disabled={loading || interviewRecState === "transcribing" || interviewComplete}
+            className="bg-gray-100 text-gray-500 px-3 py-3 rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-40 flex-shrink-0 text-xs font-semibold whitespace-nowrap"
+            aria-label="Skip this question"
+            title="Skip this question"
+          >
+            Skip
+          </button>
+          <button
+            type="button"
             onClick={sendMessage}
             disabled={loading || !input.trim() || interviewRecState === "transcribing"}
             className="bg-navy text-cream px-4 py-3 rounded-xl hover:bg-navy/90 transition-colors disabled:opacity-40 flex-shrink-0 flex items-center gap-1.5 text-sm font-semibold"
