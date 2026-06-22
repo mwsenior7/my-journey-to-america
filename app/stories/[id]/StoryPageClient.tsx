@@ -816,6 +816,75 @@ export default function StoryPageClient({
         </div>
       )}
 
+      {/* Report this story */}
+      {!editMode && (
+        <div className="mt-16 pt-8 border-t border-navy/10">
+          {reportState === "idle" && (
+            <button
+              type="button"
+              onClick={() => setReportState("open")}
+              className="text-xs text-navy/30 hover:text-navy/50 transition-colors"
+            >
+              Report this story
+            </button>
+          )}
+          {reportState === "open" && (
+            <div className="max-w-md">
+              <p className="text-sm font-semibold text-navy mb-3">Report a concern</p>
+              <select
+                value={reportReason}
+                onChange={e => setReportReason(e.target.value)}
+                className="w-full border border-navy/20 rounded-lg px-3 py-2 text-sm text-navy mb-3"
+              >
+                <option value="">Select a reason...</option>
+                <option value="Offensive or hateful content">Offensive or hateful content</option>
+                <option value="Privacy concern">Privacy concern</option>
+                <option value="Inaccurate information">Inaccurate information</option>
+                <option value="Spam or fake story">Spam or fake story</option>
+                <option value="Inappropriate content">Inappropriate content</option>
+                <option value="Other">Other</option>
+              </select>
+              <textarea
+                value={reportComment}
+                onChange={e => setReportComment(e.target.value)}
+                placeholder="Additional details (optional)"
+                className="w-full border border-navy/20 rounded-lg px-3 py-2 text-sm text-navy mb-3 h-20 resize-none"
+              />
+              <input
+                type="email"
+                value={reportEmail}
+                onChange={e => setReportEmail(e.target.value)}
+                placeholder="Your email (optional — for updates)"
+                className="w-full border border-navy/20 rounded-lg px-3 py-2 text-sm text-navy mb-3"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={handleReport}
+                  disabled={!reportReason}
+                  className="px-4 py-2 bg-navy text-cream text-sm font-semibold rounded-lg disabled:opacity-40"
+                >
+                  Submit report
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReportState("idle")}
+                  className="px-4 py-2 text-sm text-navy/50 hover:text-navy"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+          {reportState === "submitting" && (
+            <p className="text-xs text-navy/40">Submitting report...</p>
+          )}
+          {reportState === "done" && (
+            <p className="text-xs text-navy/50">Thank you — your report has been received.</p>
+          )}
+        </div>
+      )}
+
       {/* More Stories */}
       {!editMode && moreStories.length > 0 && (
         <div className="mt-16 pt-12 border-t border-navy/10">
@@ -883,74 +952,6 @@ export default function StoryPageClient({
               );
             })}
           </div>
-        </div>
-      )}
-      {/* Report this story */}
-      {!editMode && (
-        <div className="mt-16 pt-8 border-t border-navy/10">
-          {reportState === "idle" && (
-            <button
-              type="button"
-              onClick={() => setReportState("open")}
-              className="text-xs text-navy/30 hover:text-navy/50 transition-colors"
-            >
-              Report this story
-            </button>
-          )}
-          {reportState === "open" && (
-            <div className="max-w-md">
-              <p className="text-sm font-semibold text-navy mb-3">Report a concern</p>
-              <select
-                value={reportReason}
-                onChange={e => setReportReason(e.target.value)}
-                className="w-full border border-navy/20 rounded-lg px-3 py-2 text-sm text-navy mb-3"
-              >
-                <option value="">Select a reason...</option>
-                <option value="Offensive or hateful content">Offensive or hateful content</option>
-                <option value="Privacy concern">Privacy concern</option>
-                <option value="Inaccurate information">Inaccurate information</option>
-                <option value="Spam or fake story">Spam or fake story</option>
-                <option value="Inappropriate content">Inappropriate content</option>
-                <option value="Other">Other</option>
-              </select>
-              <textarea
-                value={reportComment}
-                onChange={e => setReportComment(e.target.value)}
-                placeholder="Additional details (optional)"
-                className="w-full border border-navy/20 rounded-lg px-3 py-2 text-sm text-navy mb-3 h-20 resize-none"
-              />
-              <input
-                type="email"
-                value={reportEmail}
-                onChange={e => setReportEmail(e.target.value)}
-                placeholder="Your email (optional — for updates)"
-                className="w-full border border-navy/20 rounded-lg px-3 py-2 text-sm text-navy mb-3"
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={handleReport}
-                  disabled={!reportReason}
-                  className="px-4 py-2 bg-navy text-cream text-sm font-semibold rounded-lg disabled:opacity-40"
-                >
-                  Submit report
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setReportState("idle")}
-                  className="px-4 py-2 text-sm text-navy/50 hover:text-navy"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-          {reportState === "submitting" && (
-            <p className="text-xs text-navy/40">Submitting report...</p>
-          )}
-          {reportState === "done" && (
-            <p className="text-xs text-navy/50">Thank you — your report has been received.</p>
-          )}
         </div>
       )}
     </>
