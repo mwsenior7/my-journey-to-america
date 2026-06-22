@@ -21,6 +21,17 @@ type AdminStory = {
   interview_audio_urls: string[];
 };
 
+type AdminReport = {
+  id: string;
+  story_id: string;
+  reporter_email: string | null;
+  reason: string;
+  comment: string | null;
+  ai_category: string | null;
+  ai_summary: string | null;
+  created_at: string;
+};
+
 type StatusFilter = "all" | "pending" | "approved" | "rejected";
 
 const STATUS_BADGE: Record<string, string> = {
@@ -43,9 +54,13 @@ export default function AdminPanel() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("pending");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [reports, setReports] = useState<AdminReport[]>([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"stories" | "reports">("stories");
 
   useEffect(() => {
     refreshStories();
+    fetchReports();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -130,6 +145,19 @@ export default function AdminPanel() {
     }
   }
 
+  async function fetchReports() {
+    setReportsLoading(true);
+    try {
+      const res = await fetch("/api/admin/reports");
+      if (res.ok) {
+        const data = await res.json();
+        setReports(data.reports ?? []);
+      }
+    } finally {
+      setReportsLoading(false);
+    }
+  }
+
   const total    = stories.length;
   const pending  = stories.filter((s) => s.status === "pending").length;
   const approved = stories.filter((s) => s.status === "approved").length;
@@ -177,6 +205,25 @@ export default function AdminPanel() {
         ))}
       </div>
 
+          <div className="flex gap-2 mb-6">
+            <button
+              type="button"
+              onClick={() => setActiveTab("stories")}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === "stories" ? "bg-navy text-cream" : "bg-navy/10 text-navy"}`}
+            >
+              Stories
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("reports")}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === "reports" ? "bg-navy text-cream" : "bg-navy/10 text-navy"}`}
+            >
+              Reports {reports.length > 0 && `(${reports.length})`}
+            </button>
+          </div>
+
+      {activeTab === "stories" && (
+        <>
       <div className="flex gap-2 mb-6">
         {(["pending", "all", "approved", "rejected"] as StatusFilter[]).map((f) => (
           <button
@@ -352,6 +399,40 @@ export default function AdminPanel() {
           );
         })}
       </div>
+        </>
+      )}
+
+      {activeTab === "reports" && (
+        <div>
+          {reportsLoading && <p className="text-navy/50 text-sm">Loading reports...</p>}
+          {!reportsLoading && reports.length === 0 && (
+            <p className="text-navy/50 text-sm">No reports yet.</p>
+          )}
+          {reports.map(report => (
+            <div key={report.id} className="border border-navy/10 rounded-xl p-5 mb-4">
+              <div className="flex items-center gap-3 mb-2">
+                <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700 border border-red-200">
+                  {report.ai_category ?? "UNCATEGORIZED"}
+                </span>
+                <span className="text-xs text-navy/40">{formatDate(report.created_at)}</span>
+              </div>
+              <p className="text-sm text-navy mb-1"><strong>Story ID:</strong> {report.story_id}</p>
+              <p className="text-sm text-navy mb-1"><strong>Reason:</strong> {report.reason}</p>
+              {report.comment && <p className="text-sm text-navy mb-1"><strong>Comment:</strong> {report.comment}</p>}
+              {report.reporter_email && <p className="text-sm text-navy mb-1"><strong>Reporter:</strong> {report.reporter_email}</p>}
+              {report.ai_summary && <p className="text-sm text-navy/60 mt-2 italic">{report.ai_summary}</p>}
+              <a
+                href={`/stories/${report.story_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-gold hover:underline mt-2 inline-block"
+              >
+                View story →
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
