@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const cookieStore = await cookies();
   if (cookieStore.get("admin_auth")?.value !== "authenticated") {
@@ -23,11 +25,13 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (error) {
+      console.error("[admin/reports] supabase error:", error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ reports: data ?? [] });
   } catch (err) {
+    console.error("[admin/reports] unexpected error:", err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
