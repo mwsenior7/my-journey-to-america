@@ -191,12 +191,13 @@ export default function AdminPanel() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-10">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-10">
         {[
           { label: "Total",    value: total,    color: "text-navy" },
           { label: "Pending",  value: pending,  color: "text-yellow-700" },
           { label: "Approved", value: approved, color: "text-green-700" },
           { label: "Rejected", value: rejected, color: "text-red-700" },
+          { label: "Reports", value: reports.length, color: "text-orange-600" },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-white rounded-xl border border-navy/10 p-5 shadow-sm">
             <p className="text-xs text-navy/50 font-medium uppercase tracking-wide mb-1">{label}</p>
