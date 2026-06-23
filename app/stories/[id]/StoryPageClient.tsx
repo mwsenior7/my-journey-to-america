@@ -151,14 +151,14 @@ export default function StoryPageClient({
         country_of_origin: `eq.${countryOfOrigin}`,
         id: `neq.${storyId}`,
         order: "created_at.desc",
-        limit: "3",
+        limit: "10",
       });
       const sameRes = await fetch(`${base}?${sameParams}`, { headers }).catch(() => null);
       const same: MoreStory[] = sameRes?.ok ? await sameRes.json() : [];
 
       let stories = same;
       if (same.length < 3) {
-        const needed = 3 - same.length;
+        const needed = 10 - same.length;
         const otherParams = new URLSearchParams({
           select: "id,author_name,country_of_origin,us_state,year_of_arrival,profession,story_text",
           status: "eq.approved",

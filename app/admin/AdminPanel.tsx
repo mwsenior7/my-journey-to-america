@@ -215,7 +215,7 @@ export default function AdminPanel() {
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab("reports")}
+              onClick={() => { setActiveTab("reports"); fetchReports(); }}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${activeTab === "reports" ? "bg-navy text-cream" : "bg-navy/10 text-navy"}`}
             >
               Reports {reports.length > 0 && `(${reports.length})`}
