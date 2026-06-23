@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { cookies } from "next/headers";
 
-export const dynamic = "force-dynamic";
-
 export async function GET() {
-  const cookieStore = await cookies();
+  const cookieStore = cookies();
   if (cookieStore.get("admin_auth")?.value !== "authenticated") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -18,20 +16,22 @@ export async function GET() {
   }
 
   try {
-    const supabase = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false },
+    });
+
     const { data, error } = await supabase
       .from("reports")
       .select("id, story_id, reporter_email, reason, comment, ai_category, ai_summary, created_at")
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("[admin/reports] supabase error:", error.message);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    console.log("[admin/reports] returning", data?.length ?? 0, "reports");
     return NextResponse.json({ reports: data ?? [] });
   } catch (err) {
-    console.error("[admin/reports] unexpected error:", err);
     return NextResponse.json({ error: String(err) }, { status: 500 });
   }
 }
