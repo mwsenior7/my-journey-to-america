@@ -148,11 +148,15 @@ export default function AdminPanel() {
   async function fetchReports() {
     setReportsLoading(true);
     try {
-      const res = await fetch("/api/admin/reports");
-      if (res.ok) {
-        const data = await res.json();
-        setReports(data.reports ?? []);
+      const res = await fetch("/api/admin/reports", { cache: "no-store" });
+      if (res.status === 401) {
+        router.push("/admin/login");
+        return;
       }
+      const data = await res.json();
+      setReports(data.reports ?? []);
+    } catch (err) {
+      console.error("[admin] fetchReports error:", err);
     } finally {
       setReportsLoading(false);
     }
