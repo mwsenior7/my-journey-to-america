@@ -414,6 +414,7 @@ function AIInterview({
   initialState,
   onSave,
   onAudioBlobsChange,
+  onAudioUrlsChange,
 }: {
   onUseStory: (story: string) => void;
   language: string;
@@ -421,6 +422,7 @@ function AIInterview({
   initialState?: AIInterviewState | null;
   onSave?: (state: AIInterviewState) => void;
   onAudioBlobsChange?: (blobs: Blob[]) => void;
+  onAudioUrlsChange?: (urls: string[]) => void;
 }) {
   const ui = getUIStrings(language);
 
@@ -481,6 +483,7 @@ function AIInterview({
   const interviewRecorderRef = useRef<MediaRecorder | null>(null);
   const interviewChunksRef = useRef<Blob[]>([]);
   const interviewAudioBlobsRef = useRef<Blob[]>([]);
+  const interviewAudioUrlsRef = useRef<string[]>([]);
   const interviewTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const ttsHasPlayedRef = useRef(false);
   const maxVolumeRef = useRef<number>(0);
@@ -704,6 +707,10 @@ function AIInterview({
           } else {
             setNoSpeechMsg("");
             setInput(data.text);
+            if (data.audio_url) {
+              interviewAudioUrlsRef.current = [...interviewAudioUrlsRef.current, data.audio_url];
+              onAudioUrlsChange?.(interviewAudioUrlsRef.current);
+            }
           }
         } catch {
           // transcription failure is non-fatal — user can type manually
@@ -873,6 +880,8 @@ function AIInterview({
     setShowStartOverConfirm(false);
     interviewAudioBlobsRef.current = [];
     onAudioBlobsChange?.([]);
+    interviewAudioUrlsRef.current = [];
+    onAudioUrlsChange?.([]);
     clearInterviewRecording();
     onSave?.({ messages: freshMessages, phase: "interview", editedStory: "", interviewComplete: false });
   }
@@ -1299,6 +1308,7 @@ export default function SharePage() {
   });
 
   const [interviewAudioBlobs, setInterviewAudioBlobs] = useState<Blob[]>([]);
+  const [interviewAudioUrls, setInterviewAudioUrls] = useState<string[]>([]);
 
   const [audioMode, setAudioMode] = useState<"record" | "upload">("record");
   const [recState, setRecState] = useState<"idle" | "recording" | "stopped">("idle");
@@ -1365,6 +1375,10 @@ export default function SharePage() {
   function handleInterviewAudioBlobs(blobs: Blob[]) {
     setInterviewAudioBlobs(blobs);
   }
+
+  const handleInterviewAudioUrls = useCallback((urls: string[]) => {
+    setInterviewAudioUrls(urls);
+  }, []);
 
   function handleInterviewSave(state: AIInterviewState) {
     interviewStateRef.current = state;
@@ -1554,25 +1568,7 @@ export default function SharePage() {
       : [];
 
     // Upload interview audio blobs before submission so URLs can be stored on the story row
-    let interview_audio_urls: string[] = [];
-    if (interviewAudioBlobs.length > 0) {
-      const prefix = `${Date.now()}_${Math.random().toString(36).slice(2)}`;
-      const uploadResults = await Promise.all(
-        interviewAudioBlobs.map((blob, idx) =>
-          supabase.storage
-            .from("story-audio")
-            .upload(`interview/${prefix}_${idx}.webm`, blob, { contentType: "audio/webm" })
-        )
-      );
-      interview_audio_urls = uploadResults
-        .filter(({ error }) => !error)
-        .map(({ data }) => {
-          const { data: urlData } = supabase.storage
-            .from("story-audio")
-            .getPublicUrl(data!.path);
-          return urlData.publicUrl;
-        });
-    }
+    const interview_audio_urls: string[] = interviewAudioUrls;
 
     const res = await fetch("/api/submit-story", {
       method: "POST",
@@ -1780,6 +1776,7 @@ export default function SharePage() {
               initialState={draftInterviewState}
               onSave={handleInterviewSave}
               onAudioBlobsChange={handleInterviewAudioBlobs}
+              onAudioUrlsChange={handleInterviewAudioUrls}
             />
           </div>
         </>
