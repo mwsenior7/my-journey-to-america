@@ -1,8 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
 // In-memory rate limiter: 10 requests per IP per hour
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
 
@@ -75,6 +73,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const { messages, phase, language } = await req.json();
 
     // Build language-aware system prompts
@@ -124,7 +123,7 @@ export async function POST(req: NextRequest) {
         response.content[0].type === "text" ? response.content[0].text : "";
 
       const previewResponse = await client.messages.create({
-        model: "claude-haiku-4-5-20251001",
+        model: "claude-haiku-4-5",
         max_tokens: 150,
         messages: [
           {
