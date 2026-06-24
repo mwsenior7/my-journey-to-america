@@ -715,7 +715,7 @@ function AIInterview({
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, sampleRate: 44100 },
+        audio: { echoCancellation: false, noiseSuppression: false, sampleRate: 44100 },
       });
 
       const audioCtx = new AudioContext();
