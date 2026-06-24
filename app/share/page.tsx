@@ -105,8 +105,6 @@ type UIStrings = {
   continueBtn: string;
   replay: string;
   startOver: string;
-  countdownText: (n: number) => string;
-  cancelType: string;
   progressText: (n: number) => string;
   progressLost: string;
   yesReset: string;
@@ -128,8 +126,6 @@ const UI_STRINGS: Record<string, UIStrings> = {
     continueBtn: "Continue",
     replay: "Replay",
     startOver: "Start Over",
-    countdownText: (n) => `Starting to record in ${n}…`,
-    cancelType: "Cancel — I'll type instead",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} questions`,
     progressLost: "Progress will be lost.",
     yesReset: "Yes, reset",
@@ -149,8 +145,6 @@ const UI_STRINGS: Record<string, UIStrings> = {
     continueBtn: "Continuar",
     replay: "Reproducir",
     startOver: "Empezar de nuevo",
-    countdownText: (n) => `Grabación en ${n}…`,
-    cancelType: "Cancelar — escribiré",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} preguntas`,
     progressLost: "Se perderá el progreso.",
     yesReset: "Sí, reiniciar",
@@ -170,8 +164,6 @@ const UI_STRINGS: Record<string, UIStrings> = {
     continueBtn: "Continuer",
     replay: "Rejouer",
     startOver: "Recommencer",
-    countdownText: (n) => `Enregistrement dans ${n}…`,
-    cancelType: "Annuler — je vais taper",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} questions`,
     progressLost: "La progression sera perdue.",
     yesReset: "Oui, réinitialiser",
@@ -191,8 +183,6 @@ const UI_STRINGS: Record<string, UIStrings> = {
     continueBtn: "Continuar",
     replay: "Reproduzir",
     startOver: "Recomeçar",
-    countdownText: (n) => `Gravação em ${n}…`,
-    cancelType: "Cancelar — vou digitar",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} perguntas`,
     progressLost: "O progresso será perdido.",
     yesReset: "Sim, reiniciar",
@@ -212,8 +202,6 @@ const UI_STRINGS: Record<string, UIStrings> = {
     continueBtn: "Weiter",
     replay: "Wiederholen",
     startOver: "Neu starten",
-    countdownText: (n) => `Aufnahme in ${n}…`,
-    cancelType: "Abbrechen — ich tippe",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} Fragen`,
     progressLost: "Fortschritt geht verloren.",
     yesReset: "Ja, zurücksetzen",
@@ -233,8 +221,6 @@ const UI_STRINGS: Record<string, UIStrings> = {
     continueBtn: "Continua",
     replay: "Riproduci",
     startOver: "Ricomincia",
-    countdownText: (n) => `Registrazione in ${n}…`,
-    cancelType: "Annulla — scrivo io",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} domande`,
     progressLost: "Il progresso verrà perso.",
     yesReset: "Sì, ripristina",
@@ -254,8 +240,6 @@ const UI_STRINGS: Record<string, UIStrings> = {
     continueBtn: "继续",
     replay: "重放",
     startOver: "重新开始",
-    countdownText: (n) => `${n} 秒后开始录音…`,
-    cancelType: "取消 — 我来打字",
     progressText: (n) => `第 ${n}/${TOTAL_QUESTIONS} 题`,
     progressLost: "进度将会丢失。",
     yesReset: "是，重置",
@@ -275,8 +259,6 @@ const UI_STRINGS: Record<string, UIStrings> = {
     continueBtn: "続ける",
     replay: "再生",
     startOver: "最初からやり直す",
-    countdownText: (n) => `${n} 秒後に録音開始…`,
-    cancelType: "キャンセル — 文字で入力",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} 問`,
     progressLost: "進捗が失われます。",
     yesReset: "はい、リセット",
@@ -296,8 +278,6 @@ const UI_STRINGS: Record<string, UIStrings> = {
     continueBtn: "계속",
     replay: "다시 듣기",
     startOver: "처음부터 다시",
-    countdownText: (n) => `${n}초 후 녹음 시작…`,
-    cancelType: "취소 — 직접 입력할게요",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} 질문`,
     progressLost: "진행 상황이 사라집니다.",
     yesReset: "예, 초기화",
@@ -317,8 +297,6 @@ const UI_STRINGS: Record<string, UIStrings> = {
     continueBtn: "متابعة",
     replay: "إعادة",
     startOver: "البدء من جديد",
-    countdownText: (n) => `يبدأ التسجيل خلال ${n}…`,
-    cancelType: "إلغاء — سأكتب بدلاً من ذلك",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} أسئلة`,
     progressLost: "سيُفقد التقدم.",
     yesReset: "نعم، إعادة ضبط",
@@ -338,8 +316,6 @@ const UI_STRINGS: Record<string, UIStrings> = {
     continueBtn: "जारी रखें",
     replay: "दोबारा सुनें",
     startOver: "फिर से शुरू करें",
-    countdownText: (n) => `${n} में रिकॉर्डिंग शुरू…`,
-    cancelType: "रद्द करें — मैं टाइप करूंगा",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} प्रश्न`,
     progressLost: "प्रगति खो जाएगी।",
     yesReset: "हाँ, रीसेट करें",
@@ -359,8 +335,6 @@ const UI_STRINGS: Record<string, UIStrings> = {
     continueBtn: "Продолжить",
     replay: "Повтор",
     startOver: "Начать заново",
-    countdownText: (n) => `Запись начнётся через ${n}…`,
-    cancelType: "Отмена — лучше напечатаю",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} вопросов`,
     progressLost: "Прогресс будет потерян.",
     yesReset: "Да, сбросить",
@@ -380,8 +354,6 @@ const UI_STRINGS: Record<string, UIStrings> = {
     continueBtn: "Продовжити",
     replay: "Повтор",
     startOver: "Почати знову",
-    countdownText: (n) => `Запис почнеться за ${n}…`,
-    cancelType: "Скасувати — краще надрукую",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} питань`,
     progressLost: "Прогрес буде втрачено.",
     yesReset: "Так, скинути",
@@ -401,8 +373,6 @@ const UI_STRINGS: Record<string, UIStrings> = {
     continueBtn: "Συνέχεια",
     replay: "Επανάληψη",
     startOver: "Ξεκινήστε από την αρχή",
-    countdownText: (n) => `Έναρξη εγγραφής σε ${n}…`,
-    cancelType: "Ακύρωση — θα πληκτρολογήσω",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} ερωτήσεις`,
     progressLost: "Η πρόοδος θα χαθεί.",
     yesReset: "Ναι, επαναφορά",
@@ -422,8 +392,6 @@ const UI_STRINGS: Record<string, UIStrings> = {
     continueBtn: "Tiếp tục",
     replay: "Phát lại",
     startOver: "Bắt đầu lại",
-    countdownText: (n) => `Bắt đầu ghi âm sau ${n}…`,
-    cancelType: "Hủy — tôi sẽ gõ phím",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} câu hỏi`,
     progressLost: "Tiến trình sẽ bị mất.",
     yesReset: "Có, đặt lại",
@@ -515,27 +483,12 @@ function AIInterview({
   const interviewAudioBlobsRef = useRef<Blob[]>([]);
   const interviewTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const ttsHasPlayedRef = useRef(false);
-  const [autoRecordCountdown, setAutoRecordCountdown] = useState<number | null>(null);
-  const autoRecordIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const autoRecordDelayRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const maxVolumeRef = useRef<number>(0);
   const hasDetectedSoundRef = useRef(false);
   const recordingElapsedRef = useRef(0);
   const audioContextRef = useRef<AudioContext | null>(null);
   const volumeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [noSpeechMsg, setNoSpeechMsg] = useState("");
-
-  function cancelAutoRecord() {
-    if (autoRecordIntervalRef.current != null) {
-      clearInterval(autoRecordIntervalRef.current);
-      autoRecordIntervalRef.current = null;
-    }
-    if (autoRecordDelayRef.current != null) {
-      clearTimeout(autoRecordDelayRef.current);
-      autoRecordDelayRef.current = null;
-    }
-    setAutoRecordCountdown(null);
-  }
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -552,8 +505,6 @@ function AIInterview({
 
   const speak = useCallback(async (text: string) => {
     if (typeof window === "undefined") return;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    cancelAutoRecord();
     if (speakAbortRef.current) {
       speakAbortRef.current.abort();
     }
@@ -581,34 +532,6 @@ function AIInterview({
       audioRef.current = audio;
       audio.onended = () => {
         URL.revokeObjectURL(url);
-        if (ttsHasPlayedRef.current) {
-          // Cancel any existing countdown then schedule a new one
-          if (autoRecordIntervalRef.current != null) {
-            clearInterval(autoRecordIntervalRef.current);
-            autoRecordIntervalRef.current = null;
-          }
-          if (autoRecordDelayRef.current != null) {
-            clearTimeout(autoRecordDelayRef.current);
-            autoRecordDelayRef.current = null;
-          }
-          autoRecordDelayRef.current = setTimeout(() => {
-            let count = 5;
-            setAutoRecordCountdown(count);
-            autoRecordIntervalRef.current = setInterval(() => {
-              count--;
-              if (count <= 0) {
-                if (autoRecordIntervalRef.current != null) {
-                  clearInterval(autoRecordIntervalRef.current);
-                  autoRecordIntervalRef.current = null;
-                }
-                setAutoRecordCountdown(null);
-                startInterviewRecording();
-              } else {
-                setAutoRecordCountdown(count);
-              }
-            }, 1000);
-          }, 1000);
-        }
         ttsHasPlayedRef.current = true;
       };
       audio.play().catch(() => {});
@@ -644,8 +567,6 @@ function AIInterview({
     return () => {
       interviewRecorderRef.current?.stop();
       if (interviewTimerRef.current) clearInterval(interviewTimerRef.current);
-      if (autoRecordIntervalRef.current) clearInterval(autoRecordIntervalRef.current);
-      if (autoRecordDelayRef.current) clearTimeout(autoRecordDelayRef.current);
       if (volumeIntervalRef.current) {
         clearInterval(volumeIntervalRef.current);
         volumeIntervalRef.current = null;
@@ -667,15 +588,6 @@ function AIInterview({
       if (typeof window !== "undefined" && window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
-      if (autoRecordIntervalRef.current) {
-        clearInterval(autoRecordIntervalRef.current);
-        autoRecordIntervalRef.current = null;
-      }
-      if (autoRecordDelayRef.current) {
-        clearTimeout(autoRecordDelayRef.current);
-        autoRecordDelayRef.current = null;
-      }
-      setAutoRecordCountdown(null);
     };
   }, []);
 
@@ -842,7 +754,6 @@ function AIInterview({
     const trimmed = input.trim();
     if (!trimmed || loading) return;
 
-    cancelAutoRecord();
     if (interviewRecState === "recording") stopInterviewRecording();
     if (interviewRecState === "stopped") clearInterviewRecording();
     if (audioRef.current) {
@@ -949,7 +860,6 @@ function AIInterview({
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
-    cancelAutoRecord();
     ttsHasPlayedRef.current = false;
     const freshMessages: Message[] = [{ role: "assistant", content: OPENING_MESSAGE }];
     setMessages(freshMessages);
@@ -1244,29 +1154,11 @@ function AIInterview({
             </div>
           </div>
         )}
-        {autoRecordCountdown !== null && (
-          <div className="flex items-center justify-between gap-3 bg-gold/10 border border-gold/30 rounded-xl px-4 py-3">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-gold animate-pulse inline-block flex-shrink-0" aria-hidden="true" />
-              <span className="text-sm font-semibold text-navy">
-                {ui.countdownText(autoRecordCountdown!)}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={cancelAutoRecord}
-              className="text-xs text-navy/60 hover:text-navy transition-colors font-semibold whitespace-nowrap border border-navy/20 rounded-lg px-3 py-1.5"
-            >
-              {ui.cancelType}
-            </button>
-          </div>
-        )}
         <div className="flex gap-2 items-end">
           <textarea
             ref={inputRef}
             value={input}
             onChange={e => {
-              if (autoRecordCountdown !== null) cancelAutoRecord();
               if (noSpeechMsg) setNoSpeechMsg("");
               setInput(e.target.value);
             }}
@@ -1311,9 +1203,6 @@ function AIInterview({
             </div>
           ) : (
             <div className="relative flex-shrink-0">
-              {autoRecordCountdown !== null && (
-                <span className="absolute inset-[-3px] rounded-xl ring-2 ring-gold animate-ping opacity-60" aria-hidden="true" />
-              )}
               <button
                 type="button"
                 onClick={startInterviewRecording}
