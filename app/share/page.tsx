@@ -702,6 +702,7 @@ function AIInterview({
           if (language) fd.append("language", language);
           const res = await fetch("/api/transcribe", { method: "POST", body: fd });
           const data = await res.json();
+          console.log("[interview] transcribe response:", { text: data.text?.slice(0, 30), no_speech: data.no_speech, audio_url: data.audio_url });
           if (data.no_speech || !data.text) {
             setNoSpeechMsg(ui.noSpeechDetected);
           } else {
@@ -710,6 +711,9 @@ function AIInterview({
             if (data.audio_url) {
               interviewAudioUrlsRef.current = [...interviewAudioUrlsRef.current, data.audio_url];
               onAudioUrlsChange?.(interviewAudioUrlsRef.current);
+              console.log("[interview] captured audio URLs so far:", interviewAudioUrlsRef.current.length);
+            } else {
+              console.warn("[interview] transcribe response missing audio_url");
             }
           }
         } catch {
