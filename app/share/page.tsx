@@ -1567,7 +1567,23 @@ export default function SharePage() {
       ? form.tags.split(",").map((t) => t.trim()).filter(Boolean)
       : [];
 
-    const interview_audio_urls: string[] = interviewAudioUrls;
+    let interview_audio_urls: string[] = [];
+    if (interviewAudioBlobs.length > 0) {
+      const uploadResults = await Promise.all(
+        interviewAudioBlobs.map(async (blob, idx) => {
+          const path = `interview/${Date.now()}_${Math.random().toString(36).slice(2)}_${idx}.webm`;
+          const { data: upload, error: uploadErr } = await supabase.storage
+            .from("story-audio")
+            .upload(path, blob, { contentType: "audio/webm" });
+          if (uploadErr || !upload) return null;
+          const { data: urlData } = supabase.storage
+            .from("story-audio")
+            .getPublicUrl(upload.path);
+          return urlData.publicUrl;
+        })
+      );
+      interview_audio_urls = uploadResults.filter((u): u is string => !!u);
+    }
 
     const res = await fetch("/api/submit-story", {
       method: "POST",
