@@ -481,6 +481,7 @@ function AIInterview({
   const interviewRecorderRef = useRef<MediaRecorder | null>(null);
   const interviewChunksRef = useRef<Blob[]>([]);
   const interviewAudioBlobsRef = useRef<Blob[]>([]);
+  const interviewAudioUrlsRef = useRef<string[]>([]);
   const interviewTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const ttsHasPlayedRef = useRef(false);
   const maxVolumeRef = useRef<number>(0);
@@ -704,6 +705,9 @@ function AIInterview({
           } else {
             setNoSpeechMsg("");
             setInput(data.text);
+            if (data.audio_url) {
+              interviewAudioUrlsRef.current = [...interviewAudioUrlsRef.current, data.audio_url];
+            }
           }
         } catch {
           // transcription failure is non-fatal — user can type manually
@@ -873,6 +877,7 @@ function AIInterview({
     setShowStartOverConfirm(false);
     interviewAudioBlobsRef.current = [];
     onAudioBlobsChange?.([]);
+    interviewAudioUrlsRef.current = [];
     clearInterviewRecording();
     onSave?.({ messages: freshMessages, phase: "interview", editedStory: "", interviewComplete: false });
   }
