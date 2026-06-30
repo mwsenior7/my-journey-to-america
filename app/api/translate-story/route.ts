@@ -9,7 +9,6 @@ function deeplUrl() {
     : "https://api.deepl.com/v2/translate";
 }
 
-// The 10 target languages — stored with lowercase codes matching the app.
 const TARGET_LANGUAGES = [
   { code: "es", deeplCode: "ES" },
   { code: "fr", deeplCode: "FR" },
@@ -76,7 +75,7 @@ export async function POST(req: NextRequest) {
     { auth: { persistSession: false } }
   );
 
-  // Fetch the story text server-side so the client can't inject arbitrary text.
+  // Fetch the story text server-side so the client cannot inject arbitrary text.
   const { data: story, error: fetchErr } = await supabase
     .from("stories")
     .select("story_text, original_language")
@@ -90,10 +89,10 @@ export async function POST(req: NextRequest) {
   const { story_text, original_language } = story;
   const sourceLang = original_language ?? "en";
 
-  // Skip languages that match the original — no point translating to itself.
-  const targets = TARGET_LANGUAGES.filter(l => l.code !== sourceLang);
+  // Skip languages that match the source — no point translating to itself.
+  const targets = TARGET_LANGUAGES.filter((l) => l.code !== sourceLang);
 
-  // Translate all in parallel; collect results and any per-language errors.
+  // Translate all languages in parallel.
   const results = await Promise.allSettled(
     targets.map(async ({ code, deeplCode }) => {
       const translated = await translateOne(story_text, deeplCode, sourceLang);
@@ -102,25 +101,39 @@ export async function POST(req: NextRequest) {
   );
 
   const rows = results
-    .filter((r): r is PromiseFulfilledResult<{ code: string; translated: string }> =>
-      r.status === "fulfilled"
+    .filter(
+      (r): r is PromiseFulfilledResult<{ code: string; translated: string }> =>
+        r.status === "fulfilled"
     )
-    .map(r => ({
+    .map((r) => ({
       story_id: storyId,
       language_code: r.value.code,
       story_text: r.value.translated,
     }));
 
   const failed = results
-    .filter(r => r.status === "rejected")
-    .map(r => (r as PromiseRejectedResult).reason?.message ?? "unknown");
+    .filter((r) => r.status === "rejected")
+    .map((r) => (r as PromiseRejectedResult).reason?.message ?? "unknown");
 
   if (rows.length > 0) {
+    // Delete any existing translations for this story first, then insert fresh.
+    // This avoids upsert conflict resolution issues entirely.
+    const { error: deleteErr } = await supabase
+      .from("story_translations")
+      .delete()
+      .eq("story_id", storyId);
+
+    if (deleteErr) {
+      console.error("Failed to delete existing translations:", deleteErr);
+      return NextResponse.json({ error: "Failed to clear existing translations" }, { status: 500 });
+    }
+
     const { error: insertErr } = await supabase
       .from("story_translations")
-      .upsert(rows, { onConflict: "story_id,language_code" });
+      .insert(rows);
 
     if (insertErr) {
+      console.error("Failed to insert translations:", insertErr);
       return NextResponse.json({ error: "Failed to store translations" }, { status: 500 });
     }
   }
@@ -128,6 +141,6 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     translated: rows.length,
     failed: failed.length,
-    languages: rows.map(r => r.language_code),
+    languages: rows.map((r) => r.language_code),
   });
 }
