@@ -12,6 +12,7 @@ export async function moderateStory(
 ): Promise<ModerationResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
+    console.error("moderateStory: ANTHROPIC_API_KEY is not set");
     return { decision: "pending", reason: "Moderation skipped: API key not configured." };
   }
 
@@ -47,13 +48,18 @@ Respond with JSON only, no other text:
     });
 
     const raw = message.content[0].type === "text" ? message.content[0].text.trim() : "";
+    console.log("moderateStory raw response:", raw);
+
     const parsed = JSON.parse(raw);
 
     if (parsed.decision === "approved" || parsed.decision === "pending") {
       return { decision: parsed.decision, reason: String(parsed.reason ?? "") };
     }
+
+    console.error("moderateStory: unexpected decision value:", parsed.decision);
     return { decision: "pending", reason: "Moderation result unclear; flagged for manual review." };
-  } catch {
+  } catch (err) {
+    console.error("moderateStory error:", err);
     return { decision: "pending", reason: "Moderation service unavailable; flagged for manual review." };
   }
 }
