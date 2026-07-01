@@ -11,12 +11,6 @@ type Props = {
   showControls?: boolean;
 };
 
-const COMMON_LANGUAGE_CODES = ["en", "es", "fr", "de", "pt", "it", "zh", "ja", "ko", "ar"];
-
-const translationTargetOptions = SUPPORTED_LANGUAGES.filter((lang) =>
-  COMMON_LANGUAGE_CODES.includes(lang.code)
-);
-
 export default function StoryTranslator({
   originalText,
   originalLang = "en",
@@ -107,6 +101,11 @@ export default function StoryTranslator({
     }
   };
 
+  // All languages available for on-demand translation, excluding the original
+  const translationTargetOptions = SUPPORTED_LANGUAGES.filter(
+    (lang) => lang.code !== originalLang
+  );
+
   return (
     <div>
       {showControls && (
@@ -114,10 +113,11 @@ export default function StoryTranslator({
           <div className="flex flex-wrap items-center gap-3">
             <label className="text-sm font-semibold text-navy/70">Translate story</label>
             <select
-              value={activeLang}
-              onChange={(e) => setActiveLang(e.target.value)}
+              value={activeLang === originalLang ? "" : activeLang}
+              onChange={(e) => setActiveLang(e.target.value || originalLang)}
               className="rounded-lg border border-navy/20 bg-white px-4 py-2 text-sm text-navy shadow-sm focus:border-gold/50 focus:outline-none"
             >
+              <option value="">Select a language…</option>
               {translationTargetOptions.map((lang) => (
                 <option key={lang.code} value={lang.code}>
                   {lang.name}
