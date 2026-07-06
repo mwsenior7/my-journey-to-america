@@ -8,7 +8,24 @@
       "Bash(git -C /Users/michaelsenior/my-journey-to-america log --oneline -10)",
       "Bash(ls /usr/local/bin/npm* /opt/homebrew/bin/npm* /usr/bin/npm* ~/.nvm/versions/node/*/bin/npm 2>/dev/null | head -10; ls ~/.nvm/versions/node/ 2>/dev/null)",
       "Read(//opt/homebrew/**)",
-      "Bash(~/.nvm/versions/node/v18.20.8/bin/npm install *)"
+      "Bash(~/.nvm/versions/node/v18.20.8/bin/npm install *)",
+      "Bash(/Users/michaelsenior/.nvm/versions/node/v22.15.0/bin/npx tsc *)",
+      "Bash(PATH=/Users/michaelsenior/.nvm/versions/node/v20.20.2/bin:__TRACKED_VAR__ npx tsc --noEmit --project /Users/michaelsenior/my-journey-to-america/tsconfig.json)",
+      "Bash(PATH=/Users/michaelsenior/.nvm/versions/node/v20.20.2/bin:__TRACKED_VAR__ git diff --stat)",
+      "Bash(PATH=/Users/michaelsenior/.nvm/versions/node/v20.20.2/bin:__TRACKED_VAR__ git log --oneline -5)",
+      "Bash(PATH=/Users/michaelsenior/.nvm/versions/node/v20.20.2/bin:__TRACKED_VAR__ git add app/share/page.tsx)",
+      "Bash(PATH=/Users/michaelsenior/.nvm/versions/node/v20.20.2/bin:__TRACKED_VAR__ git push origin main)",
+      "Bash(~/.nvm/versions/node/v20.20.2/bin/node ./node_modules/.bin/tsc --noEmit)",
+      "Bash(curl -s \"https://api.github.com/repos/mwsenior7/my-journey-to-america/deployments?per_page=3\" -H \"Accept: application/vnd.github.v3+json\")",
+      "Bash(curl -s \"https://api.github.com/repos/mwsenior7/my-journey-to-america/deployments/5054921818/statuses\" -H \"Accept: application/vnd.github.v3+json\")",
+      "Bash(python3 -c \"import sys,json; data=json.load\\(sys.stdin\\); [print\\(s['state'], s['description'], s.get\\('target_url',''\\)[:80]\\) for s in data[:3]]\")",
+      "Bash(~/.nvm/versions/node/v20.20.2/bin/node ./node_modules/.bin/vercel --version)",
+      "Bash(gh api *)",
+      "Bash(Read /private/tmp/claude-501/-Users-michaelsenior-my-journey-to-america/41164008-04d2-4555-96d9-ede5e80fe4d9/tasks/b6zzv05l2.output)",
+      "Bash(curl -s \"https://api.github.com/repos/mwsenior7/my-journey-to-america/commits/90c1769e/statuses\")",
+      "Bash(/Users/michaelsenior/.nvm/versions/node/v20.20.2/bin/node node_modules/.bin/tsc --noEmit)",
+      "Bash(~/.nvm/versions/node/v20.20.2/bin/npx tsc *)",
+      "Bash(~/.nvm/versions/node/v20.20.2/bin/node ~/.nvm/versions/node/v20.20.2/bin/npx tsc --noEmit)"
     ]
   }
 }
