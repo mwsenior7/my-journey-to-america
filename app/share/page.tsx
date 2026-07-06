@@ -1283,9 +1283,22 @@ export default function SharePage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (isLoaded && !isSignedIn) {
+    if (!isLoaded) return;
+    if (!isSignedIn) {
       router.push("/sign-in?redirect_url=/share");
+      return;
     }
+    // Check age verification
+    fetch("/api/veriff-status")
+      .then((r) => r.json())
+      .then((data) => {
+        if (!data.verified) {
+          router.push("/verify");
+        }
+      })
+      .catch(() => {
+        // If check fails, allow through to avoid blocking legitimate users
+      });
   }, [isLoaded, isSignedIn, router]);
 
   const [mode, setMode] = useState<"form" | "interview">("interview");
