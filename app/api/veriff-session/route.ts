@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
-import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
   const { userId } = await auth();
@@ -20,7 +19,6 @@ export async function POST(req: NextRequest) {
     { auth: { persistSession: false } }
   );
 
-  // Check if already verified
   const { data: existing } = await supabase
     .from("user_verifications")
     .select("verified")
@@ -31,7 +29,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ alreadyVerified: true });
   }
 
-  // Create Veriff session
   const body = {
     verification: {
       callback: "https://www.myjourneytoamerica.com/verify-complete",
@@ -40,20 +37,13 @@ export async function POST(req: NextRequest) {
     },
   };
 
-  const payload = JSON.stringify(body);
-  const signature = crypto
-    .createHmac("sha256", process.env.VERIFF_SECRET!)
-    .update(payload)
-    .digest("hex");
-
   const res = await fetch("https://stationapi.veriff.com/v1/sessions", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "X-AUTH-CLIENT": apiKey,
-      "X-HMAC-SIGNATURE": signature,
     },
-    body: payload,
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
@@ -67,10 +57,10 @@ export async function POST(req: NextRequest) {
   const sessionUrl = data.verification?.url;
 
   if (!sessionId || !sessionUrl) {
+    console.error("Veriff invalid response:", JSON.stringify(data));
     return NextResponse.json({ error: "Invalid Veriff response" }, { status: 500 });
   }
 
-  // Store session in Supabase
   await supabase.from("user_verifications").upsert(
     { clerk_user_id: userId, veriff_session_id: sessionId, verified: false },
     { onConflict: "clerk_user_id" }
