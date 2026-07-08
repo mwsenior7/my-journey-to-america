@@ -44,6 +44,9 @@ const OPENING_MESSAGE =
 
 type Message = { role: "user" | "assistant"; content: string };
 
+type InterviewAudioBlob = { answerIndex: number; blob: Blob };
+type InterviewAudioUrl = { answerIndex: number; url: string };
+
 type AIInterviewState = {
   messages: Message[];
   phase: "interview" | "generating" | "done";
@@ -421,8 +424,8 @@ function AIInterview({
   highlightUseStory?: boolean;
   initialState?: AIInterviewState | null;
   onSave?: (state: AIInterviewState) => void;
-  onAudioBlobsChange?: (blobs: Blob[]) => void;
-  onAudioUrlsChange?: (urls: string[]) => void;
+  onAudioBlobsChange?: (blobs: InterviewAudioBlob[]) => void;
+  onAudioUrlsChange?: (urls: InterviewAudioUrl[]) => void;
 }) {
   const ui = getUIStrings(language);
 
@@ -482,8 +485,9 @@ function AIInterview({
   const [interviewRecordingSeconds, setInterviewRecordingSeconds] = useState(0);
   const interviewRecorderRef = useRef<MediaRecorder | null>(null);
   const interviewChunksRef = useRef<Blob[]>([]);
-  const interviewAudioBlobsRef = useRef<Blob[]>([]);
-  const interviewAudioUrlsRef = useRef<string[]>([]);
+  const interviewAudioBlobsRef = useRef<InterviewAudioBlob[]>([]);
+  const interviewAudioUrlsRef = useRef<InterviewAudioUrl[]>([]);
+  const [editRecState, setEditRecState] = useState<"idle" | "recording" | "transcribing">("idle");
   const interviewTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const ttsHasPlayedRef = useRef(false);
   const maxVolumeRef = useRef<number>(0);
@@ -617,13 +621,40 @@ function AIInterview({
     };
   }, []);
 
-  async function startInterviewRecording() {
+  function upsertAudioBlob(answerIndex: number, blob: Blob) {
+    const existingIdx = interviewAudioBlobsRef.current.findIndex(e => e.answerIndex === answerIndex);
+    interviewAudioBlobsRef.current =
+      existingIdx >= 0
+        ? interviewAudioBlobsRef.current.map((e, i) => (i === existingIdx ? { answerIndex, blob } : e))
+        : [...interviewAudioBlobsRef.current, { answerIndex, blob }];
+    onAudioBlobsChange?.(interviewAudioBlobsRef.current);
+  }
+
+  function upsertAudioUrl(answerIndex: number, url: string) {
+    const existingIdx = interviewAudioUrlsRef.current.findIndex(e => e.answerIndex === answerIndex);
+    interviewAudioUrlsRef.current =
+      existingIdx >= 0
+        ? interviewAudioUrlsRef.current.map((e, i) => (i === existingIdx ? { answerIndex, url } : e))
+        : [...interviewAudioUrlsRef.current, { answerIndex, url }];
+    onAudioUrlsChange?.(interviewAudioUrlsRef.current);
+  }
+
+  function removeAudioForAnswer(answerIndex: number) {
+    interviewAudioBlobsRef.current = interviewAudioBlobsRef.current.filter(e => e.answerIndex !== answerIndex);
+    onAudioBlobsChange?.(interviewAudioBlobsRef.current);
+    interviewAudioUrlsRef.current = interviewAudioUrlsRef.current.filter(e => e.answerIndex !== answerIndex);
+    onAudioUrlsChange?.(interviewAudioUrlsRef.current);
+  }
+
+  async function startInterviewRecording(editTarget?: { answerIndex: number }) {
     console.log("mic button clicked");
+    const isEdit = !!editTarget;
+    const answerIndex = editTarget ? editTarget.answerIndex : messages.filter(m => m.role === "user").length;
     setNoSpeechMsg("");
     maxVolumeRef.current = 0;
     hasDetectedSoundRef.current = false;
     recordingElapsedRef.current = 0;
-    if (interviewAudioBlobUrl) {
+    if (!isEdit && interviewAudioBlobUrl) {
       URL.revokeObjectURL(interviewAudioBlobUrl);
       setInterviewAudioBlobUrl(null);
     }
@@ -679,12 +710,15 @@ function AIInterview({
         }
 
         const blob = new Blob(interviewChunksRef.current, { type: mimeType });
-        interviewAudioBlobsRef.current = [...interviewAudioBlobsRef.current, blob];
-        onAudioBlobsChange?.(interviewAudioBlobsRef.current);
+        upsertAudioBlob(answerIndex, blob);
         stream.getTracks().forEach((t) => t.stop());
 
         const url = URL.createObjectURL(blob);
-        setInterviewAudioBlobUrl(url);
+        if (isEdit) {
+          URL.revokeObjectURL(url);
+        } else {
+          setInterviewAudioBlobUrl(url);
+        }
 
         // Client-side silence pre-check: RMS threshold of 3 (on a 0–128 scale).
         // Genuine silence keeps all samples near 128, giving RMS ~0–1. Quiet
@@ -692,7 +726,8 @@ function AIInterview({
         // recordings while letting even soft speech (typically RMS 10+) through.
         if (maxVolumeRef.current < 3) {
           setNoSpeechMsg(prev => (prev === ui.noSoundLive ? prev : ui.noSpeechDetected));
-          setInterviewRecState("stopped");
+          if (isEdit) setEditRecState("idle");
+          else setInterviewRecState("stopped");
           return;
         }
 
@@ -706,16 +741,17 @@ function AIInterview({
             setNoSpeechMsg(ui.noSpeechDetected);
           } else {
             setNoSpeechMsg("");
-            setInput(data.text);
+            if (isEdit) setEditingText(data.text);
+            else setInput(data.text);
             if (data.audio_url) {
-              interviewAudioUrlsRef.current = [...interviewAudioUrlsRef.current, data.audio_url];
-              onAudioUrlsChange?.(interviewAudioUrlsRef.current);
+              upsertAudioUrl(answerIndex, data.audio_url);
             }
           }
         } catch {
           // transcription failure is non-fatal — user can type manually
         } finally {
-          setInterviewRecState("stopped");
+          if (isEdit) setEditRecState("idle");
+          else setInterviewRecState("stopped");
         }
       };
 
@@ -723,7 +759,8 @@ function AIInterview({
       interviewTimerRef.current = setInterval(() => setInterviewRecordingSeconds(s => s + 1), 1000);
       mr.start(250);
       interviewRecorderRef.current = mr;
-      setInterviewRecState("recording");
+      if (isEdit) setEditRecState("recording");
+      else setInterviewRecState("recording");
     } catch (err) {
       console.log("getUserMedia error:", err);
     }
@@ -731,7 +768,8 @@ function AIInterview({
 
   function stopInterviewRecording() {
     if (interviewTimerRef.current) clearInterval(interviewTimerRef.current);
-    setInterviewRecState("transcribing");
+    if (editRecState === "recording") setEditRecState("transcribing");
+    else setInterviewRecState("transcribing");
     interviewRecorderRef.current?.stop();
   }
 
@@ -757,8 +795,8 @@ function AIInterview({
     return data.text ?? "";
   }
 
-  async function sendMessage() {
-    const trimmed = input.trim();
+  async function sendMessage(overrideText?: string) {
+    const trimmed = (overrideText ?? input).trim();
     if (!trimmed || loading) return;
 
     if (interviewRecState === "recording") stopInterviewRecording();
@@ -840,10 +878,11 @@ function AIInterview({
     setEditingText("");
   }
 
-  function saveEdit() {
+  function commitEdit(content: string, fallback: string) {
     if (editingIndex === null) return;
+    const finalContent = content.trim() || fallback;
     const updated = messages.map((m, i) =>
-      i === editingIndex ? { ...m, content: editingText.trim() || m.content } : m
+      i === editingIndex ? { ...m, content: finalContent } : m
     );
     setMessages([
       ...updated,
@@ -851,6 +890,18 @@ function AIInterview({
     ]);
     setEditingIndex(null);
     setEditingText("");
+  }
+
+  function saveEdit() {
+    if (editingIndex === null) return;
+    commitEdit(editingText, messages[editingIndex].content);
+  }
+
+  function deleteAnswer() {
+    if (editingIndex === null) return;
+    const answerIndex = messages.slice(0, editingIndex).filter(m => m.role === "user").length;
+    removeAudioForAnswer(answerIndex);
+    commitEdit("(skipped)", "(skipped)");
   }
 
   function startOver() {
@@ -868,6 +919,7 @@ function AIInterview({
       window.speechSynthesis.cancel();
     }
     ttsHasPlayedRef.current = false;
+    lastSpokenIndexRef.current = -1;
     const freshMessages: Message[] = [{ role: "assistant", content: OPENING_MESSAGE }];
     setMessages(freshMessages);
     setInput("");
@@ -1036,21 +1088,60 @@ function AIInterview({
                   rows={3}
                   className={`${INPUT} resize-none text-sm`}
                 />
-                <div className="flex gap-2 justify-end">
+                {editRecState === "recording" && (
+                  <div className="flex items-center gap-2 text-xs text-red-500 font-semibold px-1">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse inline-block" />
+                    {ui.recordingStatus}
+                  </div>
+                )}
+                {editRecState === "transcribing" && (
+                  <div className="flex items-center gap-2 text-xs text-navy/50 px-1">
+                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                    </svg>
+                    {ui.processingRecording}
+                  </div>
+                )}
+                <div className="flex gap-2 justify-between items-center">
                   <button
                     type="button"
-                    onClick={cancelEdit}
-                    className="text-xs px-3 py-1.5 rounded-lg border border-navy/20 text-navy/60 hover:text-navy/80 transition-colors"
+                    onClick={deleteAnswer}
+                    disabled={editRecState !== "idle"}
+                    className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-500 hover:text-red-600 hover:border-red-300 transition-colors disabled:opacity-40"
                   >
-                    Cancel
+                    Delete answer
                   </button>
-                  <button
-                    type="button"
-                    onClick={saveEdit}
-                    className="text-xs px-3 py-1.5 rounded-lg bg-navy text-cream hover:bg-navy/90 transition-colors"
-                  >
-                    Save
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        editRecState === "recording"
+                          ? stopInterviewRecording()
+                          : startInterviewRecording({ answerIndex: messages.slice(0, i).filter(m => m.role === "user").length })
+                      }
+                      disabled={editRecState === "transcribing"}
+                      className="text-xs px-3 py-1.5 rounded-lg border border-gold/40 text-gold bg-gold/8 hover:bg-gold/15 transition-colors disabled:opacity-40"
+                    >
+                      {editRecState === "recording" ? "⏹ Stop" : "🎤 Re-record"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelEdit}
+                      disabled={editRecState !== "idle"}
+                      className="text-xs px-3 py-1.5 rounded-lg border border-navy/20 text-navy/60 hover:text-navy/80 transition-colors disabled:opacity-40"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={saveEdit}
+                      disabled={editRecState !== "idle"}
+                      className="text-xs px-3 py-1.5 rounded-lg bg-navy text-cream hover:bg-navy/90 transition-colors disabled:opacity-40"
+                    >
+                      Save
+                    </button>
+                  </div>
                 </div>
               </div>
             ) : msg.role === "user" ? (
@@ -1214,7 +1305,7 @@ function AIInterview({
             <div className="relative flex-shrink-0">
               <button
                 type="button"
-                onClick={startInterviewRecording}
+                onClick={() => startInterviewRecording()}
                 disabled={loading}
                 className="bg-navy/10 text-navy px-3 py-2 rounded-xl hover:bg-navy/20 transition-colors disabled:opacity-40 flex flex-col items-center gap-0.5"
                 aria-label="Click to talk"
@@ -1229,8 +1320,7 @@ function AIInterview({
             type="button"
             onClick={() => {
               if (input.trim() && !window.confirm('Skip this question? Your current answer will be lost.')) return;
-              setInput('(skipped)');
-              setTimeout(() => sendMessage(), 0);
+              sendMessage('(skipped)');
             }}
             disabled={loading || interviewRecState === "transcribing" || interviewComplete}
             className="bg-gray-100 text-gray-500 px-3 py-3 rounded-xl hover:bg-gray-200 transition-colors disabled:opacity-40 flex-shrink-0 text-xs font-semibold whitespace-nowrap"
@@ -1241,7 +1331,7 @@ function AIInterview({
           </button>
           <button
             type="button"
-            onClick={sendMessage}
+            onClick={() => sendMessage()}
             disabled={loading || !input.trim() || interviewRecState === "transcribing"}
             className="bg-navy text-cream px-4 py-3 rounded-xl hover:bg-navy/90 transition-colors disabled:opacity-40 flex-shrink-0 flex items-center gap-1.5 text-sm font-semibold"
             aria-label="Continue"
@@ -1320,8 +1410,8 @@ export default function SharePage() {
     interviewComplete: false,
   });
 
-  const [interviewAudioBlobs, setInterviewAudioBlobs] = useState<Blob[]>([]);
-  const [interviewAudioUrls, setInterviewAudioUrls] = useState<string[]>([]);
+  const [interviewAudioBlobs, setInterviewAudioBlobs] = useState<InterviewAudioBlob[]>([]);
+  const [interviewAudioUrls, setInterviewAudioUrls] = useState<InterviewAudioUrl[]>([]);
 
   const [audioMode, setAudioMode] = useState<"record" | "upload">("record");
   const [recState, setRecState] = useState<"idle" | "recording" | "stopped">("idle");
@@ -1385,11 +1475,11 @@ export default function SharePage() {
     return null;
   }
 
-  function handleInterviewAudioBlobs(blobs: Blob[]) {
+  function handleInterviewAudioBlobs(blobs: InterviewAudioBlob[]) {
     setInterviewAudioBlobs(blobs);
   }
 
-  function handleInterviewAudioUrls(urls: string[]) {
+  function handleInterviewAudioUrls(urls: InterviewAudioUrl[]) {
     setInterviewAudioUrls(urls);
   }
 
@@ -1582,8 +1672,9 @@ export default function SharePage() {
 
     let interview_audio_urls: string[] = [];
     if (interviewAudioBlobs.length > 0) {
+      const sortedAudio = [...interviewAudioBlobs].sort((a, b) => a.answerIndex - b.answerIndex);
       const uploadResults = await Promise.all(
-        interviewAudioBlobs.map(async (blob, idx) => {
+        sortedAudio.map(async ({ blob }, idx) => {
           const path = `interview/${Date.now()}_${Math.random().toString(36).slice(2)}_${idx}.webm`;
           const { data: upload, error: uploadErr } = await supabase.storage
             .from("story-audio")
