@@ -565,6 +565,10 @@ function AIInterview({
       const blob = await res.blob();
       if (controller.signal.aborted) return;
       const url = URL.createObjectURL(blob);
+      if (interviewRecStateRef.current === "recording" || editRecStateRef.current === "recording") {
+        URL.revokeObjectURL(url);
+        return;
+      }
       const audio = new Audio(url);
       audioRef.current = audio;
       audio.onended = () => {
@@ -681,6 +685,16 @@ function AIInterview({
 
   async function startInterviewRecording(editTarget?: { answerIndex: number }) {
     console.log("mic button clicked");
+    if (speakAbortRef.current) {
+      speakAbortRef.current.abort();
+      speakAbortRef.current = null;
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+    setTtsLoading(false);
     const isEdit = !!editTarget;
     const answerIndex = editTarget ? editTarget.answerIndex : messages.filter(m => m.role === "user").length;
     setNoSpeechMsg("");
