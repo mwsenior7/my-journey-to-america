@@ -116,6 +116,7 @@ type UIStrings = {
   processingRecording: string;
   noSpeechDetected: string;
   noSoundLive: string;
+  transcriptHint: string;
 };
 
 const UI_STRINGS: Record<string, UIStrings> = {
@@ -137,6 +138,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     processingRecording: "Processing recording…",
     noSpeechDetected: "We couldn't hear that clearly. Try recording again, or type your answer.",
     noSoundLive: "We're not hearing any sound. Check your microphone, or stop and type your answer instead.",
+    transcriptHint: "Tap the text above to make changes, or press Continue.",
   },
   es: {
     placeholder: "Comparte tu respuesta… (Intro para enviar, Shift+Intro para nueva línea)",
@@ -156,6 +158,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     processingRecording: "Procesando grabación…",
     noSpeechDetected: "No pudimos escucharte bien. Intenta grabar de nuevo o escribe tu respuesta.",
     noSoundLive: "No estamos escuchando ningún sonido. Comprueba tu micrófono o para y escribe tu respuesta.",
+    transcriptHint: "Toca el texto de arriba para hacer cambios, o presiona Continuar.",
   },
   fr: {
     placeholder: "Partagez votre réponse… (Entrée pour envoyer, Maj+Entrée pour nouvelle ligne)",
@@ -175,6 +178,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     processingRecording: "Traitement de l'enregistrement…",
     noSpeechDetected: "Nous n'avons pas pu vous entendre clairement. Réessayez d'enregistrer ou tapez votre réponse.",
     noSoundLive: "Nous n'entendons aucun son. Vérifiez votre microphone, ou arrêtez et tapez votre réponse.",
+    transcriptHint: "Touchez le texte ci-dessus pour apporter des modifications, ou appuyez sur Continuer.",
   },
   pt: {
     placeholder: "Compartilhe sua resposta… (Enter para enviar, Shift+Enter para nova linha)",
@@ -194,6 +198,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     processingRecording: "Processando gravação…",
     noSpeechDetected: "Não conseguimos ouvi-lo bem. Tente gravar novamente ou escreva sua resposta.",
     noSoundLive: "Não estamos ouvindo nenhum som. Verifique seu microfone ou pare e escreva sua resposta.",
+    transcriptHint: "Toque no texto acima para fazer alterações, ou pressione Continuar.",
   },
   de: {
     placeholder: "Teile deine Antwort… (Eingabe zum Senden, Umschalt+Eingabe für neue Zeile)",
@@ -213,6 +218,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     processingRecording: "Aufnahme wird verarbeitet…",
     noSpeechDetected: "Wir konnten das nicht klar hören. Versuche es erneut aufzunehmen oder tippe deine Antwort.",
     noSoundLive: "Wir hören keinen Ton. Überprüfe dein Mikrofon, oder stoppe die Aufnahme und tippe deine Antwort.",
+    transcriptHint: "Tippe auf den Text oben, um Änderungen vorzunehmen, oder drücke Weiter.",
   },
   it: {
     placeholder: "Condividi la tua risposta… (Invio per inviare, Maiusc+Invio per nuova riga)",
@@ -232,6 +238,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     processingRecording: "Elaborazione registrazione…",
     noSpeechDetected: "Non siamo riusciti a sentirti bene. Riprova a registrare o digita la tua risposta.",
     noSoundLive: "Non stiamo sentendo nessun suono. Controlla il microfono, oppure fermati e digita la tua risposta.",
+    transcriptHint: "Tocca il testo sopra per apportare modifiche, oppure premi Continua.",
   },
   zh: {
     placeholder: "分享您的回答…（Enter 发送，Shift+Enter 换行）",
@@ -251,6 +258,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     processingRecording: "处理录音中…",
     noSpeechDetected: "我们听不清楚。请重新录音，或直接输入您的回答。",
     noSoundLive: "我们没有听到任何声音。请检查您的麦克风，或停止录音并输入您的回答。",
+    transcriptHint: "点按上方文字进行修改，或点击继续。",
   },
   ja: {
     placeholder: "回答を入力してください…（Enterで送信、Shift+Enterで改行）",
@@ -270,6 +278,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     processingRecording: "録音を処理中…",
     noSpeechDetected: "はっきりと聞き取れませんでした。もう一度録音するか、回答を入力してください。",
     noSoundLive: "音が聞こえません。マイクを確認するか、停止して回答を入力してください。",
+    transcriptHint: "上のテキストをタップして変更するか、続けるを押してください。",
   },
   ko: {
     placeholder: "답변을 입력하세요…（Enter로 전송, Shift+Enter로 줄바꿈）",
@@ -289,6 +298,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     processingRecording: "녹음 처리 중…",
     noSpeechDetected: "명확하게 들리지 않았습니다. 다시 녹음하거나 답변을 입력해 주세요.",
     noSoundLive: "소리가 들리지 않아요. 마이크를 확인하거나, 중지하고 답변을 입력해 주세요.",
+    transcriptHint: "위 텍스트를 탭하여 수정하거나 계속을 누르세요.",
   },
   ar: {
     placeholder: "شارك إجابتك… (Enter للإرسال، Shift+Enter لسطر جديد)",
@@ -308,6 +318,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     processingRecording: "معالجة التسجيل…",
     noSpeechDetected: "لم نتمكن من سماعك بوضوح. حاول التسجيل مرة أخرى أو اكتب إجابتك.",
     noSoundLive: "لا نسمع أي صوت. تحقق من الميكروفون، أو أوقف التسجيل واكتب إجابتك.",
+    transcriptHint: "اضغط على النص أعلاه لإجراء تغييرات، أو اضغط على متابعة.",
   },
   hi: {
     placeholder: "अपना उत्तर साझा करें… (भेजने के लिए Enter, नई पंक्ति के लिए Shift+Enter)",
@@ -327,6 +338,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     processingRecording: "रिकॉर्डिंग प्रोसेस हो रही है…",
     noSpeechDetected: "हम आपको स्पष्ट रूप से नहीं सुन सके। दोबारा रिकॉर्ड करें या अपना उत्तर टाइप करें।",
     noSoundLive: "हमें कोई आवाज़ नहीं सुनाई दे रही। अपना माइक्रोफ़ोन जाँचें, या रोकें और अपना उत्तर टाइप करें।",
+    transcriptHint: "बदलाव करने के लिए ऊपर दिए गए टेक्स्ट पर टैप करें, या जारी रखें दबाएँ।",
   },
   ru: {
     placeholder: "Поделитесь своим ответом… (Enter — отправить, Shift+Enter — новая строка)",
@@ -346,6 +358,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     processingRecording: "Обработка записи…",
     noSpeechDetected: "Нам не удалось чётко расслышать. Попробуйте записать снова или напечатайте ответ.",
     noSoundLive: "Мы не слышим звука. Проверьте микрофон или остановите запись и напечатайте ответ.",
+    transcriptHint: "Нажмите на текст выше, чтобы внести изменения, или нажмите «Продолжить».",
   },
   uk: {
     placeholder: "Поділіться своєю відповіддю… (Enter — надіслати, Shift+Enter — новий рядок)",
@@ -365,6 +378,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     processingRecording: "Обробка запису…",
     noSpeechDetected: "Нам не вдалося чітко почути. Спробуйте записати знову або надрукуйте відповідь.",
     noSoundLive: "Ми не чуємо жодного звуку. Перевірте мікрофон або зупиніть запис і надрукуйте відповідь.",
+    transcriptHint: "Торкніться тексту вище, щоб внести зміни, або натисніть «Продовжити».",
   },
   el: {
     placeholder: "Μοιραστείτε την απάντησή σας… (Enter για αποστολή, Shift+Enter για νέα γραμμή)",
@@ -384,6 +398,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     processingRecording: "Επεξεργασία ηχογράφησης…",
     noSpeechDetected: "Δεν μπορέσαμε να σας ακούσουμε καθαρά. Δοκιμάστε να ηχογραφήσετε ξανά ή πληκτρολογήστε την απάντησή σας.",
     noSoundLive: "Δεν ακούμε κανέναν ήχο. Ελέγξτε το μικρόφωνό σας ή σταματήστε και πληκτρολογήστε την απάντησή σας.",
+    transcriptHint: "Πατήστε το κείμενο παραπάνω για να κάνετε αλλαγές, ή πατήστε Συνέχεια.",
   },
   vi: {
     placeholder: "Chia sẻ câu trả lời của bạn… (Enter để gửi, Shift+Enter để xuống dòng)",
@@ -403,6 +418,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     processingRecording: "Đang xử lý ghi âm…",
     noSpeechDetected: "Chúng tôi không nghe rõ. Hãy thử ghi âm lại hoặc nhập câu trả lời của bạn.",
     noSoundLive: "Chúng tôi không nghe thấy âm thanh. Kiểm tra micrô của bạn, hoặc dừng lại và nhập câu trả lời.",
+    transcriptHint: "Chạm vào văn bản ở trên để chỉnh sửa, hoặc nhấn Tiếp tục.",
   },
 };
 
@@ -496,6 +512,12 @@ function AIInterview({
   const audioContextRef = useRef<AudioContext | null>(null);
   const volumeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [noSpeechMsg, setNoSpeechMsg] = useState("");
+  const [showTranscriptHint, setShowTranscriptHint] = useState(false);
+
+  const messagesRef = useRef<Message[]>(messages);
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
 
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -654,9 +676,12 @@ function AIInterview({
     maxVolumeRef.current = 0;
     hasDetectedSoundRef.current = false;
     recordingElapsedRef.current = 0;
-    if (!isEdit && interviewAudioBlobUrl) {
-      URL.revokeObjectURL(interviewAudioBlobUrl);
-      setInterviewAudioBlobUrl(null);
+    if (!isEdit) {
+      setShowTranscriptHint(false);
+      if (interviewAudioBlobUrl) {
+        URL.revokeObjectURL(interviewAudioBlobUrl);
+        setInterviewAudioBlobUrl(null);
+      }
     }
 
     try {
@@ -741,8 +766,12 @@ function AIInterview({
             setNoSpeechMsg(ui.noSpeechDetected);
           } else {
             setNoSpeechMsg("");
-            if (isEdit) setEditingText(data.text);
-            else setInput(data.text);
+            if (isEdit) {
+              setEditingText(data.text);
+            } else {
+              setInput(data.text);
+              setShowTranscriptHint(true);
+            }
             if (data.audio_url) {
               upsertAudioUrl(answerIndex, data.audio_url);
             }
@@ -810,6 +839,7 @@ function AIInterview({
     const newMessages: Message[] = [...messages, { role: "user", content: trimmed }];
     setMessages(newMessages);
     setInput("");
+    setShowTranscriptHint(false);
     setLoading(true);
 
     try {
@@ -880,12 +910,10 @@ function AIInterview({
 
   function commitEdit(content: string, fallback: string) {
     if (editingIndex === null) return;
+    const idx = editingIndex;
     const finalContent = content.trim() || fallback;
-    const updated = messages.map((m, i) =>
-      i === editingIndex ? { ...m, content: finalContent } : m
-    );
-    setMessages([
-      ...updated,
+    setMessages(prev => [
+      ...prev.map((m, i) => (i === idx ? { ...m, content: finalContent } : m)),
       { role: "assistant", content: "Got it — I've noted your updated answer and will use it when writing your story." },
     ]);
     setEditingIndex(null);
@@ -894,12 +922,12 @@ function AIInterview({
 
   function saveEdit() {
     if (editingIndex === null) return;
-    commitEdit(editingText, messages[editingIndex].content);
+    commitEdit(editingText, messagesRef.current[editingIndex].content);
   }
 
   function deleteAnswer() {
     if (editingIndex === null) return;
-    const answerIndex = messages.slice(0, editingIndex).filter(m => m.role === "user").length;
+    const answerIndex = messagesRef.current.slice(0, editingIndex).filter(m => m.role === "user").length;
     removeAudioForAnswer(answerIndex);
     commitEdit("(skipped)", "(skipped)");
   }
@@ -923,6 +951,7 @@ function AIInterview({
     const freshMessages: Message[] = [{ role: "assistant", content: OPENING_MESSAGE }];
     setMessages(freshMessages);
     setInput("");
+    setShowTranscriptHint(false);
     setInterviewComplete(false);
     setPhase("interview");
     setDraftStory("");
@@ -941,6 +970,7 @@ function AIInterview({
   const userMessageCount = messages.filter(m => m.role === "user").length;
   const progress = Math.min(userMessageCount, TOTAL_QUESTIONS);
   const progressPct = Math.round((progress / TOTAL_QUESTIONS) * 100);
+  const displayQuestion = Math.min(userMessageCount + 1, TOTAL_QUESTIONS);
 
   if (phase === "generating" || phase === "done") {
     const wordCount = editedStory.trim().split(/\s+/).filter(Boolean).length;
@@ -1033,7 +1063,7 @@ function AIInterview({
           />
         </div>
         <span className="text-xs text-navy/40 flex-shrink-0 tabular-nums">
-          {ui.progressText(progress)}
+          {ui.progressText(displayQuestion)}
         </span>
         {!showStartOverConfirm && (
           <button
@@ -1149,20 +1179,18 @@ function AIInterview({
                 <div className="px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap bg-navy text-cream rounded-tr-sm">
                   {msg.content}
                 </div>
-                {!loading && editingIndex === null && (
-                  <button
-                    type="button"
-                    onClick={() => startEdit(i, msg.content)}
-                    className="flex items-center gap-1 text-xs text-navy/35 hover:text-navy/60 transition-colors px-1"
-                    aria-label="Edit this answer"
-                  >
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                        d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                    </svg>
-                    Edit
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => startEdit(i, msg.content)}
+                  className="flex items-center gap-1.5 border border-navy/25 text-navy bg-white hover:bg-navy/5 transition-colors rounded-lg px-3 py-1.5 text-xs"
+                  aria-label="Edit this answer"
+                >
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                  Edit answer
+                </button>
               </div>
             ) : (
               <div className="max-w-[82%] flex flex-col gap-1">
@@ -1260,6 +1288,7 @@ function AIInterview({
             value={input}
             onChange={e => {
               if (noSpeechMsg) setNoSpeechMsg("");
+              if (showTranscriptHint && e.target.value === "") setShowTranscriptHint(false);
               setInput(e.target.value);
             }}
             onKeyDown={e => {
@@ -1343,6 +1372,9 @@ function AIInterview({
             {ui.continueBtn}
           </button>
         </div>
+        {showTranscriptHint && (
+          <p className="text-xs text-navy/50 px-1">{ui.transcriptHint}</p>
+        )}
       </div>
 
       <div className="flex-shrink-0">
