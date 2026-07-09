@@ -504,6 +504,14 @@ function AIInterview({
   const interviewAudioBlobsRef = useRef<InterviewAudioBlob[]>([]);
   const interviewAudioUrlsRef = useRef<InterviewAudioUrl[]>([]);
   const [editRecState, setEditRecState] = useState<"idle" | "recording" | "transcribing">("idle");
+  const interviewRecStateRef = useRef(interviewRecState);
+  useEffect(() => {
+    interviewRecStateRef.current = interviewRecState;
+  }, [interviewRecState]);
+  const editRecStateRef = useRef(editRecState);
+  useEffect(() => {
+    editRecStateRef.current = editRecState;
+  }, [editRecState]);
   const interviewTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const ttsHasPlayedRef = useRef(false);
   const maxVolumeRef = useRef<number>(0);
@@ -578,6 +586,9 @@ function AIInterview({
     const lastIndex = messages.length - 1;
     if (lastIndex <= lastSpokenIndexRef.current) return;
     lastSpokenIndexRef.current = lastIndex;
+    // Echo cancellation is disabled for interview recordings so TTS audio
+    // would bleed into the recording — skip auto-speak while recording.
+    if (interviewRecStateRef.current === "recording" || editRecStateRef.current === "recording") return;
     speak(lastMsg.content);
   }, [messages, speak]);
 
