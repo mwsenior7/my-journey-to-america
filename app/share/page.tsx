@@ -107,6 +107,7 @@ type UIStrings = {
   clickToStop: string;
   continueBtn: string;
   replay: string;
+  stop: string;
   startOver: string;
   progressText: (n: number) => string;
   progressLost: string;
@@ -129,6 +130,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     clickToStop: "Click to Stop",
     continueBtn: "Continue",
     replay: "Replay",
+    stop: "Stop",
     startOver: "Start Over",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} questions`,
     progressLost: "Progress will be lost.",
@@ -149,6 +151,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     clickToStop: "Clic para parar",
     continueBtn: "Continuar",
     replay: "Reproducir",
+    stop: "Detener",
     startOver: "Empezar de nuevo",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} preguntas`,
     progressLost: "Se perderá el progreso.",
@@ -169,6 +172,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     clickToStop: "Clic pour arrêter",
     continueBtn: "Continuer",
     replay: "Rejouer",
+    stop: "Arrêter",
     startOver: "Recommencer",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} questions`,
     progressLost: "La progression sera perdue.",
@@ -189,6 +193,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     clickToStop: "Clique para parar",
     continueBtn: "Continuar",
     replay: "Reproduzir",
+    stop: "Parar",
     startOver: "Recomeçar",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} perguntas`,
     progressLost: "O progresso será perdido.",
@@ -209,6 +214,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     clickToStop: "Klicken stoppen",
     continueBtn: "Weiter",
     replay: "Wiederholen",
+    stop: "Stoppen",
     startOver: "Neu starten",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} Fragen`,
     progressLost: "Fortschritt geht verloren.",
@@ -229,6 +235,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     clickToStop: "Clicca per fermare",
     continueBtn: "Continua",
     replay: "Riproduci",
+    stop: "Ferma",
     startOver: "Ricomincia",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} domande`,
     progressLost: "Il progresso verrà perso.",
@@ -249,6 +256,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     clickToStop: "点击停止",
     continueBtn: "继续",
     replay: "重放",
+    stop: "停止",
     startOver: "重新开始",
     progressText: (n) => `第 ${n}/${TOTAL_QUESTIONS} 题`,
     progressLost: "进度将会丢失。",
@@ -269,6 +277,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     clickToStop: "クリックして停止",
     continueBtn: "続ける",
     replay: "再生",
+    stop: "停止",
     startOver: "最初からやり直す",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} 問`,
     progressLost: "進捗が失われます。",
@@ -289,6 +298,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     clickToStop: "클릭하여 중지",
     continueBtn: "계속",
     replay: "다시 듣기",
+    stop: "정지",
     startOver: "처음부터 다시",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} 질문`,
     progressLost: "진행 상황이 사라집니다.",
@@ -309,6 +319,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     clickToStop: "انقر للإيقاف",
     continueBtn: "متابعة",
     replay: "إعادة",
+    stop: "إيقاف",
     startOver: "البدء من جديد",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} أسئلة`,
     progressLost: "سيُفقد التقدم.",
@@ -329,6 +340,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     clickToStop: "रोकने के लिए क्लिक करें",
     continueBtn: "जारी रखें",
     replay: "दोबारा सुनें",
+    stop: "रोकें",
     startOver: "फिर से शुरू करें",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} प्रश्न`,
     progressLost: "प्रगति खो जाएगी।",
@@ -349,6 +361,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     clickToStop: "Нажмите стоп",
     continueBtn: "Продолжить",
     replay: "Повтор",
+    stop: "Стоп",
     startOver: "Начать заново",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} вопросов`,
     progressLost: "Прогресс будет потерян.",
@@ -369,6 +382,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     clickToStop: "Натисніть зупинити",
     continueBtn: "Продовжити",
     replay: "Повтор",
+    stop: "Зупинити",
     startOver: "Почати знову",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} питань`,
     progressLost: "Прогрес буде втрачено.",
@@ -389,6 +403,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     clickToStop: "Κλικ για διακοπή",
     continueBtn: "Συνέχεια",
     replay: "Επανάληψη",
+    stop: "Διακοπή",
     startOver: "Ξεκινήστε από την αρχή",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} ερωτήσεις`,
     progressLost: "Η πρόοδος θα χαθεί.",
@@ -409,6 +424,7 @@ const UI_STRINGS: Record<string, UIStrings> = {
     clickToStop: "Nhấn để dừng",
     continueBtn: "Tiếp tục",
     replay: "Phát lại",
+    stop: "Dừng",
     startOver: "Bắt đầu lại",
     progressText: (n) => `${n}/${TOTAL_QUESTIONS} câu hỏi`,
     progressLost: "Tiến trình sẽ bị mất.",
@@ -490,6 +506,7 @@ function AIInterview({
   const [editingText, setEditingText] = useState("");
   const [showStartOverConfirm, setShowStartOverConfirm] = useState(false);
   const [ttsLoading, setTtsLoading] = useState(false);
+  const [speakingIndex, setSpeakingIndex] = useState<number | null>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const lastSpokenIndexRef = useRef(-1);
@@ -540,7 +557,7 @@ function AIInterview({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editedStory]);
 
-  const speak = useCallback(async (text: string) => {
+  const speak = useCallback(async (text: string, index: number) => {
     if (typeof window === "undefined") return;
     if (speakAbortRef.current) {
       speakAbortRef.current.abort();
@@ -551,6 +568,7 @@ function AIInterview({
       audioRef.current = null;
     }
     if (window.speechSynthesis) window.speechSynthesis.cancel();
+    setSpeakingIndex(null);
     const controller = new AbortController();
     speakAbortRef.current = controller;
     setTtsLoading(true);
@@ -571,9 +589,11 @@ function AIInterview({
       }
       const audio = new Audio(url);
       audioRef.current = audio;
+      setSpeakingIndex(index);
       audio.onended = () => {
         URL.revokeObjectURL(url);
         ttsHasPlayedRef.current = true;
+        setSpeakingIndex(prev => (prev === index ? null : prev));
       };
       audio.play().catch(() => {});
     } catch (e) {
@@ -584,6 +604,20 @@ function AIInterview({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language]);
 
+  function stopSpeaking() {
+    if (speakAbortRef.current) {
+      speakAbortRef.current.abort();
+      speakAbortRef.current = null;
+    }
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = "";
+      audioRef.current = null;
+    }
+    setTtsLoading(false);
+    setSpeakingIndex(null);
+  }
+
   useEffect(() => {
     const lastMsg = messages[messages.length - 1];
     if (!lastMsg || lastMsg.role !== "assistant") return;
@@ -593,7 +627,7 @@ function AIInterview({
     // Echo cancellation is disabled for interview recordings so TTS audio
     // would bleed into the recording — skip auto-speak while recording.
     if (interviewRecStateRef.current === "recording" || editRecStateRef.current === "recording") return;
-    speak(lastMsg.content);
+    speak(lastMsg.content, lastIndex);
   }, [messages, speak]);
 
   // Re-speak the current assistant message when language changes, and reset
@@ -602,8 +636,14 @@ function AIInterview({
     if (prevLangRef.current === language) return;
     prevLangRef.current = language;
     lastSpokenIndexRef.current = -1;
-    const lastAssistant = [...messages].reverse().find(m => m.role === "assistant");
-    if (lastAssistant) speak(lastAssistant.content);
+    let lastAssistantIndex = -1;
+    for (let idx = messages.length - 1; idx >= 0; idx--) {
+      if (messages[idx].role === "assistant") {
+        lastAssistantIndex = idx;
+        break;
+      }
+    }
+    if (lastAssistantIndex >= 0) speak(messages[lastAssistantIndex].content, lastAssistantIndex);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language, speak]);
 
@@ -632,6 +672,7 @@ function AIInterview({
       if (typeof window !== "undefined" && window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
+      setSpeakingIndex(null);
     };
   }, []);
 
@@ -645,6 +686,7 @@ function AIInterview({
       if (typeof window !== "undefined" && window.speechSynthesis) {
         window.speechSynthesis.cancel();
       }
+      setSpeakingIndex(null);
     };
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") stopAudio();
@@ -684,7 +726,6 @@ function AIInterview({
   }
 
   async function startInterviewRecording(editTarget?: { answerIndex: number }) {
-    console.log("mic button clicked");
     if (speakAbortRef.current) {
       speakAbortRef.current.abort();
       speakAbortRef.current = null;
@@ -695,6 +736,7 @@ function AIInterview({
       audioRef.current = null;
     }
     setTtsLoading(false);
+    setSpeakingIndex(null);
     const isEdit = !!editTarget;
     const answerIndex = editTarget ? editTarget.answerIndex : messages.filter(m => m.role === "user").length;
     setNoSpeechMsg("");
@@ -860,6 +902,7 @@ function AIInterview({
       audioRef.current.currentTime = 0;
     }
     if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+    setSpeakingIndex(null);
 
     const newMessages: Message[] = [...messages, { role: "user", content: trimmed }];
     setMessages(newMessages);
@@ -971,6 +1014,7 @@ function AIInterview({
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
     }
+    setSpeakingIndex(null);
     ttsHasPlayedRef.current = false;
     lastSpokenIndexRef.current = -1;
     const freshMessages: Message[] = [{ role: "assistant", content: OPENING_MESSAGE }];
@@ -1224,10 +1268,10 @@ function AIInterview({
                 </div>
                 <button
                   type="button"
-                  onClick={() => speak(msg.content)}
-                  disabled={ttsLoading}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-gold border border-gold/40 bg-gold/8 hover:bg-gold/15 transition-colors px-2.5 py-1 rounded-full self-start disabled:opacity-60"
-                  aria-label="Read aloud"
+                  onClick={() => (i === speakingIndex ? stopSpeaking() : speak(msg.content, i))}
+                  disabled={ttsLoading || interviewRecState === "recording" || editRecState === "recording"}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-gold border border-gold/40 bg-gold/8 hover:bg-gold/15 transition-colors px-2.5 py-1 rounded-full self-start disabled:opacity-60 disabled:cursor-not-allowed"
+                  aria-label={i === speakingIndex ? "Stop reading" : "Read aloud"}
                 >
                   {ttsLoading ? (
                     <>
@@ -1237,6 +1281,8 @@ function AIInterview({
                       </svg>
                       Loading…
                     </>
+                  ) : i === speakingIndex ? (
+                    <>⏹ {ui.stop}</>
                   ) : (
                     <>🔊 {ui.replay}</>
                   )}
@@ -1294,7 +1340,7 @@ function AIInterview({
           <div className="flex flex-col gap-1">
             <p className="text-xs text-navy/50 px-1">Recorded: {interviewRecordingSeconds} second{interviewRecordingSeconds !== 1 ? "s" : ""}</p>
             <div className="flex items-center gap-2 bg-navy/5 rounded-lg px-2 py-1.5">
-              <audio controls src={interviewAudioBlobUrl} preload="metadata" onPlay={() => { if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; } if (typeof window !== "undefined") window.speechSynthesis?.cancel(); }} className="h-8 flex-1 min-w-0" />
+              <audio controls src={interviewAudioBlobUrl} preload="metadata" onPlay={() => { if (audioRef.current) { audioRef.current.pause(); audioRef.current.currentTime = 0; } if (typeof window !== "undefined") window.speechSynthesis?.cancel(); setSpeakingIndex(null); }} className="h-8 flex-1 min-w-0" />
               <button
                 type="button"
                 onClick={clearInterviewRecording}
