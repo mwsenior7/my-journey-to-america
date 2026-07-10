@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
 type AdminStory = {
   id: string;
@@ -46,6 +47,27 @@ function formatDate(iso: string) {
   });
 }
 
+const NEW_ROW_HIGHLIGHT_MS = 10000;
+
+function mapRecordToStory(record: Record<string, unknown>): AdminStory {
+  return {
+    id: record.id as string,
+    author_name: (record.author_name as string) ?? "",
+    country_of_origin: (record.country_of_origin as string) ?? "",
+    year_of_arrival: (record.year_of_arrival as number | null) ?? null,
+    us_state: (record.us_state as string | null) ?? null,
+    profession: (record.profession as string | null) ?? null,
+    story_text: (record.story_text as string) ?? "",
+    status: (record.status as AdminStory["status"]) ?? "pending",
+    created_at: (record.created_at as string) ?? new Date().toISOString(),
+    tags: (record.tags as string[] | null) ?? null,
+    moderation_reason: (record.moderation_reason as string | null) ?? null,
+    audio_url: (record.audio_url as string | null) ?? null,
+    video_url: (record.video_url as string | null) ?? null,
+    interview_audio_urls: (record.interview_audio_urls as string[] | null) ?? [],
+  };
+}
+
 export default function AdminPanel() {
   const router = useRouter();
   const [stories, setStories] = useState<AdminStory[]>([]);
@@ -57,10 +79,60 @@ export default function AdminPanel() {
   const [reports, setReports] = useState<AdminReport[]>([]);
   const [reportsLoading, setReportsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"stories" | "reports">("stories");
+  const [newStoryIds, setNewStoryIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     refreshStories();
     fetchReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Live updates: new/changed stories arrive without a manual refresh.
+  useEffect(() => {
+    const channel = supabase
+      .channel("admin-stories-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "stories" },
+        (payload) => {
+          const story = mapRecordToStory(payload.new as Record<string, unknown>);
+          setStories((prev) => (prev.some((s) => s.id === story.id) ? prev : [story, ...prev]));
+          setNewStoryIds((prev) => new Set(prev).add(story.id));
+          setTimeout(() => {
+            setNewStoryIds((prev) => {
+              const next = new Set(prev);
+              next.delete(story.id);
+              return next;
+            });
+          }, NEW_ROW_HIGHLIGHT_MS);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "stories" },
+        (payload) => {
+          const story = mapRecordToStory(payload.new as Record<string, unknown>);
+          setStories((prev) =>
+            prev.some((s) => s.id === story.id)
+              ? prev.map((s) => (s.id === story.id ? story : s))
+              : [story, ...prev]
+          );
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  // Reports table is service-role-only, so it can't be subscribed to via
+  // client-side realtime — poll the admin endpoint instead.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchReports();
+    }, 30000);
+    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -272,12 +344,14 @@ export default function AdminPanel() {
         {visible.map((story) => {
           const isExpanded = expandedId === story.id;
           const isUpdating = updating === story.id;
+          const isNew = newStoryIds.has(story.id);
           const preview = story.story_text.slice(0, 220) + (story.story_text.length > 220 ? "…" : "");
 
           return (
             <div
               key={story.id}
-              className="bg-white rounded-2xl border border-navy/10 shadow-sm p-6"
+              className={`bg-white rounded-2xl border shadow-sm p-6 ${isNew ? "border-gold/50" : "border-navy/10"}`}
+              style={isNew ? { animation: "newRowPulse 1.6s ease-in-out infinite" } : undefined}
             >
               <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
                 <div>
@@ -286,6 +360,11 @@ export default function AdminPanel() {
                     <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full capitalize ${STATUS_BADGE[story.status]}`}>
                       {story.status}
                     </span>
+                    {isNew && (
+                      <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-gold text-navy">
+                        New
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm text-navy/50 mt-0.5">
                     {story.country_of_origin}

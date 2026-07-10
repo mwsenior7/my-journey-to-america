@@ -3,10 +3,12 @@
 import { useState } from "react";
 import StoryTranslator from "@/components/StoryTranslator";
 import type { StoryTranslation } from "@/lib/supabase";
+import { US_STATES } from "@/lib/us-states";
 
 type Props = {
   storyId: string;
   initialText: string;
+  usState: string | null;
   isAuthor: boolean;
   originalLang: string;
   translations: Pick<StoryTranslation, "language_code" | "story_text">[];
@@ -15,6 +17,7 @@ type Props = {
 export default function StoryEditor({
   storyId,
   initialText,
+  usState,
   isAuthor,
   originalLang,
   translations,
@@ -22,6 +25,8 @@ export default function StoryEditor({
   const [editMode, setEditMode] = useState(false);
   const [currentText, setCurrentText] = useState(initialText);
   const [draftText, setDraftText] = useState(initialText);
+  const [currentUsState, setCurrentUsState] = useState(usState);
+  const [draftUsState, setDraftUsState] = useState(usState ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -32,7 +37,7 @@ export default function StoryEditor({
       const res = await fetch("/api/stories/update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storyId, story_text: draftText }),
+        body: JSON.stringify({ storyId, story_text: draftText, us_state: draftUsState || null }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -40,6 +45,7 @@ export default function StoryEditor({
         return;
       }
       setCurrentText(draftText);
+      setCurrentUsState(draftUsState || null);
       setEditMode(false);
     } catch {
       setError("Failed to save");
@@ -50,6 +56,7 @@ export default function StoryEditor({
 
   const handleCancel = () => {
     setDraftText(currentText);
+    setDraftUsState(currentUsState ?? "");
     setEditMode(false);
     setError(null);
   };
@@ -57,6 +64,22 @@ export default function StoryEditor({
   if (editMode) {
     return (
       <div className="mb-12">
+        <div className="flex flex-col gap-1.5 mb-4">
+          <label className="text-sm font-semibold text-navy" htmlFor="story_editor_us_state">
+            US State You Settled In
+          </label>
+          <select
+            id="story_editor_us_state"
+            value={draftUsState}
+            onChange={(e) => setDraftUsState(e.target.value)}
+            className="border border-navy/20 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold w-full bg-white"
+          >
+            <option value="">Not specified</option>
+            {US_STATES.map((state) => (
+              <option key={state} value={state}>{state}</option>
+            ))}
+          </select>
+        </div>
         <textarea
           value={draftText}
           onChange={(e) => setDraftText(e.target.value)}
@@ -94,6 +117,7 @@ export default function StoryEditor({
         <button
           onClick={() => {
             setDraftText(currentText);
+            setDraftUsState(currentUsState ?? "");
             setEditMode(true);
           }}
           className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-navy/50 hover:text-navy transition-colors border border-navy/20 px-4 py-2.5 rounded-lg"

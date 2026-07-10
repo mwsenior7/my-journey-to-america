@@ -56,8 +56,8 @@ export default function MapPage() {
         </div>
       </div>
 
-      {/* Full map */}
-      <div className="max-w-6xl mx-auto px-4 pb-12">
+      {/* Full map — full-bleed, spans the full viewport width */}
+      <div className="w-full px-4 pb-12">
         <InteractiveMap compact={false} />
       </div>
 

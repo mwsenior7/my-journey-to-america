@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import StoryTranslator from "@/components/StoryTranslator";
 import type { StoryTranslation } from "@/lib/supabase";
+import { US_STATES } from "@/lib/us-states";
 
 const ACCEPTED_VIDEO = ".mp4,.mov,.avi,.webm,video/mp4,video/quicktime,video/x-msvideo,video/webm";
 
@@ -101,6 +102,8 @@ export default function StoryPageClient({
   const [editMode, setEditMode] = useState(false);
   const [currentText, setCurrentText] = useState(initialText);
   const [draftText, setDraftText] = useState(initialText);
+  const [currentUsState, setCurrentUsState] = useState(usState);
+  const [draftUsState, setDraftUsState] = useState(usState ?? "");
   const [currentAudioUrl, setCurrentAudioUrl] = useState(initialAudioUrl);
   const [currentVideoUrl, setCurrentVideoUrl] = useState(initialVideoUrl);
   const [saving, setSaving] = useState(false);
@@ -200,6 +203,7 @@ export default function StoryPageClient({
 
   function enterEditMode() {
     setDraftText(currentText);
+    setDraftUsState(currentUsState ?? "");
     setAudioMode("upload");
     setRecState("idle");
     setAudioBlob(null);
@@ -305,6 +309,7 @@ export default function StoryPageClient({
         body: JSON.stringify({
           storyId,
           story_text: draftText,
+          us_state: draftUsState || null,
           audio_url: newAudioUrl,
           video_url: newVideoUrl,
         }),
@@ -315,6 +320,7 @@ export default function StoryPageClient({
         return;
       }
       setCurrentText(draftText);
+      setCurrentUsState(draftUsState || null);
       setCurrentAudioUrl(newAudioUrl);
       setCurrentVideoUrl(newVideoUrl);
       setEditMode(false);
@@ -403,7 +409,7 @@ export default function StoryPageClient({
         <div className="flex flex-wrap items-start justify-between gap-4 mb-3">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-navy/50">
             <span className="font-medium text-navy/70">{countryOfOrigin}</span>
-            {usState && <><span>·</span><span>{usState}</span></>}
+            {currentUsState && <><span>·</span><span>{currentUsState}</span></>}
             {yearOfArrival && <><span>·</span><span>{yearOfArrival}</span></>}
             {profession && <><span>·</span><span>{profession}</span></>}
           </div>
@@ -473,6 +479,24 @@ export default function StoryPageClient({
       {/* Story content or edit form */}
       {editMode ? (
         <div className="mb-12 flex flex-col gap-6">
+          {/* US State */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-semibold text-navy" htmlFor="edit_us_state">
+              US State You Settled In
+            </label>
+            <select
+              id="edit_us_state"
+              value={draftUsState}
+              onChange={(e) => setDraftUsState(e.target.value)}
+              className="border border-navy/20 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-gold w-full bg-white"
+            >
+              <option value="">Not specified</option>
+              {US_STATES.map((state) => (
+                <option key={state} value={state}>{state}</option>
+              ))}
+            </select>
+          </div>
+
           {/* Story text */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-semibold text-navy">Your Story</label>

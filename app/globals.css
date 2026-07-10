@@ -37,3 +37,8 @@ body {
   0%, 100% { opacity: 0.7; transform: scale(1); }
   50%       { opacity: 1;   transform: scale(1.15); }
 }
+
+@keyframes newRowPulse {
+  0%, 100% { background-color: rgba(201, 168, 76, 0.16); }
+  50%       { background-color: rgba(201, 168, 76, 0.32); }
+}

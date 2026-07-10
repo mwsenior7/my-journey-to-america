@@ -394,8 +394,14 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
     []
   );
 
-  const mapHeight = compact ? 380 : 700;
-  const mapScale  = compact ? 140 : 220;
+  // Non-compact (full /map page) renders in a much taller, full-bleed frame.
+  // The SVG viewBox width/height are scaled up in proportion to the scale
+  // increase (220 -> 260, ~1.18x) so the same geographic extent stays in
+  // frame — the map reads as bigger without cropping any continents.
+  const mapContainerHeight = compact ? 380 : "min(85vh, 900px)";
+  const mapSvgWidth  = compact ? 1440 : 1700;
+  const mapSvgHeight = compact ? 380 : 820;
+  const mapScale  = compact ? 140 : 260;
   const mapCenter: [number, number] = [-30, 15];
 
   return (
@@ -404,7 +410,7 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
       <div
         className="relative rounded-xl overflow-hidden"
         style={{
-          height: mapHeight,
+          height: mapContainerHeight,
           background: "linear-gradient(180deg, #0F1E3A 0%, #1B2A4A 40%, #243354 100%)",
         }}
       >
@@ -425,8 +431,8 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
 
         <ComposableMap
           projectionConfig={{ scale: mapScale, center: mapCenter }}
-          width={1440}
-          height={mapHeight}
+          width={mapSvgWidth}
+          height={mapSvgHeight}
           style={{ width: "100%", height: "100%" }}
         >
           {/* World geography */}
