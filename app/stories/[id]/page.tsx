@@ -9,6 +9,8 @@ import { auth } from "@clerk/nextjs/server";
 import { supabase, type Story } from "@/lib/supabase";
 import ShareButton from "./ShareButton";
 import StoryPageClient from "./StoryPageClient";
+import RelatedStories from "@/components/RelatedStories";
+import BackToTop from "@/components/BackToTop";
 
 const getStory = cache(async (id: string): Promise<Story | null> => {
   noStore();
@@ -52,22 +54,11 @@ export default async function StoryPage({ params }: { params: { id: string } }) 
   const { userId } = await auth();
   const isAuthor = !!userId && story.clerk_user_id === userId;
 
-  const [{ data: translationsRaw }, { data: relatedRaw }] = await Promise.all([
-    supabase
-      .from("story_translations")
-      .select("language_code, story_text")
-      .eq("story_id", story.id),
-    supabase
-      .from("stories")
-      .select("id, author_name, country_of_origin, year_of_arrival, story_text")
-      .eq("country_of_origin", story.country_of_origin)
-      .eq("status", "approved")
-      .neq("id", story.id)
-      .order("created_at", { ascending: false })
-      .limit(3),
-  ]);
+  const { data: translationsRaw } = await supabase
+    .from("story_translations")
+    .select("language_code, story_text")
+    .eq("story_id", story.id);
   const translations = translationsRaw ?? [];
-  const related = relatedRaw ?? [];
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-16">
@@ -112,43 +103,9 @@ export default async function StoryPage({ params }: { params: { id: string } }) 
         <ShareButton />
       </div>
 
-      {/* Related stories */}
-      {related.length > 0 && (
-        <div>
-          <h2 className="text-2xl font-bold text-navy mb-6">
-            More stories from {story.country_of_origin}
-          </h2>
-          <div className="flex flex-col gap-4">
-            {related.map((r) => {
-              const excerpt =
-                r.story_text.length > 180
-                  ? r.story_text.slice(0, 180) + "…"
-                  : r.story_text;
-              return (
-                <Link
-                  key={r.id}
-                  href={`/stories/${r.id}`}
-                  className="group bg-white rounded-2xl border border-navy/10 p-5 hover:border-gold/40 hover:shadow-md transition-all flex flex-col gap-2"
-                >
-                  <div>
-                    <p className="font-bold text-navy group-hover:text-navy leading-snug">
-                      {r.author_name}
-                    </p>
-                    <p className="text-xs text-navy/50">
-                      {r.country_of_origin}
-                      {r.year_of_arrival ? ` · ${r.year_of_arrival}` : ""}
-                    </p>
-                  </div>
-                  <p className="text-sm text-navy/65 leading-relaxed">{excerpt}</p>
-                  <span className="text-xs font-semibold text-gold mt-1">
-                    Read story →
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      <RelatedStories storyId={story.id} />
+
+      <BackToTop />
     </div>
   );
 }

@@ -10,11 +10,6 @@ const ACCEPTED_VIDEO = ".mp4,.mov,.avi,.webm,video/mp4,video/quicktime,video/x-m
 
 type ReactionCounts = { honored: number; inspired: number; relatable: number; moved: number };
 
-type MoreStory = { id: string; author_name: string; country_of_origin: string; us_state: string | null; year_of_arrival: number | null; profession: string | null; story_text: string };
-
-const SUPABASE_URL = "https://hesfbleyhuzlsqdjbciu.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_LuEFLmPs0_HQX1tP3El2SQ_uMSG_uxg";
-
 const REACTIONS: { key: keyof ReactionCounts; emoji: string; label: string }[] = [
   { key: "honored", emoji: "🕊️", label: "Honored" },
   { key: "inspired", emoji: "💪", label: "Inspired" },
@@ -123,16 +118,10 @@ export default function StoryPageClient({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
-  const [moreStories, setMoreStories] = useState<MoreStory[]>([]);
-  const [moreStoryReactions, setMoreStoryReactions] = useState<Record<string, ReactionCounts>>({});
-  const [moreStoryActiveReactions, setMoreStoryActiveReactions] = useState<Record<string, keyof ReactionCounts | null>>({});
-  const [moreStoryReactingTo, setMoreStoryReactingTo] = useState<Record<string, keyof ReactionCounts | null>>({});
-
   const [reportState, setReportState] = useState<"idle" | "open" | "submitting" | "done">("idle");
   const [reportReason, setReportReason] = useState("");
   const [reportComment, setReportComment] = useState("");
   const [reportEmail, setReportEmail] = useState("");
-  const [moreStoryReportId, setMoreStoryReportId] = useState<string | null>(null);
 
   useEffect(() => {
     fetch(`/api/stories/${storyId}/view`, { method: "POST" });
@@ -142,55 +131,6 @@ export default function StoryPageClient({
       .catch(() => {});
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    async function loadMoreStories() {
-      const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}` };
-      const base = `${SUPABASE_URL}/rest/v1/stories`;
-
-      const sameParams = new URLSearchParams({
-        select: "id,author_name,country_of_origin,us_state,year_of_arrival,profession,story_text",
-        status: "eq.approved",
-        country_of_origin: `eq.${countryOfOrigin}`,
-        id: `neq.${storyId}`,
-        order: "created_at.desc",
-        limit: "10",
-      });
-      const sameRes = await fetch(`${base}?${sameParams}`, { headers }).catch(() => null);
-      const same: MoreStory[] = sameRes?.ok ? await sameRes.json() : [];
-
-      let stories = same;
-      if (same.length < 3) {
-        const needed = 10 - same.length;
-        const otherParams = new URLSearchParams({
-          select: "id,author_name,country_of_origin,us_state,year_of_arrival,profession,story_text",
-          status: "eq.approved",
-          country_of_origin: `neq.${countryOfOrigin}`,
-          order: "created_at.desc",
-          limit: String(needed),
-        });
-        const otherRes = await fetch(`${base}?${otherParams}`, { headers }).catch(() => null);
-        const others: MoreStory[] = otherRes?.ok ? await otherRes.json() : [];
-        stories = [...same, ...others];
-      }
-      setMoreStories(stories);
-
-      const rxnResults = await Promise.all(
-        stories.map((s) =>
-          fetch(`/api/stories/${s.id}/reactions`)
-            .then((r) => (r.ok ? r.json() : null))
-            .catch(() => null)
-        )
-      );
-      const rxnMap: Record<string, ReactionCounts> = {};
-      stories.forEach((s, i) => {
-        if (rxnResults[i] && "honored" in rxnResults[i]) rxnMap[s.id] = rxnResults[i];
-      });
-      setMoreStoryReactions(rxnMap);
-    }
-    loadMoreStories();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [storyId, countryOfOrigin]);
 
   // Video state
   const [videoMode, setVideoMode] = useState<"url" | "upload">("url");
@@ -357,27 +297,6 @@ export default function StoryPageClient({
       console.error(`[Reaction] Error:`, err);
     } finally {
       setReactingTo(null);
-    }
-  };
-
-  const handleMoreStoryReact = async (sid: string, key: keyof ReactionCounts) => {
-    if (moreStoryReactingTo[sid]) return;
-    setMoreStoryReactingTo((prev) => ({ ...prev, [sid]: key }));
-    try {
-      const res = await fetch(`/api/stories/${sid}/react`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reaction: key }),
-      });
-      const data = await res.json();
-      if (data && "honored" in data) {
-        setMoreStoryReactions((prev) => ({ ...prev, [sid]: data }));
-        setMoreStoryActiveReactions((prev) => ({ ...prev, [sid]: key }));
-      }
-    } catch {
-      // silent
-    } finally {
-      setMoreStoryReactingTo((prev) => ({ ...prev, [sid]: null }));
     }
   };
 
@@ -910,158 +829,6 @@ export default function StoryPageClient({
         </div>
       )}
 
-      {/* More Stories */}
-      {!editMode && moreStories.length > 0 && (
-        <div className="mt-16 pt-12 border-t border-navy/10">
-          <h2 className="text-2xl font-bold text-navy mb-10">More stories you might enjoy</h2>
-          <div className="flex flex-col">
-            {moreStories.map((s, i) => {
-              const counts = moreStoryReactions[s.id] ?? { honored: 0, inspired: 0, relatable: 0, moved: 0 };
-              const activeRxn = moreStoryActiveReactions[s.id] ?? null;
-              const reactingToKey = moreStoryReactingTo[s.id] ?? null;
-              return (
-                <div key={s.id}>
-                  {i > 0 && (
-                    <div className="flex items-center gap-4 my-12">
-                      <div className="flex-1 border-t border-navy/10" />
-                      <span className="text-xs text-navy/30 font-medium tracking-wide">Continue reading ↓</span>
-                      <div className="flex-1 border-t border-navy/10" />
-                    </div>
-                  )}
-                  <article>
-                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-navy/50 mb-2">
-                      <span className="font-medium text-navy/70">{s.country_of_origin}</span>
-                      {s.us_state && <><span>·</span><span>{s.us_state}</span></>}
-                      {s.year_of_arrival && <><span>·</span><span>{s.year_of_arrival}</span></>}
-                      {s.profession && <><span>·</span><span>{s.profession}</span></>}
-                    </div>
-                    <h3 className="text-2xl font-bold text-navy mb-5">{s.author_name}</h3>
-                    <div className="text-[1.0625rem] leading-[1.9] text-navy/80 whitespace-pre-wrap mb-6">
-                      {s.story_text}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {REACTIONS.map(({ key, emoji, label }) => {
-                        const isActive = activeRxn === key;
-                        const isLoading = reactingToKey === key;
-                        return (
-                          <button
-                            key={key}
-                            type="button"
-                            onClick={() => handleMoreStoryReact(s.id, key)}
-                            disabled={!!reactingToKey}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-semibold transition-all disabled:opacity-60"
-                            style={{
-                              border: "1px solid #C9A84C",
-                              background: isActive ? "#C9A84C" : "#0A1628",
-                              color: isActive ? "#0A1628" : "#F5F0E8",
-                              opacity: isLoading ? 0.7 : 1,
-                            }}
-                          >
-                            <span>{emoji}</span>
-                            <span>{label}</span>
-                            <span
-                              className="ml-1 px-1.5 py-0.5 rounded-full text-xs font-bold"
-                              style={{
-                                background: isActive ? "#0A1628" : "#C9A84C22",
-                                color: isActive ? "#C9A84C" : "#C9A84C",
-                              }}
-                            >
-                              {counts[key]}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                    <div className="mt-4">
-                      {moreStoryReportId !== s.id ? (
-                        <button
-                          type="button"
-                          onClick={() => setMoreStoryReportId(s.id)}
-                          className="text-xs text-navy/30 hover:text-navy/50 transition-colors"
-                        >
-                          Report this story
-                        </button>
-                      ) : (
-                        <div className="max-w-md mt-4">
-                          <p className="text-sm font-semibold text-navy mb-3">Report a concern</p>
-                          <select
-                            value={reportReason}
-                            onChange={e => setReportReason(e.target.value)}
-                            className="w-full border border-navy/20 rounded-lg px-3 py-2 text-sm text-navy mb-3"
-                          >
-                            <option value="">Select a reason...</option>
-                            <option value="Offensive or hateful content">Offensive or hateful content</option>
-                            <option value="Privacy concern">Privacy concern</option>
-                            <option value="Inaccurate information">Inaccurate information</option>
-                            <option value="Spam or fake story">Spam or fake story</option>
-                            <option value="Inappropriate content">Inappropriate content</option>
-                            <option value="Other">Other</option>
-                          </select>
-                          <textarea
-                            value={reportComment}
-                            onChange={e => setReportComment(e.target.value)}
-                            placeholder="Additional details (optional)"
-                            className="w-full border border-navy/20 rounded-lg px-3 py-2 text-sm text-navy mb-3 h-20 resize-none"
-                          />
-                          <input
-                            type="email"
-                            value={reportEmail}
-                            onChange={e => setReportEmail(e.target.value)}
-                            placeholder="Your email (optional — for updates)"
-                            className="w-full border border-navy/20 rounded-lg px-3 py-2 text-sm text-navy mb-3"
-                          />
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                if (!reportReason) return;
-                                setMoreStoryReportId(s.id + "_submitting");
-                                try {
-                                  await fetch("/api/report-story", {
-                                    method: "POST",
-                                    headers: { "Content-Type": "application/json" },
-                                    body: JSON.stringify({
-                                      story_id: s.id,
-                                      reporter_email: reportEmail.trim() || undefined,
-                                      reason: reportReason,
-                                      comment: reportComment.trim() || undefined,
-                                      story_excerpt: s.story_text.slice(0, 300),
-                                    }),
-                                  });
-                                  setMoreStoryReportId(s.id + "_done");
-                                } catch {
-                                  setMoreStoryReportId(null);
-                                }
-                              }}
-                              disabled={!reportReason}
-                              className="px-4 py-2 bg-navy text-cream text-sm font-semibold rounded-lg disabled:opacity-40"
-                            >
-                              Submit report
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => { setMoreStoryReportId(null); setReportReason(""); setReportComment(""); setReportEmail(""); }}
-                              className="px-4 py-2 text-sm text-navy/50 hover:text-navy"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                      {moreStoryReportId === s.id + "_submitting" && (
-                        <p className="text-xs text-navy/40">Submitting report...</p>
-                      )}
-                      {moreStoryReportId === s.id + "_done" && (
-                        <p className="text-xs text-navy/50">Thank you — your report has been received.</p>
-                      )}
-                    </div>
-                  </article>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </>
   );
 }
