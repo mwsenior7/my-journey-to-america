@@ -396,12 +396,13 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
 
   // Non-compact (full /map page) renders in a much taller, full-bleed frame.
   // Scale/center are zoomed and shifted north to crop Antarctica and deep
-  // Arctic dead space while keeping South Africa through Scandinavia in view.
+  // Arctic dead space while keeping South America (incl. Tierra del Fuego)
+  // through Scandinavia in view.
   const mapContainerHeight = compact ? 380 : "min(85vh, 900px)";
   const mapSvgWidth  = compact ? 1440 : 1700;
   const mapSvgHeight = compact ? 380 : 820;
-  const mapScale  = compact ? 140 : 302;
-  const mapCenter: [number, number] = compact ? [-30, 15] : [-30, 23];
+  const mapScale  = compact ? 140 : 295;
+  const mapCenter: [number, number] = compact ? [-30, 15] : [-30, 17];
 
   return (
     <div className="flex flex-col gap-0">
