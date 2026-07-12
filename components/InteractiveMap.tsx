@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { ComposableMap, Geographies, Geography, Line, Marker } from "react-simple-maps";
+import { ComposableMap, Geographies, Geography, Line, Marker, useMapContext } from "react-simple-maps";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
@@ -183,6 +183,44 @@ interface StoryArc {
   to:   [number, number];
   color: string;
   idx: number;
+}
+
+// Non-compact journey arcs are drawn as explicit quadratic Béziers so the bow
+// height (control-point offset above the chord, in projected px) is a tunable
+// constant instead of an emergent side effect of great-circle resampling.
+// 0.09 flattens the bow to ~65% of the prior implicit great-circle bow for
+// representative trans-Pacific routes, so those arcs peak just above the
+// northern landmass rather than high in empty sky. Compact mode keeps the
+// original straight-projected <Line> untouched.
+const ARC_BOW_FACTOR = 0.09;
+
+function JourneyArc({
+  from,
+  to,
+  compact,
+  ...pathProps
+}: {
+  from: [number, number];
+  to: [number, number];
+  compact: boolean;
+} & Omit<React.SVGProps<SVGPathElement>, "from" | "to">) {
+  const { projection } = useMapContext();
+
+  if (compact) {
+    return <Line from={from} to={to} {...pathProps} />;
+  }
+
+  const p1 = projection(from);
+  const p2 = projection(to);
+  if (!p1 || !p2) return null;
+
+  const chordLen = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
+  const bowHeight = chordLen * ARC_BOW_FACTOR;
+  const cx = (p1[0] + p2[0]) / 2;
+  const cy = (p1[1] + p2[1]) / 2 - bowHeight;
+  const d = `M${p1[0]},${p1[1]} Q${cx},${cy} ${p2[0]},${p2[1]}`;
+
+  return <path d={d} fill="none" {...pathProps} />;
 }
 
 // ── Story popup card ──────────────────────────────────────────────────────────
@@ -397,12 +435,15 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
   // Non-compact (full /map page) renders in a much taller, full-bleed frame.
   // Scale/center are zoomed and shifted north to crop Antarctica and deep
   // Arctic dead space while keeping South America (incl. Tierra del Fuego)
-  // through Scandinavia in view.
+  // through Scandinavia in view. scale=319/center=[-22,8.5] were solved
+  // numerically (see commit message) so the highest flattened arc apex sits
+  // ~29px below the frame top and Tierra del Fuego sits ~31px above the
+  // frame bottom, eliminating dead sky at both edges.
   const mapContainerHeight = compact ? 380 : "min(85vh, 900px)";
   const mapSvgWidth  = compact ? 1440 : 1700;
   const mapSvgHeight = compact ? 380 : 820;
-  const mapScale  = compact ? 140 : 295;
-  const mapCenter: [number, number] = compact ? [-30, 15] : [-30, 17];
+  const mapScale  = compact ? 140 : 319;
+  const mapCenter: [number, number] = compact ? [-30, 15] : [-22, 8.5];
 
   return (
     <div className="flex flex-col gap-0">
@@ -461,29 +502,28 @@ export default function InteractiveMap({ compact = false }: { compact?: boolean 
             const isNew = newArcIds.has(arc.story.id);
             const delay = isNew ? 0 : (arc.idx % 30) * 0.08;
             return (
-              <Line
+              <JourneyArc
                 key={arc.story.id}
                 from={arc.from}
                 to={arc.to}
+                compact={compact}
                 stroke={arc.color}
                 strokeWidth={isSelected ? 4 : 2.5}
                 fill="none"
-                {...({
-                  strokeDasharray: "2000",
-                  strokeLinecap: "round",
-                  opacity: selected
-                    ? isSelected ? 1 : 0.18
-                    : 0.88,
-                  style: {
-                    animation: `drawLine 2.8s ease-out ${delay}s both`,
-                    cursor: "pointer",
-                    transition: "opacity 0.25s, stroke-width 0.2s",
-                    filter: isSelected
-                      ? `drop-shadow(0 0 6px ${arc.color})`
-                      : `drop-shadow(0 0 2px ${arc.color}80)`,
-                  },
-                  onClick: () => handleLineClick(arc.story),
-                } as React.SVGProps<SVGPathElement>)}
+                strokeDasharray="2000"
+                strokeLinecap="round"
+                opacity={selected
+                  ? isSelected ? 1 : 0.18
+                  : 0.88}
+                style={{
+                  animation: `drawLine 2.8s ease-out ${delay}s both`,
+                  cursor: "pointer",
+                  transition: "opacity 0.25s, stroke-width 0.2s",
+                  filter: isSelected
+                    ? `drop-shadow(0 0 6px ${arc.color})`
+                    : `drop-shadow(0 0 2px ${arc.color}80)`,
+                }}
+                onClick={() => handleLineClick(arc.story)}
               />
             );
           })}
