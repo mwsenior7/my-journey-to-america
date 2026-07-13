@@ -1,18 +1,20 @@
 "use client"
 export const dynamic = "force-dynamic"
 
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { SUPPORTED_LANGUAGES } from "@/contexts/LanguageContext";
 import { US_STATES } from "@/lib/us-states";
+import { COUNTRIES } from "@/lib/countries";
 
 type FormState = {
   name: string;
   country: string;
   year_arrived: string;
   us_state: string;
+  us_state_opt_out: boolean;
   profession: string;
   story_text: string;
   video_url: string;
@@ -27,6 +29,7 @@ const EMPTY: FormState = {
   country: "",
   year_arrived: "",
   us_state: "",
+  us_state_opt_out: false,
   profession: "",
   story_text: "",
   video_url: "",
@@ -96,6 +99,127 @@ function Field({
   );
 }
 
+function CountryCombobox({
+  id,
+  value,
+  onChange,
+  hasError,
+  placeholder,
+}: {
+  id: string;
+  value: string;
+  onChange: (v: string) => void;
+  hasError?: boolean;
+  placeholder?: string;
+}) {
+  const [query, setQuery] = useState(value);
+  const [open, setOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setQuery(value);
+  }, [value]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return COUNTRIES;
+    return COUNTRIES.filter((c) => c.toLowerCase().includes(q));
+  }, [query]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery((q) => (q === value ? q : value));
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [value]);
+
+  function selectCountry(country: string) {
+    onChange(country);
+    setQuery(country);
+    setOpen(false);
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setOpen(true);
+      setHighlightedIndex((i) => Math.min(i + 1, filtered.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightedIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Enter") {
+      if (open && filtered[highlightedIndex]) {
+        e.preventDefault();
+        selectCountry(filtered[highlightedIndex]);
+      }
+    } else if (e.key === "Escape") {
+      setOpen(false);
+      setQuery(value);
+    }
+  }
+
+  return (
+    <div className="relative" ref={containerRef}>
+      <input
+        id={id}
+        type="text"
+        role="combobox"
+        aria-expanded={open}
+        aria-autocomplete="list"
+        aria-controls={`${id}-listbox`}
+        autoComplete="off"
+        placeholder={placeholder}
+        value={query}
+        onChange={(e) => {
+          const next = e.target.value;
+          setQuery(next);
+          setOpen(true);
+          setHighlightedIndex(0);
+          if (next.trim() === "") onChange("");
+        }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={handleKeyDown}
+        className={`${INPUT}${hasError ? " border-red-400 focus:ring-red-400" : ""}`}
+      />
+      {open && filtered.length > 0 && (
+        <ul
+          id={`${id}-listbox`}
+          role="listbox"
+          className="absolute z-10 mt-1 w-full max-h-56 overflow-y-auto bg-white border border-navy/15 rounded-lg shadow-lg py-1"
+        >
+          {filtered.map((c, i) => (
+            <li
+              key={c}
+              role="option"
+              aria-selected={c === value}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                selectCountry(c);
+              }}
+              onMouseEnter={() => setHighlightedIndex(i)}
+              className={`px-4 py-2 text-sm cursor-pointer ${
+                i === highlightedIndex ? "bg-gold/15 text-navy" : "text-navy/80"
+              }`}
+            >
+              {c}
+            </li>
+          ))}
+        </ul>
+      )}
+      {open && query.trim() !== "" && filtered.length === 0 && (
+        <div className="absolute z-10 mt-1 w-full bg-white border border-navy/15 rounded-lg shadow-lg py-2 px-4 text-sm text-navy/40">
+          No matches
+        </div>
+      )}
+    </div>
+  );
+}
+
 const TOTAL_QUESTIONS = 8;
 
 type UIStrings = {
@@ -118,6 +242,8 @@ type UIStrings = {
   noSpeechDetected: string;
   noSoundLive: string;
   transcriptHint: string;
+  preferNotToSay: string;
+  mapNudge: string;
 };
 
 const UI_STRINGS: Record<string, UIStrings> = {
@@ -141,6 +267,8 @@ const UI_STRINGS: Record<string, UIStrings> = {
     noSpeechDetected: "We couldn't hear that clearly. Try recording again, or type your answer.",
     noSoundLive: "We're not hearing any sound. Check your microphone, or stop and type your answer instead.",
     transcriptHint: "Tap the text above to make changes, or press Continue.",
+    preferNotToSay: "Prefer not to say",
+    mapNudge: "Choosing a state adds your journey to the Journey Map.",
   },
   es: {
     placeholder: "Comparte tu respuesta… (Intro para enviar, Shift+Intro para nueva línea)",
@@ -162,6 +290,8 @@ const UI_STRINGS: Record<string, UIStrings> = {
     noSpeechDetected: "No pudimos escucharte bien. Intenta grabar de nuevo o escribe tu respuesta.",
     noSoundLive: "No estamos escuchando ningún sonido. Comprueba tu micrófono o para y escribe tu respuesta.",
     transcriptHint: "Toca el texto de arriba para hacer cambios, o presiona Continuar.",
+    preferNotToSay: "Prefiero no decirlo",
+    mapNudge: "Elegir un estado añade tu viaje al Mapa del Viaje.",
   },
   fr: {
     placeholder: "Partagez votre réponse… (Entrée pour envoyer, Maj+Entrée pour nouvelle ligne)",
@@ -183,6 +313,8 @@ const UI_STRINGS: Record<string, UIStrings> = {
     noSpeechDetected: "Nous n'avons pas pu vous entendre clairement. Réessayez d'enregistrer ou tapez votre réponse.",
     noSoundLive: "Nous n'entendons aucun son. Vérifiez votre microphone, ou arrêtez et tapez votre réponse.",
     transcriptHint: "Touchez le texte ci-dessus pour apporter des modifications, ou appuyez sur Continuer.",
+    preferNotToSay: "Je préfère ne pas préciser",
+    mapNudge: "Choisir un état ajoute votre parcours à la Carte du Voyage.",
   },
   pt: {
     placeholder: "Compartilhe sua resposta… (Enter para enviar, Shift+Enter para nova linha)",
@@ -204,6 +336,8 @@ const UI_STRINGS: Record<string, UIStrings> = {
     noSpeechDetected: "Não conseguimos ouvi-lo bem. Tente gravar novamente ou escreva sua resposta.",
     noSoundLive: "Não estamos ouvindo nenhum som. Verifique seu microfone ou pare e escreva sua resposta.",
     transcriptHint: "Toque no texto acima para fazer alterações, ou pressione Continuar.",
+    preferNotToSay: "Prefiro não dizer",
+    mapNudge: "Escolher um estado adiciona sua jornada ao Mapa da Jornada.",
   },
   de: {
     placeholder: "Teile deine Antwort… (Eingabe zum Senden, Umschalt+Eingabe für neue Zeile)",
@@ -225,6 +359,8 @@ const UI_STRINGS: Record<string, UIStrings> = {
     noSpeechDetected: "Wir konnten das nicht klar hören. Versuche es erneut aufzunehmen oder tippe deine Antwort.",
     noSoundLive: "Wir hören keinen Ton. Überprüfe dein Mikrofon, oder stoppe die Aufnahme und tippe deine Antwort.",
     transcriptHint: "Tippe auf den Text oben, um Änderungen vorzunehmen, oder drücke Weiter.",
+    preferNotToSay: "Keine Angabe",
+    mapNudge: "Die Auswahl eines Bundesstaats fügt deine Reise der Reisekarte hinzu.",
   },
   it: {
     placeholder: "Condividi la tua risposta… (Invio per inviare, Maiusc+Invio per nuova riga)",
@@ -246,6 +382,8 @@ const UI_STRINGS: Record<string, UIStrings> = {
     noSpeechDetected: "Non siamo riusciti a sentirti bene. Riprova a registrare o digita la tua risposta.",
     noSoundLive: "Non stiamo sentendo nessun suono. Controlla il microfono, oppure fermati e digita la tua risposta.",
     transcriptHint: "Tocca il testo sopra per apportare modifiche, oppure premi Continua.",
+    preferNotToSay: "Preferisco non dirlo",
+    mapNudge: "Scegliere uno stato aggiunge il tuo viaggio alla Mappa del Viaggio.",
   },
   zh: {
     placeholder: "分享您的回答…（Enter 发送，Shift+Enter 换行）",
@@ -267,6 +405,8 @@ const UI_STRINGS: Record<string, UIStrings> = {
     noSpeechDetected: "我们听不清楚。请重新录音，或直接输入您的回答。",
     noSoundLive: "我们没有听到任何声音。请检查您的麦克风，或停止录音并输入您的回答。",
     transcriptHint: "点按上方文字进行修改，或点击继续。",
+    preferNotToSay: "不愿透露",
+    mapNudge: "选择一个州会将您的旅程添加到旅程地图上。",
   },
   ja: {
     placeholder: "回答を入力してください…（Enterで送信、Shift+Enterで改行）",
@@ -288,6 +428,8 @@ const UI_STRINGS: Record<string, UIStrings> = {
     noSpeechDetected: "はっきりと聞き取れませんでした。もう一度録音するか、回答を入力してください。",
     noSoundLive: "音が聞こえません。マイクを確認するか、停止して回答を入力してください。",
     transcriptHint: "上のテキストをタップして変更するか、続けるを押してください。",
+    preferNotToSay: "回答しない",
+    mapNudge: "州を選択すると、あなたの旅がジャーニーマップに追加されます。",
   },
   ko: {
     placeholder: "답변을 입력하세요…（Enter로 전송, Shift+Enter로 줄바꿈）",
@@ -309,6 +451,8 @@ const UI_STRINGS: Record<string, UIStrings> = {
     noSpeechDetected: "명확하게 들리지 않았습니다. 다시 녹음하거나 답변을 입력해 주세요.",
     noSoundLive: "소리가 들리지 않아요. 마이크를 확인하거나, 중지하고 답변을 입력해 주세요.",
     transcriptHint: "위 텍스트를 탭하여 수정하거나 계속을 누르세요.",
+    preferNotToSay: "밝히지 않음",
+    mapNudge: "주를 선택하면 여정이 여정 지도에 추가됩니다.",
   },
   ar: {
     placeholder: "شارك إجابتك… (Enter للإرسال، Shift+Enter لسطر جديد)",
@@ -330,6 +474,8 @@ const UI_STRINGS: Record<string, UIStrings> = {
     noSpeechDetected: "لم نتمكن من سماعك بوضوح. حاول التسجيل مرة أخرى أو اكتب إجابتك.",
     noSoundLive: "لا نسمع أي صوت. تحقق من الميكروفون، أو أوقف التسجيل واكتب إجابتك.",
     transcriptHint: "اضغط على النص أعلاه لإجراء تغييرات، أو اضغط على متابعة.",
+    preferNotToSay: "أفضل عدم الإفصاح",
+    mapNudge: "اختيار ولاية يضيف رحلتك إلى خريطة الرحلة.",
   },
   hi: {
     placeholder: "अपना उत्तर साझा करें… (भेजने के लिए Enter, नई पंक्ति के लिए Shift+Enter)",
@@ -351,6 +497,8 @@ const UI_STRINGS: Record<string, UIStrings> = {
     noSpeechDetected: "हम आपको स्पष्ट रूप से नहीं सुन सके। दोबारा रिकॉर्ड करें या अपना उत्तर टाइप करें।",
     noSoundLive: "हमें कोई आवाज़ नहीं सुनाई दे रही। अपना माइक्रोफ़ोन जाँचें, या रोकें और अपना उत्तर टाइप करें।",
     transcriptHint: "बदलाव करने के लिए ऊपर दिए गए टेक्स्ट पर टैप करें, या जारी रखें दबाएँ।",
+    preferNotToSay: "बताना नहीं चाहते",
+    mapNudge: "राज्य चुनने से आपकी यात्रा जर्नी मैप में जुड़ जाती है।",
   },
   ru: {
     placeholder: "Поделитесь своим ответом… (Enter — отправить, Shift+Enter — новая строка)",
@@ -372,6 +520,8 @@ const UI_STRINGS: Record<string, UIStrings> = {
     noSpeechDetected: "Нам не удалось чётко расслышать. Попробуйте записать снова или напечатайте ответ.",
     noSoundLive: "Мы не слышим звука. Проверьте микрофон или остановите запись и напечатайте ответ.",
     transcriptHint: "Нажмите на текст выше, чтобы внести изменения, или нажмите «Продолжить».",
+    preferNotToSay: "Предпочитаю не указывать",
+    mapNudge: "Выбор штата добавляет ваше путешествие на Карту путешествий.",
   },
   uk: {
     placeholder: "Поділіться своєю відповіддю… (Enter — надіслати, Shift+Enter — новий рядок)",
@@ -393,6 +543,8 @@ const UI_STRINGS: Record<string, UIStrings> = {
     noSpeechDetected: "Нам не вдалося чітко почути. Спробуйте записати знову або надрукуйте відповідь.",
     noSoundLive: "Ми не чуємо жодного звуку. Перевірте мікрофон або зупиніть запис і надрукуйте відповідь.",
     transcriptHint: "Торкніться тексту вище, щоб внести зміни, або натисніть «Продовжити».",
+    preferNotToSay: "Не бажаю вказувати",
+    mapNudge: "Вибір штату додає вашу подорож на Карту подорожей.",
   },
   el: {
     placeholder: "Μοιραστείτε την απάντησή σας… (Enter για αποστολή, Shift+Enter για νέα γραμμή)",
@@ -414,6 +566,8 @@ const UI_STRINGS: Record<string, UIStrings> = {
     noSpeechDetected: "Δεν μπορέσαμε να σας ακούσουμε καθαρά. Δοκιμάστε να ηχογραφήσετε ξανά ή πληκτρολογήστε την απάντησή σας.",
     noSoundLive: "Δεν ακούμε κανέναν ήχο. Ελέγξτε το μικρόφωνό σας ή σταματήστε και πληκτρολογήστε την απάντησή σας.",
     transcriptHint: "Πατήστε το κείμενο παραπάνω για να κάνετε αλλαγές, ή πατήστε Συνέχεια.",
+    preferNotToSay: "Προτιμώ να μην απαντήσω",
+    mapNudge: "Η επιλογή πολιτείας προσθέτει το ταξίδι σας στον Χάρτη Ταξιδιού.",
   },
   vi: {
     placeholder: "Chia sẻ câu trả lời của bạn… (Enter để gửi, Shift+Enter để xuống dòng)",
@@ -435,6 +589,8 @@ const UI_STRINGS: Record<string, UIStrings> = {
     noSpeechDetected: "Chúng tôi không nghe rõ. Hãy thử ghi âm lại hoặc nhập câu trả lời của bạn.",
     noSoundLive: "Chúng tôi không nghe thấy âm thanh. Kiểm tra micrô của bạn, hoặc dừng lại và nhập câu trả lời.",
     transcriptHint: "Chạm vào văn bản ở trên để chỉnh sửa, hoặc nhấn Tiếp tục.",
+    preferNotToSay: "Không muốn tiết lộ",
+    mapNudge: "Chọn một bang sẽ thêm hành trình của bạn vào Bản đồ Hành trình.",
   },
 };
 
@@ -1496,11 +1652,12 @@ export default function SharePage() {
 
   const [mode, setMode] = useState<"form" | "interview">("interview");
   const [form, setForm] = useState<FormState>(EMPTY);
+  const ui = getUIStrings(form.original_language);
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMsg, setErrorMsg] = useState("");
   const [honeypot, setHoneypot] = useState("");
   const [highlightUseStory, setHighlightUseStory] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<{ name?: string; country?: string; story?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; country?: string; story?: string; us_state?: string }>({});
 
   const [savedDraft, setSavedDraft] = useState<SavedDraft | null>(null);
   const [isUsingDraft, setIsUsingDraft] = useState(false);
@@ -1714,9 +1871,14 @@ export default function SharePage() {
     e.preventDefault();
     if (honeypot) { setStatus("success"); return; }
 
-    const errors: { name?: string; country?: string; story?: string } = {};
+    const errors: { name?: string; country?: string; story?: string; us_state?: string } = {};
     if (!form.name.trim()) errors.name = "Please enter your name";
-    if (!form.country.trim()) errors.country = "Please enter your country of origin";
+    if (!form.country.trim() || !COUNTRIES.includes(form.country)) {
+      errors.country = "Please select your country of origin from the list";
+    }
+    if (!form.us_state_opt_out && !form.us_state.trim()) {
+      errors.us_state = `Please select a state, or check "${ui.preferNotToSay}"`;
+    }
     if (!form.story_text.trim()) {
       if (mode === "interview") {
         setHighlightUseStory(true);
@@ -1731,6 +1893,7 @@ export default function SharePage() {
       setFieldErrors(errors);
       if (errors.name) document.getElementById("name")?.focus();
       else if (errors.country) document.getElementById("country")?.focus();
+      else if (errors.us_state) document.getElementById("us_state")?.focus();
       else if (errors.story) document.getElementById("story_text")?.focus();
       return;
     }
@@ -1799,7 +1962,7 @@ export default function SharePage() {
         name: form.name,
         country: form.country,
         year_arrived: form.year_arrived ? parseInt(form.year_arrived, 10) : null,
-        us_state: form.us_state || null,
+        us_state: form.us_state_opt_out ? null : (form.us_state || null),
         profession: form.profession || null,
         story_text: form.story_text,
         video_url,
@@ -2059,29 +2222,50 @@ export default function SharePage() {
 
           <div className="grid sm:grid-cols-2 gap-6">
             <Field label="Country of Origin" htmlFor="country" required>
-              <input
+              <CountryCombobox
                 id="country"
-                type="text"
-                placeholder="Where did you come from?"
                 value={form.country}
-                onChange={e => { set("country")(e); setFieldErrors(prev => ({ ...prev, country: undefined })); }}
-                className={`${INPUT}${fieldErrors.country ? " border-red-400 focus:ring-red-400" : ""}`}
+                onChange={(v) => {
+                  setForm(prev => ({ ...prev, country: v }));
+                  setFieldErrors(prev => ({ ...prev, country: undefined }));
+                }}
+                hasError={!!fieldErrors.country}
+                placeholder="Where did you come from?"
               />
               {fieldErrors.country && <p className="text-xs text-red-500">{fieldErrors.country}</p>}
             </Field>
 
-            <Field label="US State You Settled In" htmlFor="us_state">
+            <Field label="US State You Settled In" htmlFor="us_state" hint={ui.mapNudge}>
               <select
                 id="us_state"
                 value={form.us_state}
-                onChange={set("us_state")}
-                className={INPUT}
+                disabled={form.us_state_opt_out}
+                onChange={e => {
+                  set("us_state")(e);
+                  setFieldErrors(prev => ({ ...prev, us_state: undefined }));
+                  if (e.target.value) setForm(prev => ({ ...prev, us_state_opt_out: false }));
+                }}
+                className={`${INPUT}${form.us_state_opt_out ? " opacity-50 cursor-not-allowed bg-navy/5" : ""}${fieldErrors.us_state ? " border-red-400 focus:ring-red-400" : ""}`}
               >
-                <option value="">Select a state…</option>
+                <option value="" disabled>Select a state…</option>
                 {US_STATES.map((s) => (
                   <option key={s} value={s}>{s}</option>
                 ))}
               </select>
+              <label className="flex items-center gap-2 mt-2 text-sm font-medium text-navy/80 bg-navy/5 border border-navy/10 rounded-lg px-3 py-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={form.us_state_opt_out}
+                  onChange={e => {
+                    const checked = e.target.checked;
+                    setForm(prev => ({ ...prev, us_state_opt_out: checked, us_state: checked ? "" : prev.us_state }));
+                    if (checked) setFieldErrors(prev => ({ ...prev, us_state: undefined }));
+                  }}
+                  className="w-4 h-4 rounded border-navy/30 accent-gold focus:ring-2 focus:ring-gold"
+                />
+                {ui.preferNotToSay}
+              </label>
+              {fieldErrors.us_state && <p className="text-xs text-red-500">{fieldErrors.us_state}</p>}
             </Field>
           </div>
 
