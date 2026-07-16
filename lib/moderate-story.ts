@@ -41,7 +41,9 @@ Story submission:
 - Story text: ${storyText}
 
 Respond with JSON only, no other text:
-{"decision": "approved", "reason": "...", "minor_flag": false} or {"decision": "pending", "reason": "...", "minor_flag": false}`;
+{"decision": "approved", "reason": "...", "minor_flag": false} or {"decision": "pending", "reason": "...", "minor_flag": false}
+
+Respond with ONLY the raw JSON object. Do not wrap it in markdown code fences or backticks.`;
 
   try {
     const message = await client.messages.create({
@@ -53,7 +55,20 @@ Respond with JSON only, no other text:
     const raw = message.content[0].type === "text" ? message.content[0].text.trim() : "";
     console.log("moderateStory raw response:", raw);
 
-    const parsed = JSON.parse(raw);
+    const cleaned = raw
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/```\s*$/, "")
+      .trim();
+
+    let parsed: { decision?: unknown; reason?: unknown; minor_flag?: unknown };
+    try {
+      parsed = JSON.parse(cleaned);
+    } catch {
+      const match = cleaned.match(/\{[\s\S]*?\}/);
+      if (!match) throw new Error("No JSON object found in moderation response");
+      parsed = JSON.parse(match[0]);
+    }
+
     const minorFlag = parsed.minor_flag === true;
 
     if (parsed.decision === "approved" || parsed.decision === "pending") {
