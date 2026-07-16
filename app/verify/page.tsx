@@ -37,10 +37,11 @@ export default function VerifyPage() {
       <div className="max-w-md w-full bg-white rounded-2xl shadow-sm border border-navy/10 p-8 text-center">
         <div className="text-4xl mb-4">🪪</div>
         <h1 className="text-2xl font-bold text-navy mb-3">
-          Age Verification Required
+          One More Verification Step
         </h1>
         <p className="text-navy/70 mb-2 leading-relaxed">
-          To share your story on My Journey to America, you must be at least 18 years old.
+          Before you can continue sharing on My Journey to America, we need to verify your age.
+          This extra step helps us keep the community safe for everyone.
         </p>
         <p className="text-navy/50 text-sm mb-8 leading-relaxed">
           We use Veriff, a trusted third-party service, to verify your identity and age.

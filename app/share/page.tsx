@@ -244,6 +244,17 @@ type UIStrings = {
   transcriptHint: string;
   preferNotToSay: string;
   mapNudge: string;
+  ageGateTitle: string;
+  ageGateBody: string;
+  ageGateMonth: string;
+  ageGateDay: string;
+  ageGateYear: string;
+  ageGateConfirm: string;
+  ageGateContinue: string;
+  ageGateSubmitting: string;
+  ageGateError: string;
+  ageGateBlockedTitle: string;
+  ageGateBlockedBody: string;
 };
 
 const UI_STRINGS: Record<string, UIStrings> = {
@@ -269,6 +280,17 @@ const UI_STRINGS: Record<string, UIStrings> = {
     transcriptHint: "Tap the text above to make changes, or press Continue.",
     preferNotToSay: "Prefer not to say",
     mapNudge: "Choosing a state adds your journey to the Journey Map.",
+    ageGateTitle: "Before You Share",
+    ageGateBody: "To help keep our community safe, please confirm your date of birth before sharing your story.",
+    ageGateMonth: "Month",
+    ageGateDay: "Day",
+    ageGateYear: "Year",
+    ageGateConfirm: "By continuing you confirm this information is accurate.",
+    ageGateContinue: "Continue",
+    ageGateSubmitting: "Checking…",
+    ageGateError: "Please select a valid date of birth.",
+    ageGateBlockedTitle: "Thanks for letting us know",
+    ageGateBlockedBody: "You must be 13 or older to share a story here. We hope you'll come back and share when you're a bit older!",
   },
   es: {
     placeholder: "Comparte tu respuesta… (Intro para enviar, Shift+Intro para nueva línea)",
@@ -292,6 +314,17 @@ const UI_STRINGS: Record<string, UIStrings> = {
     transcriptHint: "Toca el texto de arriba para hacer cambios, o presiona Continuar.",
     preferNotToSay: "Prefiero no decirlo",
     mapNudge: "Elegir un estado añade tu viaje al Mapa del Viaje.",
+    ageGateTitle: "Antes de compartir",
+    ageGateBody: "Para ayudar a mantener segura nuestra comunidad, confirma tu fecha de nacimiento antes de compartir tu historia.",
+    ageGateMonth: "Mes",
+    ageGateDay: "Día",
+    ageGateYear: "Año",
+    ageGateConfirm: "Al continuar, confirmas que esta información es correcta.",
+    ageGateContinue: "Continuar",
+    ageGateSubmitting: "Comprobando…",
+    ageGateError: "Selecciona una fecha de nacimiento válida.",
+    ageGateBlockedTitle: "Gracias por decírnoslo",
+    ageGateBlockedBody: "Debes tener 13 años o más para compartir una historia aquí. ¡Esperamos que vuelvas a compartir cuando seas un poco mayor!",
   },
   fr: {
     placeholder: "Partagez votre réponse… (Entrée pour envoyer, Maj+Entrée pour nouvelle ligne)",
@@ -315,6 +348,17 @@ const UI_STRINGS: Record<string, UIStrings> = {
     transcriptHint: "Touchez le texte ci-dessus pour apporter des modifications, ou appuyez sur Continuer.",
     preferNotToSay: "Je préfère ne pas préciser",
     mapNudge: "Choisir un état ajoute votre parcours à la Carte du Voyage.",
+    ageGateTitle: "Avant de partager",
+    ageGateBody: "Pour aider à assurer la sécurité de notre communauté, veuillez confirmer votre date de naissance avant de partager votre histoire.",
+    ageGateMonth: "Mois",
+    ageGateDay: "Jour",
+    ageGateYear: "Année",
+    ageGateConfirm: "En continuant, vous confirmez que ces informations sont exactes.",
+    ageGateContinue: "Continuer",
+    ageGateSubmitting: "Vérification…",
+    ageGateError: "Veuillez sélectionner une date de naissance valide.",
+    ageGateBlockedTitle: "Merci de nous l'avoir dit",
+    ageGateBlockedBody: "Vous devez avoir au moins 13 ans pour partager une histoire ici. Nous espérons que vous reviendrez partager votre histoire un peu plus tard !",
   },
   pt: {
     placeholder: "Compartilhe sua resposta… (Enter para enviar, Shift+Enter para nova linha)",
@@ -338,6 +382,17 @@ const UI_STRINGS: Record<string, UIStrings> = {
     transcriptHint: "Toque no texto acima para fazer alterações, ou pressione Continuar.",
     preferNotToSay: "Prefiro não dizer",
     mapNudge: "Escolher um estado adiciona sua jornada ao Mapa da Jornada.",
+    ageGateTitle: "Antes de compartilhar",
+    ageGateBody: "Para ajudar a manter nossa comunidade segura, confirme sua data de nascimento antes de compartilhar sua história.",
+    ageGateMonth: "Mês",
+    ageGateDay: "Dia",
+    ageGateYear: "Ano",
+    ageGateConfirm: "Ao continuar, você confirma que esta informação é precisa.",
+    ageGateContinue: "Continuar",
+    ageGateSubmitting: "Verificando…",
+    ageGateError: "Selecione uma data de nascimento válida.",
+    ageGateBlockedTitle: "Obrigado por nos avisar",
+    ageGateBlockedBody: "Você precisa ter 13 anos ou mais para compartilhar uma história aqui. Esperamos que volte para compartilhar quando for um pouco mais velho!",
   },
   de: {
     placeholder: "Teile deine Antwort… (Eingabe zum Senden, Umschalt+Eingabe für neue Zeile)",
@@ -361,6 +416,17 @@ const UI_STRINGS: Record<string, UIStrings> = {
     transcriptHint: "Tippe auf den Text oben, um Änderungen vorzunehmen, oder drücke Weiter.",
     preferNotToSay: "Keine Angabe",
     mapNudge: "Die Auswahl eines Bundesstaats fügt deine Reise der Reisekarte hinzu.",
+    ageGateTitle: "Bevor du teilst",
+    ageGateBody: "Um unsere Community sicher zu halten, bestätige bitte dein Geburtsdatum, bevor du deine Geschichte teilst.",
+    ageGateMonth: "Monat",
+    ageGateDay: "Tag",
+    ageGateYear: "Jahr",
+    ageGateConfirm: "Mit dem Fortfahren bestätigst du, dass diese Angaben korrekt sind.",
+    ageGateContinue: "Weiter",
+    ageGateSubmitting: "Wird geprüft…",
+    ageGateError: "Bitte wähle ein gültiges Geburtsdatum.",
+    ageGateBlockedTitle: "Danke, dass du es uns mitgeteilt hast",
+    ageGateBlockedBody: "Du musst mindestens 13 Jahre alt sein, um hier eine Geschichte zu teilen. Wir hoffen, du kommst zurück, wenn du etwas älter bist!",
   },
   it: {
     placeholder: "Condividi la tua risposta… (Invio per inviare, Maiusc+Invio per nuova riga)",
@@ -384,6 +450,17 @@ const UI_STRINGS: Record<string, UIStrings> = {
     transcriptHint: "Tocca il testo sopra per apportare modifiche, oppure premi Continua.",
     preferNotToSay: "Preferisco non dirlo",
     mapNudge: "Scegliere uno stato aggiunge il tuo viaggio alla Mappa del Viaggio.",
+    ageGateTitle: "Prima di condividere",
+    ageGateBody: "Per aiutare a mantenere sicura la nostra community, conferma la tua data di nascita prima di condividere la tua storia.",
+    ageGateMonth: "Mese",
+    ageGateDay: "Giorno",
+    ageGateYear: "Anno",
+    ageGateConfirm: "Continuando, confermi che questi dati sono corretti.",
+    ageGateContinue: "Continua",
+    ageGateSubmitting: "Verifica in corso…",
+    ageGateError: "Seleziona una data di nascita valida.",
+    ageGateBlockedTitle: "Grazie per avercelo detto",
+    ageGateBlockedBody: "Devi avere almeno 13 anni per condividere una storia qui. Speriamo che tu torni a condividere quando sarai un po' più grande!",
   },
   zh: {
     placeholder: "分享您的回答…（Enter 发送，Shift+Enter 换行）",
@@ -407,6 +484,17 @@ const UI_STRINGS: Record<string, UIStrings> = {
     transcriptHint: "点按上方文字进行修改，或点击继续。",
     preferNotToSay: "不愿透露",
     mapNudge: "选择一个州会将您的旅程添加到旅程地图上。",
+    ageGateTitle: "分享前",
+    ageGateBody: "为了帮助保障社区安全，请在分享您的故事前确认您的出生日期。",
+    ageGateMonth: "月",
+    ageGateDay: "日",
+    ageGateYear: "年",
+    ageGateConfirm: "继续即表示您确认此信息准确无误。",
+    ageGateContinue: "继续",
+    ageGateSubmitting: "正在检查…",
+    ageGateError: "请选择有效的出生日期。",
+    ageGateBlockedTitle: "感谢您的告知",
+    ageGateBlockedBody: "您必须年满13岁才能在此分享故事。希望您年长一些后再回来分享！",
   },
   ja: {
     placeholder: "回答を入力してください…（Enterで送信、Shift+Enterで改行）",
@@ -430,6 +518,17 @@ const UI_STRINGS: Record<string, UIStrings> = {
     transcriptHint: "上のテキストをタップして変更するか、続けるを押してください。",
     preferNotToSay: "回答しない",
     mapNudge: "州を選択すると、あなたの旅がジャーニーマップに追加されます。",
+    ageGateTitle: "共有する前に",
+    ageGateBody: "コミュニティの安全を守るため、ストーリーを共有する前に生年月日をご確認ください。",
+    ageGateMonth: "月",
+    ageGateDay: "日",
+    ageGateYear: "年",
+    ageGateConfirm: "続行することで、この情報が正確であることを確認したものとします。",
+    ageGateContinue: "続ける",
+    ageGateSubmitting: "確認中…",
+    ageGateError: "有効な生年月日を選択してください。",
+    ageGateBlockedTitle: "教えてくれてありがとうございます",
+    ageGateBlockedBody: "ここでストーリーを共有するには13歳以上である必要があります。もう少し大きくなったら、またぜひ共有しに来てください！",
   },
   ko: {
     placeholder: "답변을 입력하세요…（Enter로 전송, Shift+Enter로 줄바꿈）",
@@ -453,6 +552,17 @@ const UI_STRINGS: Record<string, UIStrings> = {
     transcriptHint: "위 텍스트를 탭하여 수정하거나 계속을 누르세요.",
     preferNotToSay: "밝히지 않음",
     mapNudge: "주를 선택하면 여정이 여정 지도에 추가됩니다.",
+    ageGateTitle: "공유하기 전에",
+    ageGateBody: "커뮤니티의 안전을 위해 이야기를 공유하기 전에 생년월일을 확인해 주세요.",
+    ageGateMonth: "월",
+    ageGateDay: "일",
+    ageGateYear: "년",
+    ageGateConfirm: "계속 진행하면 이 정보가 정확함을 확인하는 것입니다.",
+    ageGateContinue: "계속",
+    ageGateSubmitting: "확인 중…",
+    ageGateError: "유효한 생년월일을 선택해 주세요.",
+    ageGateBlockedTitle: "알려주셔서 감사합니다",
+    ageGateBlockedBody: "여기에서 이야기를 공유하려면 13세 이상이어야 합니다. 조금 더 자란 후에 다시 와서 공유해 주시길 바랍니다!",
   },
   ar: {
     placeholder: "شارك إجابتك… (Enter للإرسال، Shift+Enter لسطر جديد)",
@@ -476,6 +586,17 @@ const UI_STRINGS: Record<string, UIStrings> = {
     transcriptHint: "اضغط على النص أعلاه لإجراء تغييرات، أو اضغط على متابعة.",
     preferNotToSay: "أفضل عدم الإفصاح",
     mapNudge: "اختيار ولاية يضيف رحلتك إلى خريطة الرحلة.",
+    ageGateTitle: "قبل المشاركة",
+    ageGateBody: "للمساعدة في الحفاظ على أمان مجتمعنا، يُرجى تأكيد تاريخ ميلادك قبل مشاركة قصتك.",
+    ageGateMonth: "الشهر",
+    ageGateDay: "اليوم",
+    ageGateYear: "السنة",
+    ageGateConfirm: "بالمتابعة، فإنك تؤكد أن هذه المعلومات دقيقة.",
+    ageGateContinue: "متابعة",
+    ageGateSubmitting: "جارٍ التحقق…",
+    ageGateError: "يرجى اختيار تاريخ ميلاد صحيح.",
+    ageGateBlockedTitle: "شكرًا لإخبارنا",
+    ageGateBlockedBody: "يجب أن يكون عمرك 13 عامًا أو أكثر لمشاركة قصة هنا. نأمل أن تعود لمشاركة قصتك عندما تكبر قليلاً!",
   },
   hi: {
     placeholder: "अपना उत्तर साझा करें… (भेजने के लिए Enter, नई पंक्ति के लिए Shift+Enter)",
@@ -499,6 +620,17 @@ const UI_STRINGS: Record<string, UIStrings> = {
     transcriptHint: "बदलाव करने के लिए ऊपर दिए गए टेक्स्ट पर टैप करें, या जारी रखें दबाएँ।",
     preferNotToSay: "बताना नहीं चाहते",
     mapNudge: "राज्य चुनने से आपकी यात्रा जर्नी मैप में जुड़ जाती है।",
+    ageGateTitle: "साझा करने से पहले",
+    ageGateBody: "हमारे समुदाय को सुरक्षित रखने में मदद के लिए, कृपया अपनी कहानी साझा करने से पहले अपनी जन्मतिथि की पुष्टि करें।",
+    ageGateMonth: "महीना",
+    ageGateDay: "दिन",
+    ageGateYear: "वर्ष",
+    ageGateConfirm: "जारी रखकर, आप पुष्टि करते हैं कि यह जानकारी सही है।",
+    ageGateContinue: "जारी रखें",
+    ageGateSubmitting: "जाँच हो रही है…",
+    ageGateError: "कृपया एक मान्य जन्मतिथि चुनें।",
+    ageGateBlockedTitle: "हमें बताने के लिए धन्यवाद",
+    ageGateBlockedBody: "यहाँ कहानी साझा करने के लिए आपकी उम्र 13 वर्ष या उससे अधिक होनी चाहिए। हमें उम्मीद है कि आप थोड़े बड़े होने पर वापस आकर साझा करेंगे!",
   },
   ru: {
     placeholder: "Поделитесь своим ответом… (Enter — отправить, Shift+Enter — новая строка)",
@@ -522,6 +654,17 @@ const UI_STRINGS: Record<string, UIStrings> = {
     transcriptHint: "Нажмите на текст выше, чтобы внести изменения, или нажмите «Продолжить».",
     preferNotToSay: "Предпочитаю не указывать",
     mapNudge: "Выбор штата добавляет ваше путешествие на Карту путешествий.",
+    ageGateTitle: "Прежде чем поделиться",
+    ageGateBody: "Чтобы наше сообщество оставалось безопасным, подтвердите, пожалуйста, дату рождения перед публикацией своей истории.",
+    ageGateMonth: "Месяц",
+    ageGateDay: "День",
+    ageGateYear: "Год",
+    ageGateConfirm: "Продолжая, вы подтверждаете точность этих данных.",
+    ageGateContinue: "Продолжить",
+    ageGateSubmitting: "Проверка…",
+    ageGateError: "Пожалуйста, выберите корректную дату рождения.",
+    ageGateBlockedTitle: "Спасибо, что сообщили нам",
+    ageGateBlockedBody: "Чтобы делиться историей здесь, вам должно быть не менее 13 лет. Надеемся, вы вернётесь, когда станете немного старше!",
   },
   uk: {
     placeholder: "Поділіться своєю відповіддю… (Enter — надіслати, Shift+Enter — новий рядок)",
@@ -545,6 +688,17 @@ const UI_STRINGS: Record<string, UIStrings> = {
     transcriptHint: "Торкніться тексту вище, щоб внести зміни, або натисніть «Продовжити».",
     preferNotToSay: "Не бажаю вказувати",
     mapNudge: "Вибір штату додає вашу подорож на Карту подорожей.",
+    ageGateTitle: "Перш ніж поділитися",
+    ageGateBody: "Щоб наша спільнота залишалася безпечною, підтвердіть, будь ласка, дату народження перед публікацією своєї історії.",
+    ageGateMonth: "Місяць",
+    ageGateDay: "День",
+    ageGateYear: "Рік",
+    ageGateConfirm: "Продовжуючи, ви підтверджуєте точність цієї інформації.",
+    ageGateContinue: "Продовжити",
+    ageGateSubmitting: "Перевірка…",
+    ageGateError: "Будь ласка, виберіть коректну дату народження.",
+    ageGateBlockedTitle: "Дякуємо, що повідомили нам",
+    ageGateBlockedBody: "Щоб ділитися історією тут, вам має бути щонайменше 13 років. Сподіваємося, ви повернетеся, коли станете трохи старшими!",
   },
   el: {
     placeholder: "Μοιραστείτε την απάντησή σας… (Enter για αποστολή, Shift+Enter για νέα γραμμή)",
@@ -568,6 +722,17 @@ const UI_STRINGS: Record<string, UIStrings> = {
     transcriptHint: "Πατήστε το κείμενο παραπάνω για να κάνετε αλλαγές, ή πατήστε Συνέχεια.",
     preferNotToSay: "Προτιμώ να μην απαντήσω",
     mapNudge: "Η επιλογή πολιτείας προσθέτει το ταξίδι σας στον Χάρτη Ταξιδιού.",
+    ageGateTitle: "Πριν μοιραστείτε",
+    ageGateBody: "Για να διατηρήσουμε την κοινότητά μας ασφαλή, επιβεβαιώστε την ημερομηνία γέννησής σας πριν μοιραστείτε την ιστορία σας.",
+    ageGateMonth: "Μήνας",
+    ageGateDay: "Ημέρα",
+    ageGateYear: "Έτος",
+    ageGateConfirm: "Συνεχίζοντας, επιβεβαιώνετε ότι αυτές οι πληροφορίες είναι ακριβείς.",
+    ageGateContinue: "Συνέχεια",
+    ageGateSubmitting: "Έλεγχος…",
+    ageGateError: "Επιλέξτε μια έγκυρη ημερομηνία γέννησης.",
+    ageGateBlockedTitle: "Σας ευχαριστούμε που μας ενημερώσατε",
+    ageGateBlockedBody: "Πρέπει να είστε τουλάχιστον 13 ετών για να μοιραστείτε μια ιστορία εδώ. Ελπίζουμε να επιστρέψετε όταν είστε λίγο μεγαλύτεροι!",
   },
   vi: {
     placeholder: "Chia sẻ câu trả lời của bạn… (Enter để gửi, Shift+Enter để xuống dòng)",
@@ -591,6 +756,17 @@ const UI_STRINGS: Record<string, UIStrings> = {
     transcriptHint: "Chạm vào văn bản ở trên để chỉnh sửa, hoặc nhấn Tiếp tục.",
     preferNotToSay: "Không muốn tiết lộ",
     mapNudge: "Chọn một bang sẽ thêm hành trình của bạn vào Bản đồ Hành trình.",
+    ageGateTitle: "Trước khi chia sẻ",
+    ageGateBody: "Để giúp cộng đồng của chúng tôi luôn an toàn, vui lòng xác nhận ngày sinh của bạn trước khi chia sẻ câu chuyện.",
+    ageGateMonth: "Tháng",
+    ageGateDay: "Ngày",
+    ageGateYear: "Năm",
+    ageGateConfirm: "Khi tiếp tục, bạn xác nhận thông tin này là chính xác.",
+    ageGateContinue: "Tiếp tục",
+    ageGateSubmitting: "Đang kiểm tra…",
+    ageGateError: "Vui lòng chọn ngày sinh hợp lệ.",
+    ageGateBlockedTitle: "Cảm ơn bạn đã cho chúng tôi biết",
+    ageGateBlockedBody: "Bạn phải từ 13 tuổi trở lên để chia sẻ câu chuyện tại đây. Chúng tôi mong bạn quay lại chia sẻ khi lớn hơn một chút!",
   },
 };
 
@@ -1627,9 +1803,137 @@ function AIInterview({
   );
 }
 
+type AgeStatus = {
+  attested: boolean;
+  ageBand: string | null;
+  requiresVerification: boolean;
+  verified: boolean;
+};
+
+function AgeAttestationPanel({
+  ui,
+  onAttested,
+}: {
+  ui: UIStrings;
+  onAttested: (ageBand: string) => void;
+}) {
+  const currentYear = new Date().getFullYear();
+  const [month, setMonth] = useState("");
+  const [day, setDay] = useState("");
+  const [year, setYear] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [blocked, setBlocked] = useState(false);
+
+  const months = useMemo(() => Array.from({ length: 12 }, (_, i) => i + 1), []);
+  const days = useMemo(() => Array.from({ length: 31 }, (_, i) => i + 1), []);
+  const years = useMemo(() => Array.from({ length: 120 }, (_, i) => currentYear - i), [currentYear]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    if (!month || !day || !year) {
+      setError(ui.ageGateError);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/attest-age", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ month: Number(month), day: Number(day), year: Number(year) }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? ui.ageGateError);
+        return;
+      }
+      if (data.blocked) {
+        setBlocked(true);
+        return;
+      }
+      onAttested(data.ageBand as string);
+    } catch {
+      setError(ui.ageGateError);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (blocked) {
+    return (
+      <div className="max-w-2xl mx-auto px-4 py-16">
+        <div className="bg-white rounded-2xl border border-navy/10 shadow-sm p-8 text-center">
+          <div className="text-4xl mb-4">💛</div>
+          <h1 className="text-2xl font-bold text-navy mb-3">{ui.ageGateBlockedTitle}</h1>
+          <p className="text-navy/60 leading-relaxed">{ui.ageGateBlockedBody}</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-2xl mx-auto px-4 py-16">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white rounded-2xl border border-navy/10 shadow-sm p-8 flex flex-col gap-6"
+      >
+        <div>
+          <h1 className="text-2xl font-bold text-navy mb-2">{ui.ageGateTitle}</h1>
+          <p className="text-navy/60 leading-relaxed">{ui.ageGateBody}</p>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-semibold text-navy" htmlFor="dob_month">
+              {ui.ageGateMonth}
+            </label>
+            <select id="dob_month" value={month} onChange={e => setMonth(e.target.value)} className={INPUT}>
+              <option value="" disabled>{ui.ageGateMonth}</option>
+              {months.map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-semibold text-navy" htmlFor="dob_day">
+              {ui.ageGateDay}
+            </label>
+            <select id="dob_day" value={day} onChange={e => setDay(e.target.value)} className={INPUT}>
+              <option value="" disabled>{ui.ageGateDay}</option>
+              {days.map(d => <option key={d} value={d}>{d}</option>)}
+            </select>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-semibold text-navy" htmlFor="dob_year">
+              {ui.ageGateYear}
+            </label>
+            <select id="dob_year" value={year} onChange={e => setYear(e.target.value)} className={INPUT}>
+              <option value="" disabled>{ui.ageGateYear}</option>
+              {years.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {error && <p className="text-sm text-red-500">{error}</p>}
+
+        <p className="text-xs text-navy/40">{ui.ageGateConfirm}</p>
+
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-full bg-navy text-cream font-bold py-4 rounded-full hover:bg-navy/90 transition-colors disabled:opacity-50"
+        >
+          {submitting ? ui.ageGateSubmitting : ui.ageGateContinue}
+        </button>
+      </form>
+    </div>
+  );
+}
+
 export default function SharePage() {
   const { userId, isLoaded, isSignedIn } = useAuth();
   const router = useRouter();
+
+  const [ageStatus, setAgeStatus] = useState<AgeStatus | null>(null);
 
   useEffect(() => {
     if (!isLoaded) return;
@@ -1637,18 +1941,28 @@ export default function SharePage() {
       router.push("/sign-in?redirect_url=/share");
       return;
     }
-    // Check age verification
-    fetch("/api/veriff-status")
+    fetch("/api/age-status")
       .then((r) => r.json())
       .then((data) => {
-        if (!data.verified) {
-          router.push("/verify");
-        }
+        setAgeStatus({
+          attested: !!data.attested,
+          ageBand: data.ageBand ?? null,
+          requiresVerification: !!data.requiresVerification,
+          verified: !!data.verified,
+        });
       })
       .catch(() => {
         // If check fails, allow through to avoid blocking legitimate users
+        setAgeStatus({ attested: true, ageBand: null, requiresVerification: false, verified: false });
       });
   }, [isLoaded, isSignedIn, router]);
+
+  useEffect(() => {
+    if (!ageStatus) return;
+    if (ageStatus.attested && ageStatus.requiresVerification && !ageStatus.verified) {
+      router.push("/verify");
+    }
+  }, [ageStatus, router]);
 
   const [mode, setMode] = useState<"form" | "interview">("interview");
   const [form, setForm] = useState<FormState>(EMPTY);
@@ -1732,6 +2046,25 @@ export default function SharePage() {
   }, [form, mode]);
 
   if (!isLoaded || !isSignedIn) {
+    return null;
+  }
+
+  if (!ageStatus) {
+    return null;
+  }
+
+  if (!ageStatus.attested) {
+    return (
+      <AgeAttestationPanel
+        ui={ui}
+        onAttested={(ageBand) =>
+          setAgeStatus({ attested: true, ageBand, requiresVerification: false, verified: false })
+        }
+      />
+    );
+  }
+
+  if (ageStatus.requiresVerification && !ageStatus.verified) {
     return null;
   }
 

@@ -55,6 +55,11 @@ export async function POST(req: NextRequest) {
     generatePreviewText(String(story_text)),
   ]);
 
+  const status = moderation.minorFlag ? "pending" : moderation.decision;
+  const moderationReason = moderation.minorFlag
+    ? `[AGE FLAG] ${moderation.reason}`
+    : moderation.reason;
+
   const { data, error } = await supabase.from("stories").insert({
     title,
     author_name: name,
@@ -65,8 +70,8 @@ export async function POST(req: NextRequest) {
     story_text,
     preview_text,
     original_language: original_language ?? "en",
-    status: moderation.decision,
-    moderation_reason: moderation.reason,
+    status,
+    moderation_reason: moderationReason,
     clerk_user_id: clerk_user_id ?? null,
     audio_url: audio_url ?? null,
     video_url: video_url ?? null,
@@ -75,6 +80,13 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (moderation.minorFlag && clerk_user_id) {
+    await supabase.from("user_verifications").upsert(
+      { clerk_user_id: String(clerk_user_id), requires_verification: true },
+      { onConflict: "clerk_user_id" }
+    );
   }
 
   return NextResponse.json({ id: data.id });

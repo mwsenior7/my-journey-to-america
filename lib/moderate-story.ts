@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 type ModerationResult = {
   decision: "approved" | "pending";
   reason: string;
+  minorFlag: boolean;
 };
 
 export async function moderateStory(
@@ -13,7 +14,7 @@ export async function moderateStory(
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
     console.error("moderateStory: ANTHROPIC_API_KEY is not set");
-    return { decision: "pending", reason: "Moderation skipped: API key not configured." };
+    return { decision: "pending", reason: "Moderation skipped: API key not configured.", minorFlag: false };
   }
 
   const client = new Anthropic({ apiKey });
@@ -32,13 +33,15 @@ SEND TO MANUAL REVIEW (pending) if the story:
 - Is nonsensical or clearly not a real immigration story
 - Is under 30 words with no genuine personal content (test submission)
 
+Additionally, set "minor_flag" to true ONLY if the story content strongly suggests the author is currently under 13 years old, or the content clearly contradicts an adult presentation (for example, it describes the author as currently in elementary or middle school). Otherwise set it to false. This is independent of the approve/pending decision above.
+
 Story submission:
 - Author: ${authorName}
 - Country of origin: ${country}
 - Story text: ${storyText}
 
 Respond with JSON only, no other text:
-{"decision": "approved", "reason": "..."} or {"decision": "pending", "reason": "..."}`;
+{"decision": "approved", "reason": "...", "minor_flag": false} or {"decision": "pending", "reason": "...", "minor_flag": false}`;
 
   try {
     const message = await client.messages.create({
@@ -51,15 +54,16 @@ Respond with JSON only, no other text:
     console.log("moderateStory raw response:", raw);
 
     const parsed = JSON.parse(raw);
+    const minorFlag = parsed.minor_flag === true;
 
     if (parsed.decision === "approved" || parsed.decision === "pending") {
-      return { decision: parsed.decision, reason: String(parsed.reason ?? "") };
+      return { decision: parsed.decision, reason: String(parsed.reason ?? ""), minorFlag };
     }
 
     console.error("moderateStory: unexpected decision value:", parsed.decision);
-    return { decision: "pending", reason: "Moderation result unclear; flagged for manual review." };
+    return { decision: "pending", reason: "Moderation result unclear; flagged for manual review.", minorFlag };
   } catch (err) {
     console.error("moderateStory error:", err);
-    return { decision: "pending", reason: "Moderation service unavailable; flagged for manual review." };
+    return { decision: "pending", reason: "Moderation service unavailable; flagged for manual review.", minorFlag: false };
   }
 }
