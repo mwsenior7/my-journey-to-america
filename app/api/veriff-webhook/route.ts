@@ -42,6 +42,49 @@ export async function POST(req: NextRequest) {
     { auth: { persistSession: false } }
   );
 
+  const { data: existing } = await supabase
+    .from("user_verifications")
+    .select("veriff_purpose")
+    .eq("clerk_user_id", vendorData)
+    .single();
+
+  if (existing?.veriff_purpose === "interview_age_check") {
+    // Real-time mid-interview escalation: confirms 13+ (not 18+) and, if
+    // confirmed, brings the self-attested age_band in line with Veriff's
+    // result. This never touches `verified`, which means "confirmed 18+"
+    // for the separate post-submission moderation escalation below.
+    if (status === "approved" && dateOfBirth) {
+      const dob = new Date(dateOfBirth);
+      const today = new Date();
+      const age = today.getFullYear() - dob.getFullYear() -
+        (today < new Date(today.getFullYear(), dob.getMonth(), dob.getDate()) ? 1 : 0);
+
+      if (age < 13) {
+        await supabase.from("user_verifications").upsert(
+          { clerk_user_id: vendorData, interview_age_check_result: "under_13", date_of_birth: dateOfBirth },
+          { onConflict: "clerk_user_id" }
+        );
+        console.log(`Veriff (interview age check): user ${vendorData} confirmed under 13`);
+      } else {
+        const confirmedBand = age < 18 ? "teen" : "adult";
+        await supabase.from("user_verifications").upsert(
+          {
+            clerk_user_id: vendorData,
+            interview_age_check_result: "ok",
+            age_band: confirmedBand,
+            date_of_birth: dateOfBirth,
+          },
+          { onConflict: "clerk_user_id" }
+        );
+        console.log(`Veriff (interview age check): user ${vendorData} confirmed ${confirmedBand}`);
+      }
+    } else {
+      console.log(`Veriff (interview age check): user ${vendorData} verification status: ${status}`);
+    }
+
+    return NextResponse.json({ ok: true });
+  }
+
   if (status === "approved") {
     // Check age — must be 18+
     let isAdult = false;

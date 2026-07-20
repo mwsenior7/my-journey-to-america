@@ -2,6 +2,11 @@ import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
+import { detectInterviewAgeSignal } from "@/lib/detect-interview-age-signal";
+
+// Real-time age-signal check kicks in once there's enough conversational
+// content to judge from — checking after a single short answer is too noisy.
+const AGE_SIGNAL_MIN_ANSWERS = 3;
 
 // In-memory rate limiter: 10 requests per IP per hour
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
@@ -108,19 +113,26 @@ export async function POST(req: NextRequest) {
     // an age/band value from the client. Unauthenticated or unverified users
     // default to adult behavior.
     let ageBand: "teen" | "adult" = "adult";
+    let ageConfirmedByVeriff = false;
     const { userId } = await auth();
-    if (userId) {
-      const supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.SUPABASE_SERVICE_ROLE_KEY!,
-        { auth: { persistSession: false } }
-      );
+    const supabase = userId
+      ? createClient(
+          process.env.NEXT_PUBLIC_SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          { auth: { persistSession: false } }
+        )
+      : null;
+    if (supabase && userId) {
       const { data } = await supabase
         .from("user_verifications")
-        .select("age_band")
+        .select("age_band, interview_age_check_result")
         .eq("clerk_user_id", userId)
         .single();
       if (data?.age_band === "teen") ageBand = "teen";
+      // Once Veriff has confirmed this person is 13+ for this account, that ID
+      // check outranks the text-based heuristic below — re-running it on the
+      // same transcript could otherwise re-flag appears_under_13 forever.
+      if (data?.interview_age_check_result === "ok") ageConfirmedByVeriff = true;
     }
 
     // Build language-aware system prompts
@@ -131,17 +143,6 @@ export async function POST(req: NextRequest) {
     };
     const targetLang = language && language !== "en" ? langMap[language] : null;
 
-    const baseInterviewSystem = buildInterviewSystem(ageBand);
-    const baseGenerateSystem = buildGenerateSystem(ageBand);
-
-    const interviewSystem = targetLang
-      ? `${baseInterviewSystem}\n\nIMPORTANT: Conduct this entire interview in ${targetLang}. All your responses, questions, and acknowledgments must be written in ${targetLang}. When you reach the closing phrase, write the line "I have everything I need to write your story." in ${targetLang} as well, but also include the exact English phrase "I have everything I need to write your story." on the same line in parentheses so the system can detect it.`
-      : baseInterviewSystem;
-
-    const generateSystem = targetLang
-      ? `${baseGenerateSystem}\n\nIMPORTANT: Write the entire story in ${targetLang}.`
-      : baseGenerateSystem;
-
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
@@ -151,6 +152,11 @@ export async function POST(req: NextRequest) {
     }
 
     if (phase === "generate") {
+      const baseGenerateSystem = buildGenerateSystem(ageBand);
+      const generateSystem = targetLang
+        ? `${baseGenerateSystem}\n\nIMPORTANT: Write the entire story in ${targetLang}.`
+        : baseGenerateSystem;
+
       const transcript = messages
         .map((m: { role: string; content: string }) =>
           `${m.role === "user" ? "Person sharing their story" : "Interviewer"}: ${m.content}`
@@ -189,6 +195,37 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({ text, preview_text });
     }
+
+    const answeredCount = messages.filter(
+      (m: { role: string }) => m.role === "user"
+    ).length;
+
+    if (!ageConfirmedByVeriff && answeredCount >= AGE_SIGNAL_MIN_ANSWERS) {
+      const transcriptSoFar = messages
+        .map((m: { role: string; content: string }) =>
+          `${m.role === "user" ? "Person sharing their story" : "Interviewer"}: ${m.content}`
+        )
+        .join("\n\n");
+
+      const signal = await detectInterviewAgeSignal(transcriptSoFar);
+
+      if (signal.appearsUnder13) {
+        return NextResponse.json({ ageGate: "under_13" });
+      }
+
+      if (signal.appearsTeenNotAdult && ageBand === "adult" && supabase && userId) {
+        await supabase.from("user_verifications").upsert(
+          { clerk_user_id: userId, age_band: "teen" },
+          { onConflict: "clerk_user_id" }
+        );
+        ageBand = "teen";
+      }
+    }
+
+    const baseInterviewSystem = buildInterviewSystem(ageBand);
+    const interviewSystem = targetLang
+      ? `${baseInterviewSystem}\n\nIMPORTANT: Conduct this entire interview in ${targetLang}. All your responses, questions, and acknowledgments must be written in ${targetLang}. When you reach the closing phrase, write the line "I have everything I need to write your story." in ${targetLang} as well, but also include the exact English phrase "I have everything I need to write your story." on the same line in parentheses so the system can detect it.`
+      : baseInterviewSystem;
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",

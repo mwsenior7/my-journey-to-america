@@ -29,9 +29,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ alreadyVerified: true });
   }
 
+  let purpose: string | null = null;
+  try {
+    const reqBody = await req.json();
+    if (reqBody?.purpose === "interview_age_check") purpose = "interview_age_check";
+  } catch {
+    // no JSON body — original (post-submission escalation) flow
+  }
+
+  const callback =
+    purpose === "interview_age_check"
+      ? "https://www.myjourneytoamerica.com/verify-interview-complete"
+      : "https://www.myjourneytoamerica.com/verify-complete";
+
   const body = {
     verification: {
-      callback: "https://www.myjourneytoamerica.com/verify-complete",
+      callback,
       vendorData: userId,
       timestamp: new Date().toISOString(),
     },
@@ -62,7 +75,19 @@ export async function POST(req: NextRequest) {
   }
 
   await supabase.from("user_verifications").upsert(
-    { clerk_user_id: userId, veriff_session_id: sessionId, verified: false },
+    purpose === "interview_age_check"
+      ? {
+          clerk_user_id: userId,
+          veriff_session_id: sessionId,
+          veriff_purpose: purpose,
+          interview_age_check_result: "pending",
+        }
+      : {
+          clerk_user_id: userId,
+          veriff_session_id: sessionId,
+          verified: false,
+          veriff_purpose: null,
+        },
     { onConflict: "clerk_user_id" }
   );
 

@@ -52,7 +52,7 @@ type InterviewAudioUrl = { answerIndex: number; url: string };
 
 type AIInterviewState = {
   messages: Message[];
-  phase: "interview" | "generating" | "done";
+  phase: "interview" | "generating" | "done" | "age_check";
   editedStory: string;
   interviewComplete: boolean;
 };
@@ -826,7 +826,7 @@ function AIInterview({
   }, [language, initialState]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
-  const [phase, setPhase] = useState<"interview" | "generating" | "done">(
+  const [phase, setPhase] = useState<"interview" | "generating" | "done" | "age_check">(
     initialState?.phase ?? "interview"
   );
   const [draftStory, setDraftStory] = useState("");
@@ -834,6 +834,8 @@ function AIInterview({
   const [interviewComplete, setInterviewComplete] = useState(
     initialState?.interviewComplete ?? false
   );
+  const [startingAgeVerification, setStartingAgeVerification] = useState(false);
+  const [ageVerificationError, setAgeVerificationError] = useState("");
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingText, setEditingText] = useState("");
   const [showStartOverConfirm, setShowStartOverConfirm] = useState(false);
@@ -1223,6 +1225,112 @@ function AIInterview({
     return data.text ?? "";
   }
 
+  async function continueInterview(nextMessages: Message[]) {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/interview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: nextMessages, phase: "interview", language }),
+      });
+
+      if (!res.ok) {
+        let message = "Sorry, something went wrong. Please try refreshing the page.";
+        try {
+          const data = await res.json();
+          if (data.error) message = data.error;
+        } catch {
+          // ignore parse failure
+        }
+        throw new Error(message);
+      }
+
+      const data = await res.json();
+
+      // A real-time age signal was detected mid-interview — stop asking
+      // questions, preserve every answer already given, and route to a
+      // Veriff age check instead of generating the next question.
+      if (data.ageGate === "under_13") {
+        setPhase("age_check");
+        onSave?.({
+          messages: nextMessages,
+          phase: "age_check",
+          editedStory,
+          interviewComplete,
+        });
+        return;
+      }
+
+      const finalText: string = data.text ?? "";
+      const updatedMessages: Message[] = [
+        ...nextMessages,
+        { role: "assistant", content: finalText },
+      ];
+      setMessages(updatedMessages);
+
+      const answeredCount = nextMessages.filter(m => m.role === "user").length;
+      const nowComplete =
+        finalText.includes("I have everything I need to write your story") ||
+        answeredCount >= TOTAL_QUESTIONS;
+      if (nowComplete) {
+        setInterviewComplete(true);
+      }
+
+      onSave?.({
+        messages: updatedMessages,
+        phase: "interview",
+        editedStory,
+        interviewComplete: nowComplete || interviewComplete,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      setMessages([...nextMessages, { role: "assistant", content: msg }]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // Resume-on-mount: if a draft was reloaded (e.g. returning from a Veriff
+  // age check) whose last message is an unanswered user turn, the interview
+  // never got to generate that next question — fetch it now instead of
+  // sitting there silently.
+  const resumedRef = useRef(false);
+  useEffect(() => {
+    if (resumedRef.current) return;
+    if (phase !== "interview") return;
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== "user") return;
+    resumedRef.current = true;
+    continueInterview(messages);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function startAgeVerification() {
+    setStartingAgeVerification(true);
+    setAgeVerificationError("");
+    try {
+      const res = await fetch("/api/veriff-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ purpose: "interview_age_check" }),
+      });
+      const data = await res.json();
+      if (data.alreadyVerified) {
+        // Already confirmed 18+ by a prior verification — no need to redo it.
+        setPhase("interview");
+        onSave?.({ messages, phase: "interview", editedStory, interviewComplete });
+        return;
+      }
+      if (!res.ok || !data.sessionUrl) {
+        throw new Error(data.error ?? "Failed to start verification");
+      }
+      window.location.href = data.sessionUrl;
+    } catch (err) {
+      setAgeVerificationError(err instanceof Error ? err.message : "Something went wrong");
+      setStartingAgeVerification(false);
+    }
+  }
+
   async function sendMessage(overrideText?: string) {
     const trimmed = (overrideText ?? input).trim();
     if (!trimmed || loading) return;
@@ -1240,44 +1348,9 @@ function AIInterview({
     setMessages(newMessages);
     setInput("");
     setShowTranscriptHint(false);
-    setLoading(true);
 
-    try {
-      const res = await fetch("/api/interview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: newMessages, phase: "interview", language }),
-      });
-
-      const finalText = await fetchText(res);
-
-      const updatedMessages: Message[] = [
-        ...newMessages,
-        { role: "assistant", content: finalText },
-      ];
-      setMessages(updatedMessages);
-
-      const answeredCount = newMessages.filter(m => m.role === "user").length;
-      const nowComplete =
-        finalText.includes("I have everything I need to write your story") ||
-        answeredCount >= TOTAL_QUESTIONS;
-      if (nowComplete) {
-        setInterviewComplete(true);
-      }
-
-      onSave?.({
-        messages: updatedMessages,
-        phase: "interview",
-        editedStory,
-        interviewComplete: nowComplete || interviewComplete,
-      });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "Something went wrong. Please try again.";
-      setMessages([...newMessages, { role: "assistant", content: msg }]);
-    } finally {
-      setLoading(false);
-      inputRef.current?.focus({ preventScroll: true });
-    }
+    await continueInterview(newMessages);
+    inputRef.current?.focus({ preventScroll: true });
   }
 
   async function generateStory() {
@@ -1372,6 +1445,37 @@ function AIInterview({
   const progress = Math.min(userMessageCount, TOTAL_QUESTIONS);
   const progressPct = Math.round((progress / TOTAL_QUESTIONS) * 100);
   const displayQuestion = Math.min(userMessageCount + 1, TOTAL_QUESTIONS);
+
+  if (phase === "age_check") {
+    return (
+      <div className="flex flex-col gap-5">
+        <div className="bg-white rounded-2xl border border-navy/10 shadow-sm p-8 text-center">
+          <div className="text-4xl mb-4">🪪</div>
+          <h2 className="text-xl font-bold text-navy mb-3">Just a Quick Check</h2>
+          <p className="text-navy/60 leading-relaxed mb-2">
+            We need to verify your age before continuing.
+          </p>
+          <p className="text-navy/40 text-sm mb-8 leading-relaxed">
+            Your answers so far are saved — once this is confirmed, you'll pick up right where you left off.
+          </p>
+          {ageVerificationError && (
+            <p className="text-red-500 text-sm mb-4">{ageVerificationError}</p>
+          )}
+          <button
+            type="button"
+            onClick={startAgeVerification}
+            disabled={startingAgeVerification}
+            className="w-full bg-gold text-navy font-semibold py-3 px-6 rounded-xl hover:bg-gold/90 transition-colors disabled:opacity-50"
+          >
+            {startingAgeVerification ? "Starting verification…" : "Verify My Age"}
+          </button>
+          <p className="text-xs text-navy/40 mt-6">
+            Powered by Veriff · Your data is encrypted and secure
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (phase === "generating" || phase === "done") {
     const wordCount = editedStory.trim().split(/\s+/).filter(Boolean).length;
