@@ -1,5 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@clerk/nextjs/server";
+import { createClient } from "@supabase/supabase-js";
 
 // In-memory rate limiter: 10 requests per IP per hour
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();
@@ -16,7 +18,22 @@ function checkRateLimit(ip: string): boolean {
   return true;
 }
 
-const INTERVIEW_SYSTEM = `You are a warm, encouraging interviewer helping immigrants share their stories for "My Journey to America" — a living digital archive preserving immigration stories for future generations. Many of the people you talk to don't consider themselves writers, so your job is to make this feel like a friendly conversation, not an interview. Be genuinely curious, supportive, and enthusiastic about what they share.
+function buildInterviewSystem(ageBand: "teen" | "adult"): string {
+  const question7 =
+    ageBand === "teen"
+      ? `7. "What American brands, stores, foods, shows, music, or hobbies became part of your new life? Where do you like to shop, what do you eat now that you love, what do you like to do for fun?"`
+      : `7. "What American brands, stores, foods, or products became part of your new life? What do you drive, where do you shop, what do you eat now that you love?"`;
+
+  const teenAddendum = `
+
+TEEN STORYTELLER GUIDANCE:
+This storyteller is a teenager. Adapt your approach accordingly:
+- Use warm, simple, encouraging language suitable for a teenager — avoid formal or complex phrasing.
+- Center your questions and follow-ups on school, friendships, family, language and cultural adjustment, hobbies, and how the move made them feel.
+- NEVER ask about careers, jobs, finances, driving, marriage, or visa/legal specifics — these topics are off-limits for this storyteller.
+- If a previous answer touches on hardship or something difficult, be extra gentle: warmly acknowledge their feelings and move on — do not probe for more traumatic detail.`;
+
+  return `You are a warm, encouraging interviewer helping immigrants share their stories for "My Journey to America" — a living digital archive preserving immigration stories for future generations. Many of the people you talk to don't consider themselves writers, so your job is to make this feel like a friendly conversation, not an interview. Be genuinely curious, supportive, and enthusiastic about what they share.
 
 Ask these 8 questions in order, one at a time. After each answer, respond with a warm, specific acknowledgment of what they said (1-2 sentences), then ask the next question. Reference details they mentioned to show you were truly listening.
 
@@ -27,7 +44,7 @@ QUESTIONS TO ASK (in this exact order):
 4. "What was your first day in America like? What did you see, hear, or feel that you've never forgotten?"
 5. "What was the hardest thing about starting your new life here?"
 6. "What surprised you most about America — something you truly didn't expect?"
-7. "What American brands, stores, foods, or products became part of your new life? What do you drive, where do you shop, what do you eat now that you love?"
+${question7}
 8. "How has your life changed since arriving? Looking back, what are you most proud of?"
 
 RULES:
@@ -35,11 +52,21 @@ RULES:
 - Keep acknowledgments genuine and specific to their actual answer — reference the details they shared, not generic praise
 - If an answer is very short, gently encourage a little more with something like "Can you tell me a bit more about that? Even a small detail paints such a vivid picture."
 - Remind them occasionally that there are no wrong answers and their story is important
-- After they've answered question 8 (or after all 8 questions feel naturally complete), end your final response with a warm closing like "Thank you so much for sharing all of this — what a remarkable journey." followed by exactly this phrase on its own line: "I have everything I need to write your story."
+- After they've answered question 8 (or after all 8 questions feel naturally complete), end your final response with a warm closing like "Thank you so much for sharing all of this — what a remarkable journey." followed by exactly this phrase on its own line: "I have everything I need to write your story."${ageBand === "teen" ? teenAddendum : ""}
 
 Begin with question 1.`;
+}
 
-const GENERATE_SYSTEM = `You are helping document immigration stories for "My Journey to America" — a digital archive preserving real people's experiences in their own words.
+function buildGenerateSystem(ageBand: "teen" | "adult"): string {
+  const teenAddendum = `
+
+TEEN STORYTELLER GUIDANCE:
+This storyteller is a teenager. Preserve an authentic younger voice:
+- Use simpler sentences and an honest, hopeful tone — the way a teenager would actually talk, not an adult looking back with polish.
+- Never invent adult framing that wasn't in the interview — no career reflections, no "decades of hindsight," no grown-up life lessons they didn't actually say.
+- Stay grounded in what they actually shared: school, friendships, family, adjusting to a new place, and how it felt.`;
+
+  return `You are helping document immigration stories for "My Journey to America" — a digital archive preserving real people's experiences in their own words.
 
 Based on the interview transcript, write a first-person story that sounds like the person is telling it to a friend over coffee. It should feel real and human, not literary or dramatic.
 
@@ -58,9 +85,10 @@ STYLE GUIDE:
 - No words like: "tapestry", "journey of the soul", "beacon", "profound", "visceral", "palpable", "mosaic", "kaleidoscope", "testament"
 - If they described something plainly, don't dress it up — keep the plain version
 - Authentic and believable, not dramatic or cinematic
-- The story should sound like a real person wrote it, not a novelist
+- The story should sound like a real person wrote it, not a novelist${ageBand === "teen" ? teenAddendum : ""}
 
 Output ONLY the story text. No title, no "Here is the story:", no preamble. Begin directly with the first word of the story.`;
+}
 
 export async function POST(req: NextRequest) {
   const ip =
@@ -76,6 +104,25 @@ export async function POST(req: NextRequest) {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
     const { messages, phase, language } = await req.json();
 
+    // Age band is looked up server-side from user_verifications — never trust
+    // an age/band value from the client. Unauthenticated or unverified users
+    // default to adult behavior.
+    let ageBand: "teen" | "adult" = "adult";
+    const { userId } = await auth();
+    if (userId) {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { persistSession: false } }
+      );
+      const { data } = await supabase
+        .from("user_verifications")
+        .select("age_band")
+        .eq("clerk_user_id", userId)
+        .single();
+      if (data?.age_band === "teen") ageBand = "teen";
+    }
+
     // Build language-aware system prompts
     const langMap: Record<string, string> = {
       es: "Spanish", fr: "French", pt: "Portuguese", de: "German", it: "Italian",
@@ -84,13 +131,16 @@ export async function POST(req: NextRequest) {
     };
     const targetLang = language && language !== "en" ? langMap[language] : null;
 
+    const baseInterviewSystem = buildInterviewSystem(ageBand);
+    const baseGenerateSystem = buildGenerateSystem(ageBand);
+
     const interviewSystem = targetLang
-      ? `${INTERVIEW_SYSTEM}\n\nIMPORTANT: Conduct this entire interview in ${targetLang}. All your responses, questions, and acknowledgments must be written in ${targetLang}. When you reach the closing phrase, write the line "I have everything I need to write your story." in ${targetLang} as well, but also include the exact English phrase "I have everything I need to write your story." on the same line in parentheses so the system can detect it.`
-      : INTERVIEW_SYSTEM;
+      ? `${baseInterviewSystem}\n\nIMPORTANT: Conduct this entire interview in ${targetLang}. All your responses, questions, and acknowledgments must be written in ${targetLang}. When you reach the closing phrase, write the line "I have everything I need to write your story." in ${targetLang} as well, but also include the exact English phrase "I have everything I need to write your story." on the same line in parentheses so the system can detect it.`
+      : baseInterviewSystem;
 
     const generateSystem = targetLang
-      ? `${GENERATE_SYSTEM}\n\nIMPORTANT: Write the entire story in ${targetLang}.`
-      : GENERATE_SYSTEM;
+      ? `${baseGenerateSystem}\n\nIMPORTANT: Write the entire story in ${targetLang}.`
+      : baseGenerateSystem;
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
