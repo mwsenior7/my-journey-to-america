@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { auth } from "@clerk/nextjs/server";
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -108,6 +109,24 @@ export async function POST(req: NextRequest) {
             .from("story-audio")
             .getPublicUrl(upload.path);
           audio_url = urlData.publicUrl;
+
+          // Track the storage path (not the public URL) server-side while the
+          // interview is still in progress, so a mid-interview under-13 Veriff
+          // result has a reliable record of what to delete — the client's local
+          // draft state isn't something a server-side deletion step should trust.
+          const { userId } = await auth();
+          if (userId) {
+            const { data: existing } = await supabase
+              .from("user_verifications")
+              .select("interview_audio_paths")
+              .eq("clerk_user_id", userId)
+              .single();
+            const paths = existing?.interview_audio_paths ?? [];
+            await supabase.from("user_verifications").upsert(
+              { clerk_user_id: userId, interview_audio_paths: [...paths, upload.path] },
+              { onConflict: "clerk_user_id" }
+            );
+          }
         }
       }
     } catch (storageErr) {

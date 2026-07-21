@@ -60,11 +60,43 @@ export async function POST(req: NextRequest) {
         (today < new Date(today.getFullYear(), dob.getMonth(), dob.getDate()) ? 1 : 0);
 
       if (age < 13) {
+        // Delete any audio already uploaded during this in-progress interview —
+        // nothing was submitted yet, so the story-audio bucket is the only place
+        // this content lives. interview_age_check_result and resolved_at are kept
+        // as the compliance record that this was detected and acted on, separate
+        // from the actual story content, which is what gets deleted here.
+        const { data: audioRow } = await supabase
+          .from("user_verifications")
+          .select("interview_audio_paths")
+          .eq("clerk_user_id", vendorData)
+          .single();
+        const paths = audioRow?.interview_audio_paths ?? [];
+
+        if (paths.length > 0) {
+          const { error: removeErr } = await supabase.storage
+            .from("story-audio")
+            .remove(paths);
+          if (removeErr) {
+            console.error(
+              `Veriff (interview age check): failed to delete audio for ${vendorData}:`,
+              removeErr.message
+            );
+          }
+        }
+
         await supabase.from("user_verifications").upsert(
-          { clerk_user_id: vendorData, interview_age_check_result: "under_13", date_of_birth: dateOfBirth },
+          {
+            clerk_user_id: vendorData,
+            interview_age_check_result: "under_13",
+            date_of_birth: dateOfBirth,
+            interview_audio_paths: [],
+            resolved_at: new Date().toISOString(),
+          },
           { onConflict: "clerk_user_id" }
         );
-        console.log(`Veriff (interview age check): user ${vendorData} confirmed under 13`);
+        console.log(
+          `Veriff (interview age check): user ${vendorData} confirmed under 13 — deleted ${paths.length} audio file(s)`
+        );
       } else {
         const confirmedBand = age < 18 ? "teen" : "adult";
         await supabase.from("user_verifications").upsert(
