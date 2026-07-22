@@ -91,7 +91,19 @@ export default function VerifyInterviewCompletePage() {
               We couldn't confirm this yet. Your answers are still saved — you can head back and try again.
             </p>
             <button
-              onClick={() => router.push("/share")}
+              onClick={() => {
+                try {
+                  const raw = localStorage.getItem(DRAFT_KEY);
+                  if (raw) {
+                    const parsed = JSON.parse(raw);
+                    parsed.phase = "interview";
+                    localStorage.setItem(DRAFT_KEY, JSON.stringify(parsed));
+                  }
+                } catch {
+                  // if this fails the user can still resume manually from /share
+                }
+                router.push("/share");
+              }}
               className="bg-gold text-navy font-semibold py-3 px-6 rounded-xl hover:bg-gold/90 transition-colors"
             >
               Back to Your Story
