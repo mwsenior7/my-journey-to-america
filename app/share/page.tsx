@@ -864,6 +864,7 @@ function AIInterview({
     editRecStateRef.current = editRecState;
   }, [editRecState]);
   const interviewTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const startOverGenerationRef = useRef(0);
   const ttsHasPlayedRef = useRef(false);
   const maxVolumeRef = useRef<number>(0);
   const hasDetectedSoundRef = useRef(false);
@@ -1060,6 +1061,7 @@ function AIInterview({
   }
 
   async function startInterviewRecording(editTarget?: { answerIndex: number }) {
+    const recordingGeneration = startOverGenerationRef.current;
     if (speakAbortRef.current) {
       speakAbortRef.current.abort();
       speakAbortRef.current = null;
@@ -1163,7 +1165,9 @@ function AIInterview({
           if (language) fd.append("language", language);
           const res = await fetch("/api/transcribe", { method: "POST", body: fd });
           const data = await res.json();
-          if (data.no_speech || !data.text) {
+          if (recordingGeneration !== startOverGenerationRef.current) {
+            // Start Over ran while this transcription was in flight; discard the stale response.
+          } else if (data.no_speech || !data.text) {
             setNoSpeechMsg(ui.noSpeechDetected);
           } else {
             setNoSpeechMsg("");
@@ -1406,6 +1410,7 @@ function AIInterview({
   }
 
   function startOver() {
+    startOverGenerationRef.current += 1;
     // Stop any in-flight TTS audio and cancel countdown
     if (speakAbortRef.current) {
       speakAbortRef.current.abort();
