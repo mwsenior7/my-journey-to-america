@@ -84,7 +84,7 @@ export default function VerifyInterviewCompletePage() {
             <h1 className="text-2xl font-bold text-navy mb-3">Thanks for letting us know</h1>
             <p className="text-navy/60 leading-relaxed">
               My Journey to America is only able to publish stories from people 13 and older,
-              so we won't be able to continue right now. We've kept what you shared safe, and
+              so we won't be able to continue right now. What you shared has been deleted, and
               we hope you'll come back and share your story when you're a bit older!
             </p>
           </>
