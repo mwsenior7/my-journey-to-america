@@ -83,7 +83,6 @@ export async function POST(req: NextRequest) {
       avgLogprob,
       avgCompressionRatio,
       isDenylist,
-      textPreview: transcription.text.slice(0, 60),
     });
 
     const text = no_speech_detected ? "" : transcription.text;

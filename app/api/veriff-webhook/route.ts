@@ -88,7 +88,6 @@ export async function POST(req: NextRequest) {
           {
             clerk_user_id: vendorData,
             interview_age_check_result: "under_13",
-            date_of_birth: dateOfBirth,
             interview_audio_paths: [],
             resolved_at: new Date().toISOString(),
           },

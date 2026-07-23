@@ -36,6 +36,11 @@ export default function VerifyInterviewCompletePage() {
         }
 
         if (data.status === "under_13") {
+          try {
+            localStorage.removeItem(DRAFT_KEY);
+          } catch {
+            // if this fails there's no draft to worry about resuming anyway
+          }
           setStatus("under_13");
           return;
         }
