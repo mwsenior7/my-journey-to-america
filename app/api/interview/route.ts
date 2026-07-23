@@ -4,9 +4,9 @@ import { auth } from "@clerk/nextjs/server";
 import { createClient } from "@supabase/supabase-js";
 import { detectInterviewAgeSignal } from "@/lib/detect-interview-age-signal";
 
-// Real-time age-signal check kicks in once there's enough conversational
-// content to judge from — checking after a single short answer is too noisy.
-const AGE_SIGNAL_MIN_ANSWERS = 3;
+// Real-time age-signal check runs starting from the very first answer so
+// clear signals aren't missed while waiting for more content to accumulate.
+const AGE_SIGNAL_MIN_ANSWERS = 1;
 
 // In-memory rate limiter: 10 requests per IP per hour
 const rateLimitStore = new Map<string, { count: number; resetAt: number }>();

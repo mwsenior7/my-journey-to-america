@@ -24,6 +24,7 @@ export default function VerifyInterviewCompletePage() {
             if (raw) {
               const parsed = JSON.parse(raw);
               parsed.phase = "interview";
+              parsed.autoResume = true;
               localStorage.setItem(DRAFT_KEY, JSON.stringify(parsed));
             }
           } catch {

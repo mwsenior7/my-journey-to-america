@@ -61,6 +61,7 @@ type SavedDraft = AIInterviewState & {
   form: FormState;
   mode: "form" | "interview";
   savedAt: number;
+  autoResume?: boolean;
 };
 
 function formatRelativeTime(ts: number): string {
@@ -2135,6 +2136,23 @@ export default function SharePage() {
       // ignore corrupt data
     }
   }, []);
+
+  useEffect(() => {
+    if (!savedDraft?.autoResume) return;
+
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        delete parsed.autoResume;
+        localStorage.setItem(DRAFT_KEY, JSON.stringify(parsed));
+      }
+    } catch {
+      // ignore storage errors
+    }
+
+    continueDraft();
+  }, [savedDraft]);
 
   useEffect(() => {
     const hasFormContent = !!(form.name || form.story_text || form.country);
